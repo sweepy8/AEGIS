@@ -7,7 +7,10 @@
 # --- rotating the NEMA 17 to test
 # --- wiring and motor functionality
 #
-#
+#curl -sL https://github.com/gavinlyonsrepo/RpiMotorLib/archive/3.3.tar.gz | tar xz
+#cd RpiMotorLib-3.3
+#python3 setup.py build 
+#python3 setup.py install --user
 #######################################
 #
 import RPi.GPIO as GPIO
