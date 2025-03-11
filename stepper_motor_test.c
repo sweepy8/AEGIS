@@ -1,78 +1,50 @@
-#include <wiringPi.h> // Include WiringPi library!
+#include <wiringPi.h>  // Include WiringPi library
 #include <stdio.h>
-#include <string.h>
-#include <errno.h>
 #include <stdlib.h>
-#include <time.h>
+#include <unistd.h>  // For usleep()
 
-int main(void)
-{
+// Define GPIO pins using physical numbering
+#define DIR_PIN 16   // Direction pin (Physical pin 16)
+#define STEP_PIN 18  // Step pin (Physical pin 18)
+#define MS3_PIN 11   // MS3 pin (Physical pin 11)
+#define MS2_PIN 13   // MS2 pin (Physical pin 13)
+#define MS1_PIN 15   // MS1 pin (Physical pin 15)
 
-  /*
-    int wiringPiSetupPinType(enum WPIPinType pinType)
+#define STEP_DELAY 1000  // Microseconds between steps
 
-    pinType: Type of PIN numbering...
-
-    WPI_PIN_BCM ... BCM-Numbering
-    WPI_PIN_WPI ... WiringPi-Numbering
-    WPI_PIN_PHYS ... Physical Numbering
-
-  */
-  
-// set up pins by physcial pin numbering
-    wiringPiSetupPinType(WPI_PIN_PHYS);
-
-  /*
-    void pinMode(int pin, int mode)
-
-    Pin: The desired PIN (BCM, Wiringpi or PIN number).
-    Mode: The desired pin mode...
-
-    INPUT ... Input
-    OUTPUT ... Output
-    PWM_OUTPUT ... PWM output (frequency and pulse break ratio can be configured)
-    PWM_MS_OUTPUT ... PWM output with MS (Mark/Space) (since version 3)
-    PWM_BAL_OUTPUT ... PWM output with mode balanced) (since version 3)
-    GPIO_CLOCK ... Frequency output
-    PM_OFF ... Release
-  */
-  
-//set pins of driver  
-    // set pin 16 to output (direction)
-    pinMode(16, OUTPUT);
-    
-    // set pin 18 to output (step)
-    pinMode(18, OUTPUT);
-    
-    // set pin 11 to output (MS3)
-    pinMode(11, OUTPUT);
-    
-    // set pin 13 to output (MS2)
-    pinMode(13, OUTPUT);
-    
-    // set pin 15 to output (MS1)
-    pinMode(15, OUTPUT);
-    
-
-/*
-    digitalWrite(int pin, int value)
-
-    pin: The desired Pin (BCM-, Wiringpi- or PIN number).
-    value: The logical value...
-
-    HIGH ... Value 1 (electrical ~ 3.3 V)
-    LOW ... Value 0 (electrical ~0 V / GND)
-
-*/
-
-//writing to pins
-    
-    //full step for 200 which is one revolution
-    for () {
-        DigitalWrite(11, LOW);
-        DigitalWrite(13, LOW);
-        DigitalWrite(15, LOW);
+int main(void) {
+    // Set up WiringPi using physical pin numbering
+    if (wiringPiSetupPhys() == -1) {
+        fprintf(stderr, "Failed to initialize WiringPi: %s\n", strerror(errno));
+        return 1;
     }
 
-  
+    // Set pins as output
+    pinMode(DIR_PIN, OUTPUT);
+    pinMode(STEP_PIN, OUTPUT);
+    pinMode(MS3_PIN, OUTPUT);
+    pinMode(MS2_PIN, OUTPUT);
+    pinMode(MS1_PIN, OUTPUT);
+
+    // Set microstepping mode to FULL STEP (MS1 = 0, MS2 = 0, MS3 = 0)
+    digitalWrite(MS3_PIN, LOW);
+    digitalWrite(MS2_PIN, LOW);
+    digitalWrite(MS1_PIN, LOW);
+
+    // Set direction (1 for CW, 0 for CCW)
+    digitalWrite(DIR_PIN, HIGH);
+
+    printf("Rotating stepper motor one full revolution...\n");
+
+    // Send 200 step pulses for one full revolution
+    for (int i = 0; i < 200; i++) {
+        digitalWrite(STEP_PIN, HIGH);
+        usleep(STEP_DELAY);
+        digitalWrite(STEP_PIN, LOW);
+        usleep(STEP_DELAY);
+    }
+
+    printf("Rotation complete.\n");
+
+    return 0;
 }
