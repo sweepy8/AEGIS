@@ -66,8 +66,13 @@ int main(void)
 */
 
 //writing to pins
-
-    DigitalWrite(17, HIGH);
+    
+    //full step for 200 which is one revolution
+    for () {
+        DigitalWrite(11, LOW);
+        DigitalWrite(13, LOW);
+        DigitalWrite(15, LOW);
+    }
 
   
 }
