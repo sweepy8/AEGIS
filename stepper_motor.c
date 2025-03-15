@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include <unistd.h>  // For usleep()
 #include <errno.h>   // For error handling
+#include <string.h>  // For strerror()
 
 // Define GPIO pins using physical numbering
-#define DIR_PIN 16   // Direction pin (Physical pin 16)
-#define STEP_PIN 18  // Step pin (Physical pin 18)
+#define DIR_PIN 31   // Direction pin (Physical pin 16)
+#define STEP_PIN 29  // Step pin (Physical pin 18)
 #define MS3_PIN 11   // MS3 pin (Physical pin 11)
 #define MS2_PIN 13   // MS2 pin (Physical pin 13)
 #define MS1_PIN 15   // MS1 pin (Physical pin 15)
