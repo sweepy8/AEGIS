@@ -5,7 +5,7 @@ import motor_driver as Motor
 import numpy as np
 import time
 
-NUM_RINGS = 1
+NUM_RINGS = 360
 DEG_PER_RING = 1
 
 MOTOR_TURN_SPD = 1			# 0 - 4.5 Hz
@@ -18,9 +18,9 @@ def conv_pts_sph_to_cart(pts):
     
     for pt in pts:
         c_pt = []
-        c_pt.append(round(pt[0]*np.sin(np.deg2rad(pt[2]))*np.cos(np.deg2rad(pt[1])), 4))	# x = r*sin(phi)*cos(theta)
-        c_pt.append(round(pt[0]*np.sin(np.deg2rad(pt[2]))*np.sin(np.deg2rad(pt[1])), 4))	# y = r*sin(phi)*sin(theta)
-        c_pt.append(round(pt[0]*np.cos(np.deg2rad(pt[2])), 4))								# z = r*cos(phi)
+        c_pt.append(round(pt[0]*np.sin(np.deg2rad(pt[1]))*np.cos(np.deg2rad(pt[2])), 4))	# x = r*sin(phi)*cos(theta)
+        c_pt.append(round(pt[0]*np.sin(np.deg2rad(pt[1]))*np.sin(np.deg2rad(pt[2])), 4))	# y = r*sin(phi)*sin(theta)
+        c_pt.append(round(pt[0]*np.cos(np.deg2rad(pt[1])), 4))								# z = r*cos(phi)
         c_pt.append(pt[3])																	# Intensity
         c_pts.append(c_pt)	# Add cartesian point with intensity to points array
         
