@@ -60,6 +60,7 @@ class Motor:
         )
         
         self.curr_angle = None
+        self.angle_correction_factor = 1
 
     def set_speed(self, speed : int):
         self.speed = speed
@@ -72,8 +73,11 @@ class Motor:
         else:
             raise Exception("Failed to set direction. Invalid input!")
 
-    def set_start_angle(self):
-        self.curr_angle = 0
+    def set_start_angle(self, angle : int):
+        self.curr_angle = angle
+        
+    def set_correction_factor(self, f : float):
+        self.angle_correction_factor = f
 
     def turn_degs(self, deg : int):
         
@@ -82,7 +86,7 @@ class Motor:
             raise Exception("Turn amount is too small!")
         delay = 1 / (200 * self.get_ms_res_denom() * self.speed)
 
-        print(f"Moving {steps} steps with delay of {delay}...")
+        print(f"Moving {round(steps, 4)} steps with delay of {round(delay, 4)}s...")
 
 
         for i in range(0, int(steps)):
@@ -91,9 +95,25 @@ class Motor:
             self.step.off()
             sleep(delay / 2)
         
-        self.curr_angle += deg
-        self.curr_angle %= 360
+        self.curr_angle += deg * self.angle_correction_factor
+        
 
+    def turn_steps(self, steps : int):
+        deg = float(steps) / (200 * self.get_ms_res_denom()) * 360
+        if steps < 1:
+            raise Exception("Turn amount is too small!")
+        delay = 1 / (200 * self.get_ms_res_denom() * self.speed)
+        
+        print(f"Moving {steps} steps with delay of {round(delay, 4)}s [A={self.curr_angle}]...")
+        
+        for i in range(0, steps):
+            self.step.on()
+            sleep(delay / 2)
+            self.step.off()
+            sleep(delay / 2)
+        
+        self.curr_angle += deg * self.angle_correction_factor
+        
 
     def set_ms_res(self, res : str):
         for msr in self.microstep_resolutions:
@@ -119,14 +139,14 @@ class Motor:
 
 def main():
     M1 = Motor()
-    M1.set_speed(4.5)	# 0 - 4.5
-    M1.set_ms_res("SIXTEENTH")
-    M1.set_start_angle()
+    M1.set_speed(1)	# 0 - 4.5
+    M1.set_ms_res("HALF")
+    M1.set_start_angle(0)
     print(f"MS_RES set to {M1.ms_res.value}, ms_res_denom = {M1.get_ms_res_denom()}")
 
-    M1.set_dir("CCW")
+    M1.set_dir("CW")
     for i in range(0, 180):
-        M1.turn_degs(1)
+        M1.turn_steps(1)
         sleep(0.25)    
 #     sleep(3)
     #M1.turn_degs(0)

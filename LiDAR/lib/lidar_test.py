@@ -1,19 +1,6 @@
 '''
-LiDAR driver for AEGIS senior design, built to be compatible with LD20 and STL27L LiDAR sensors
-Zach Martin
-
-Baudrates:
-    LD20:   230400 bps
-    STL27L: 921600 bps
-
-CURRENT TASKS:
-    - Write points to a file and visualize it, or alternatively, implement matplotlib visualization
-    - [DONE] Fix low point rate
-
-CURRENT PROBLEMS:
-    [DONE] It appears I am scanning too fast. If I don't print, 1 million packets produced around 8000
-    points. Why? The serial connection should be waiting until enough data is available.
-    Maybe I need to introduce small delays. This must be investigated.    
+LiDAR driver for AEGIS senior design.
+Compatible with STL27L LiDAR sensor.
 '''
 
 import numpy
@@ -45,15 +32,14 @@ class Lidar:
     def __init__(self):
         
         self.name		 = 'STL27L'
-        self.max_packets = 245		#STL27L = 245, LD20 = 80
+        self.max_packets = 245
         self.packet_size = 47
         self.start_byte  = 0x54
-        self.hit_rate_threshold = 0.8
+        self.hit_rate_threshold = 0.95
         
         self.serial_conn = serial.Serial()
         
         self.port_name   = '/dev/ttyAMA0'
-        #self.baudrate    = 230400			#LD20 Baud
         self.baudrate	 = 921600			#STL27L Baud
         self.byte_size   = 8
         self.parity_bits = 'N'
@@ -74,7 +60,7 @@ class Lidar:
         # Open configured serial connection
         self.serial_conn.open()
         
-        time.sleep(0.05)	# Allow LIDAR serial connection to form
+        time.sleep(0.05)	# Allow connection to form
     
     
     def close_serial(self):
@@ -90,22 +76,21 @@ class Lidar:
             
             data = self.serial_conn.read(self.packet_size)
             
-            if show:
-                print("\n#%3.3d (L=%2.2d):  " %(p, len(data)), end='')
+            if show: print("\n#%3.3d (L=%2.2d):  " %(p, len(data)), end='')
+            
             if (len(data) != self.packet_size):
-                if show:
-                    print("Incorrect Packet Size! N =", len(data), end='')
+                if show: print("Incorrect Packet Size! N =", len(data), end='')
                 packets += 1
                 continue
+            
             if (data[0] != self.start_byte):
-                if show:
-                    print("Misaligned Packet!", end='')
+                if show: print("Misaligned Packet!", end='')
                 self.serial_conn.read_until(str(self.start_byte))
                 packets += 1
                 continue
+            
             if (data[self.packet_size-1] != self.calc_crc8(data)):
-                if show:
-                    print("Incorrect Checksum!", end='')
+                if show: print("Incorrect Checksum!", end='')
                 self.serial_conn.read_until(str(self.start_byte))
                 packets += 1
                 continue
@@ -118,7 +103,7 @@ class Lidar:
                 print("Appended packet %3.3d!" % p, end='')
 
             if no_vis:
-                time.sleep(0.001)	# 3ms FOR LD20, Maybe 750us for STL27L?
+                time.sleep(0.001)	#Allow time to scan. Visualizer offers enough delay
             
         if show: print("\nFunction get_scan finished!")
     
@@ -132,28 +117,42 @@ class Lidar:
         end_angle = p[43] * (2**8) + p[42]	# end angle in units of 0.01 degrees
         timestamp = p[45] * (2**8) + p[44] 	# units of ms, rollover at 30000
         
-        angle_delta = numpy.abs((end_angle - start_angle)) / (12-1)					# SHOULD THIS BE ABSOLUTE VALUE?? ***
+        if end_angle < start_angle:				# If we've rolled over from 360 to 0
+            angle_delta = numpy.abs(end_angle - start_angle + 36000) / (12-1)	# angle delta should not be |10 - 350| == 340
+        else:
+            angle_delta = numpy.abs(end_angle - start_angle) / (12-1)
+        
         pts_arr = []
         for i in range(0,12):	# construct points array (12 points per packet)
-            pt_dist = ( p[6 + 3*i + 1] * (2**8) + p[6 + 3*i] ) / 1000		# distance in mm, converted to meters
-            pt_angle = ( start_angle + angle_delta * i ) / 100				# angle in 0.01 deg, converted to deg
-            pt_intensity = p[6 + 3*i + 2]									# Reflect intensity? Weird one, let's color map it and see
+            pt_dist = ( p[7 + 3*i] * (2**8) + p[6 + 3*i] ) / 1000	# distance in mm, converted to meters
+            pt_angle = ( start_angle + angle_delta * i ) / 100		# angle in 0.01 deg, converted to deg
+            pt_intensity = p[8 + 3*i]								# reflection intensity
             
-            if motor_angle == None: # Enable 2D prints for tests without motor
-                pts_arr.append([pt_dist, pt_angle, pt_intensity])
-            else:
-                pts_arr.append([pt_dist, pt_angle, motor_angle, pt_intensity])
-    
+            # Enable 2D for tests without motor. ("is not None" delineates between 0 and None type)
+            if motor_angle is not None: pts_arr.append([pt_dist, pt_angle, motor_angle, pt_intensity])
+            else:			pts_arr.append([pt_dist, pt_angle, pt_intensity])
+                
         if show:
             print("\nPacket Info: SB=%2.2x|VL=%2.2x|SP=%d|ST_A=%d|E_A=%d|TIME=%d" % (p[0], p[1], speed, start_angle, end_angle, timestamp))
-            print("  Data: ", end='')
+            print("\n  Data:", end=' ')
             for pt in pts_arr:
-                if motor_angle == None:
-                    print("(D=%f|A=%f|I=%d)" % (pt[0], pt[1], pt[2]), end='')
-                else:
-                    print("(D=%f|A=%f|M=%f|I=%d)" % (pt[0], pt[1], pt[2], pt[3]), end='')
+                if motor_angle is not None: print(f"(D={pt[0]}|A={pt[1]}|M={pt[2]}|I={pt[3]})")
+                else: 			print(f"(D={pt[0]}|A={pt[1]}|I={pt[2]})")
     
         return pts_arr
+    
+    
+    def get_processed_ring(self, show=0, no_vis=1, motor_angle=None):
+        pts = []
+        while (len(pts) / 12 < self.max_packets * self.hit_rate_threshold):
+            pts = []
+            if show: print(f"Requesting {self.max_packets * 12} points...", end=' ')
+            for p in self.get_packets(self.max_packets, show, no_vis):
+                for pt in self.process_packet(p, show, motor_angle):                    
+                    pts.append(pt)
+            if show: print(f"Recieved {len(pts)} points...")
+        
+        return pts
     
     
     def calc_crc8(self, packet):
@@ -234,16 +233,11 @@ def print_pts_test():
     time.sleep(0.05)	# Allow LiDAR serial connection to form ** SUPER IMPORTANT? ""
     print("  Done!")
     
+    L1.max_packets = 3
+    
     start_time = time.time()
     
-    pts = []
-    while (len(pts) / 12 < L1.max_packets * L1.hit_rate_threshold):
-        pts = []
-        print("Requesting %d points (%d packets)..." % (L1.max_packets * 12, L1.max_packets), end='')
-        for p in L1.get_packets(L1.max_packets, no_vis=1):
-            for pt in L1.process_packet(p):                    
-                pts.append(pt)
-        print(f" Recieved {len(pts)} points...")
+    pts = L1.get_processed_ring(show=1)
         
     end_time = time.time()
     
@@ -252,9 +246,9 @@ def print_pts_test():
     c_pts = L1.conv_pts_coords(pts)
     print("Points converted to Cartesian coordinates!")
     print(c_pts)
-    print("Writing points to text file...", end='')
-    L1.write_pts_to_file("testpcd.txt", c_pts)
-    print(" Done!")
+    #print("Writing points to text file...", end='')
+    #L1.write_pts_to_file("testpcd.txt", c_pts)
+    #print(" Done!")
 
 
 def visualize_pts_test():
@@ -302,8 +296,8 @@ def visualize_pts_test():
     
 
 def main():
-    #print_pts_test()
-    visualize_pts_test()
+    print_pts_test()
+    #visualize_pts_test()
 
 
 if __name__ == "__main__":
