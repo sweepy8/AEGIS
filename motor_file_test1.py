@@ -109,4 +109,59 @@ class Motor:
             GPIO.output(self.MS2_PIN, ms_values[1])
             GPIO.output(self.MS3_PIN, ms_values[2])
         else:
-            raise ValueError("Invalid microstepping resolution value. Must be one of: FULL, HALF, QUARTER, EIGHTH,
+            raise ValueError("Invalid microstepping resolution value. Must be one of: FULL, HALF, QUARTER, EIGHTH, SIXTEENTH.")
+
+    def get_ms_denom(self):
+        """
+        Returns the microstepping denominator (number of microsteps per full step).
+        
+        Returns:
+            int: The microstepping denominator.
+        """
+        return self.ms_resolution.denom
+
+    def turn_degs(self, deg: float):
+        """
+        Rotate the motor by a specified number of degrees.
+        
+        Args:
+            deg (float): Degrees to rotate.
+        """
+        # For a typical 200 full-step motor:
+        full_steps_per_rev = 200
+        total_steps = full_steps_per_rev * self.get_ms_denom()
+        steps_to_move = int(round((deg / 360.0) * total_steps))
+        if steps_to_move < 1:
+            raise Exception("Turn amount is too small to move a single step.")
+        
+        # Calculate the delay per step.
+        # Time for one full revolution: 1 / speed_hz seconds.
+        # Delay per step = (1 / speed_hz) / total_steps.
+        step_delay = 1.0 / (self.speed_hz * total_steps)
+        
+        for _ in range(steps_to_move):
+            # Generate a pulse on the STEP_PIN.
+            GPIO.output(self.STEP_PIN, GPIO.HIGH)
+            time.sleep(step_delay / 2)
+            GPIO.output(self.STEP_PIN, GPIO.LOW)
+            time.sleep(step_delay / 2)
+        
+        # Update current angle (wrap around at 360 degrees).
+        self.curr_angle = (self.curr_angle + deg) % 360
+
+    def cleanup(self):
+        """
+        Clean up GPIO settings.
+        """
+        GPIO.cleanup()
+
+if __name__ == "__main__":
+    # Example test routine for the Motor driver.
+    motor = Motor()
+    motor.set_speed(1)           # 1 rotation per second.
+    motor.set_ms_res("SIXTEENTH") 
+    motor.set_dir("CCW")
+    print("Rotating 90 degrees...")
+    motor.turn_degs(90)
+    print("Current angle: ", motor.curr_angle)
+    motor.cleanup()
