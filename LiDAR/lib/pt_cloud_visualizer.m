@@ -35,6 +35,24 @@
 %%%         MARCH 24, 2025 TEST FILES                                   %%%
 %ptCloud = pcread('..\test_clouds\cloud_2025_03_24_time_16_30_38.pcd');
 
+%%%         MARCH 31, 2025 TEST FILES                                   %%%
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_13_28_48.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_13_49_41.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_13_59_05.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_17_50_27.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_18_51_07.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_19_26_19.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_19_33_08.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_19_41_11.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_19_48_10.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_20_04_10.pcd');
+
+% Attempted correction factor on phi angle... nope
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_20_26_06.pcd');
+
+ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_20_31_39.pcd');
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_31_time_21_08_28.pcd');
+
 
 %%%         INTERESTING TEST FILES                                      %%%
 
@@ -67,6 +85,8 @@
 % Good leveling, good example of distortion.
 %ptCloud = pcread('D:\AEGIS Code\scan\cloud_2025_03_24_time_16_30_38.pcd');
 
+%ptCloud = pcread('..\test_clouds\cloud_2025_03_24_time_19_13_21.pcd');
+
 
 % FILTERING TESTING -------------------------------------------------------
 
@@ -88,7 +108,7 @@
 % VISUALIZER --------------------------------------------------------------
 
 pcviewer(ptCloud, 'white', ShowPointCloudAxes='on');
-
+%pcshow(ptCloud)
 
 % FUNCTIONS ---------------------------------------------------------------
 
