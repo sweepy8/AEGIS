@@ -32,6 +32,7 @@ def conv_pts_sph_to_cart(pts):
         rho = pt[0]
         theta = np.deg2rad(pt[1])  # theta now in radians
         phi = np.deg2rad(pt[2])    # phi now in radians
+        i = pt[3]                  # intensity
         
         # restrict theta to (0, π) i.e., (0, 180°)
         if (theta > 0) and (theta < np.pi):         
@@ -46,13 +47,8 @@ def conv_pts_sph_to_cart(pts):
             z = 0
                   
         # If the sensor offset is a horizontal offset from the center, correct using the azimuth angle (phi)
-        # Otherwise, if the offset is along the z-axis, adjust z instead.
         x = x + sensor_offset * np.cos(phi)   # horizontal offset correction on x
         y = y + sensor_offset * np.sin(phi)   # horizontal offset correction on y
-        # For a z-axis offset, you might instead do:
-        # z = z + sensor_offset
-        
-        i = pt[3]  # intensity
         
         c_pt.extend([x, y, z, i])
         c_pts.append(c_pt)  # Add Cartesian point with intensity to points array
