@@ -22,39 +22,40 @@ STEPS_PER_RING = 8
 
 # function to convert spherical coordiantes to cartesian
 def conv_pts_sph_to_cart(pts):
-    
     c_pts = []
-    sensor_offset = 0.044 # 1.8 inch radius off z axis == 0.04572 meters
-    
+    sensor_offset = 0.044  # sensor offset in meters (adjust as needed)
+
     for pt in pts:
         c_pt = []
         
-        # assign variables (rho,theta,phi)
+        # assign variables (rho, theta, phi); theta and phi in degrees in 'pt'
         rho = pt[0]
-        theta = np.deg2rad(pt[1])
-        phi = np.deg2rad(pt[2])
+        theta = np.deg2rad(pt[1])  # theta now in radians
+        phi = np.deg2rad(pt[2])    # phi now in radians
         
-        # restrict capturing coordinate for theta (0 to 180)
-        if ((theta < 180) and (theta > 0)):         
-
+        # restrict theta to (0, π) i.e., (0, 180°)
+        if (theta > 0) and (theta < np.pi):         
             # convert to (x,y,z)
             x = rho * np.sin(theta) * np.cos(phi)   # x = r*sin(theta)*cos(phi)
             y = rho * np.sin(theta) * np.sin(phi)   # y = r*sin(theta)*sin(phi)
             z = rho * np.cos(theta)                 # z = r*cos(theta)
-
-        # if great than 180 do not capture the point or turn to (0,0,0)
-        else:                                       
+        else:
+            # If theta is out-of-bound, discard or set to (0,0,0)
             x = 0
             y = 0
             z = 0
                   
-        x = x + sensor_offset * np.cos(theta)		# Correct for z axis offset of LiDAR
-        y = y + sensor_offset * np.sin(theta)		# Correct for z axis offset of LiDAR
-
-        i = pt[3]	# intensity
+        # If the sensor offset is a horizontal offset from the center, correct using the azimuth angle (phi)
+        # Otherwise, if the offset is along the z-axis, adjust z instead.
+        x = x + sensor_offset * np.cos(phi)   # horizontal offset correction on x
+        y = y + sensor_offset * np.sin(phi)   # horizontal offset correction on y
+        # For a z-axis offset, you might instead do:
+        # z = z + sensor_offset
+        
+        i = pt[3]  # intensity
         
         c_pt.extend([x, y, z, i])
-        c_pts.append(c_pt)	                    # Add cartesian point with intensity to points array
+        c_pts.append(c_pt)  # Add Cartesian point with intensity to points array
         
     return c_pts
 
