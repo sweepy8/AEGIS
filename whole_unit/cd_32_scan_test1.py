@@ -12,7 +12,7 @@ MOTOR_TURN_SPD = 1			# 0 - 4.5 Hz
 MOTOR_TURN_DIR = "CCW"
 MOTOR_TURN_RES = "SIXTEENTH"
 MOTOR_TURN_RESET = False
-MOTOR_CORRECTION_FACTOR = 0.5
+MOTOR_CORRECTION_FACTOR = 1 #none
 
 # set global variables for our use
 NUM_RINGS = 200
@@ -84,7 +84,7 @@ def main():
     file_data = []
 
     # 0 to 360
-    while M1.curr_angle < 361:
+    while M1.curr_angle < 360:
         
         pts = L1.get_processed_ring(motor_angle = M1.curr_angle)
         file_data.extend(pts)
@@ -111,7 +111,7 @@ def main():
     # reset motor driver
     if MOTOR_TURN_RESET:
         M1.set_dir("CCW") if MOTOR_TURN_DIR == "CW" else M1.set_dir("CW")
-        M1.turn_degs(180 / MOTOR_CORRECTION_FACTOR) 
+        M1.turn_degs(360 / MOTOR_CORRECTION_FACTOR) 
     
 if __name__ =="__main__":
     main()
