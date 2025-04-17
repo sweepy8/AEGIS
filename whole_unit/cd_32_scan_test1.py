@@ -1,4 +1,4 @@
-#   Zach's code but updated to match new idea
+# Zach's code but updated to match new idea
 # Celeste's hopeful fix
 
 # use other driver files and add libraries
@@ -48,8 +48,9 @@ def conv_pts_sph_to_cart(pts):
             y = 0
             z = 0
                   
-        x = x + sensor_offset*np.cos(theta)		# Correct for z axis offset of LiDAR
-        y = y + sensor_offset*np.sin(theta)		# Correct for z axis offset of LiDAR
+        x = x + sensor_offset * np.cos(theta)		# Correct for z axis offset of LiDAR
+        y = y + sensor_offset * np.sin(theta)		# Correct for z axis offset of LiDAR
+
         i = pt[3]	# intensity
         
         c_pt.extend([x, y, z, i])
