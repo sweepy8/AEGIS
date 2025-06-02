@@ -1,4 +1,6 @@
 """
+ChatGPT code uses quaternion units to simplify the yaw, pitch, and roll computations
+
 MPU-6050 + Madgwick AHRS Fusion (Python)
 
 – Reads accel + gyro in one I²C burst (14 bytes)
