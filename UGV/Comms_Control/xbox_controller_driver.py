@@ -1,5 +1,5 @@
 # XBOX Controller Input Recognition
-# AEGIS Senior Design, 5/23/2025
+# AEGIS Senior Design, Created 5/23/2025
 
 import inputs
 import math
@@ -25,32 +25,31 @@ class XboxController(object):
         self._monitor_thread = threading.Thread(target=self._monitor_controller, args=())
         self._monitor_thread.daemon = True
         self._monitor_thread.start()
-        
-    
+
     def read(self):
         a = self.A
         x = self.X
         b = self.B
         y = self.Y
-        
+
         ly = self.LeftJoystickY
         ly = int(-1*ly*255) if (abs(ly) > 0.05) else 0	#Normalize joystick from -254 to 255
         if ly == -254:
             ly = -253	# Not sure why it hates -254 but it won't read it. Fix later
-            
+
         lb = self.LeftBumper
         rb = self.RightBumper
-        
+
         return [a, x, b, y, ly, lb, rb]
-        
+
 
     def _monitor_controller(self):
         while True:
             if not inputs.devices.gamepads:
                 self.controller_connected = False
                 print("No controller detected. Waiting 1s...")
-                time.sleep(1)
-                inputs.devices.gamepads = []
+                time.sleep(1)                           # Wait a moment
+                inputs.devices = inputs.DeviceManager() # Poll the system for devices again
                 continue
             else:
                 if not self.controller_connected:
@@ -58,7 +57,7 @@ class XboxController(object):
                     self.controller_connected = True
 
                 events = inputs.get_gamepad()
-                
+
                 for event in events:
                     if event.code == 'ABS_Y':
                         self.LeftJoystickY = event.state / XboxController.MAX_JOY_VAL # -1 to 1
@@ -73,13 +72,14 @@ class XboxController(object):
                     if event.code == 'BTN_EAST':
                         self.X = event.state
                     if event.code == 'BTN_NORTH':
-                        self.Y = event.state       
-    
+                        self.Y = event.state
+
 if __name__ == '__main__':
-    
+
     joy = XboxController()
 
     while True:
         time.sleep(0.1)
-        print(joy.read())
-    
+        if joy.controller_connected:
+            print(joy.read())
+
