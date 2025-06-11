@@ -5,13 +5,13 @@
 // Uses Serial1 TX/RX on pins 18/19
 // and motor control on 4, 5, 6, and 7
 
-
 // VARIABLE declarations and preprocessor macros ------------------------------
 
 // Switch any of these on or off depending on their connection to the rover
 #define UART_COMMS_ON   1
 #define MOTORS_ON       1
-#define ULTRASONICS_ON  0
+#define ULTRASONICS_ON  1
+#define SEND_DATA_ON    1
 #define CAMERAS_ON      0
 #define LIDAR_ON        0
 
@@ -21,18 +21,35 @@
 #define RIGHT_PWM_F 6
 #define RIGHT_PWM_R 7
 
+bool IS_PERFORMING_COMMAND = 0;
+
+// Ultrasonic Sensors
+int US_trig_pins[3] = {52, 50, 48};
+int US_echo_pins[3] = {2, 21, 3};
+volatile float US_distance[3] = {-1, -1, -1};
+volatile unsigned long Rising_Start_Time[3] = {0, 0, 0};
+volatile uint8_t is_reading[3] = {0, 0, 0};
+float Current_Time_US = micros();
+#define US_SAMPLE_RATE  250000
+#define US_PULSE_DURATION  25
+int trigs_high = 0;
+volatile int US_print_ready = 0;
+
+// Motors
 uint8_t driver_pins[4] = {
   LEFT_PWM_F,
   LEFT_PWM_R,
   RIGHT_PWM_F,
   RIGHT_PWM_R
 };
-
 volatile uint8_t rpm;
 
 // RPM LIMITS
 #define MIN_RPM 0
 #define MAX_RPM 223
+#define MIN_PW 0
+#define MAX_PW 255
+#define MIN_SAFE_DIST 17 + 30 // 17cm offset from US sensors to front of tires
 
 // Simple string macros to improve readability, not necessary
 #define STOP        String("stop")
@@ -67,7 +84,7 @@ void stop(void)
 // move: Sets rpm of each motor driver input in accordance with predefined movement patterns.
 void move_rover(String dir, uint8_t rpm)
 {
-  if      (dir == "stop")       { for (int i = 0; i < 4; i++) { set_rpm(driver_pins[i], rpm*stop_pattern[i]);       } }
+  if      (dir == "stop")       { for (int i = 0; i < 4; i++) { set_rpm(driver_pins[i], rpm*stop_pattern[i]);    } }
   else if (dir == "forward")    { for (int i = 0; i < 4; i++) { set_rpm(driver_pins[i], rpm*forward_pattern[i]);    } }
   else if (dir == "reverse")    { for (int i = 0; i < 4; i++) { set_rpm(driver_pins[i], rpm*reverse_pattern[i]);    } }
   else if (dir == "left arc")   { for (int i = 0; i < 4; i++) { set_rpm(driver_pins[i], rpm*left_arc_pattern[i]);   } }
@@ -79,13 +96,13 @@ void move_rover(String dir, uint8_t rpm)
 // set_rpm_pattern: Writes mapped rpm value to all driver pins from symmetric rpm_pattern array input
 void set_rpm_pattern(uint8_t rpm_pattern[])
 {
-  for (int i = 0; i < 4; i++) { analogWrite( driver_pins[i], map(rpm_pattern[i], MIN_RPM, MAX_RPM, 0, 255) ); }
+  for (int i = 0; i < 4; i++) { analogWrite( driver_pins[i], map(rpm_pattern[i], MIN_RPM, MAX_RPM, MIN_PW, MAX_PW) ); }
 }
 
 // set_rpm: Maps rpm input to PWM value between 0 and 255, then writes that value to the pin input
 void set_rpm(int pin, uint8_t rpm) 
 { 
-  analogWrite(pin, map(rpm, 0, 223, 0, 255)); 
+  analogWrite(pin, map(rpm, MIN_RPM, MAX_RPM, MIN_PW, MAX_PW)); 
 }
 
 
@@ -93,6 +110,7 @@ void set_rpm(int pin, uint8_t rpm)
 
 void perform_rpi_command(int* command)
 {
+  IS_PERFORMING_COMMAND = 1;
   int op_byte = *command;
   int op = (op_byte & 0xC0) / 64; // gives op in range [0, 3]
 
@@ -115,15 +133,18 @@ void perform_rpi_command(int* command)
     case 2: // 10b --> TURN
     {
       Serial.println("TURN COMMAND RECIEVED... ");
-      String dir = (op_byte & 0x01) ? LEFT_SPIN : RIGHT_SPIN;
+      String dir = (op_byte & 0x01) ? RIGHT_SPIN : LEFT_SPIN;
       int spd = *(command+1);
       spd = spd * 223 / 255;
       int dur = *(command+2) * 100;
 
-      move_rover(dir, uint8_t(spd));
-      delay(dur);
-      stop();
-
+      if((US_distance[0] >= MIN_SAFE_DIST && 
+          US_distance[1] >= MIN_SAFE_DIST &&
+          US_distance[2] >= MIN_SAFE_DIST)    || !(ULTRASONICS_ON)){
+        move_rover(dir, spd);
+        delay(dur);
+        stop();
+      }
       break;
     }
 
@@ -135,9 +156,16 @@ void perform_rpi_command(int* command)
       spd = spd * 223 / 255;
       int dur = *(command+2) * 100;
 
-      move_rover(dir, spd);
-      delay(dur);
-      stop();
+      if((US_distance[0] >= MIN_SAFE_DIST && 
+          US_distance[1] >= MIN_SAFE_DIST &&
+          US_distance[2] >= MIN_SAFE_DIST)    || 
+          (dir == REVERSE)                    ||
+          !(ULTRASONICS_ON))
+      {
+        move_rover(dir, spd);
+        delay(dur);
+        stop();
+      }
 
       break;
     }
@@ -147,6 +175,9 @@ void perform_rpi_command(int* command)
       Serial.println("ERROR! INVALID OPCODE");
     }
   }
+
+  IS_PERFORMING_COMMAND = 0;
+
 }
 
 // Performs command associated with controller input over serial1 port
@@ -169,6 +200,23 @@ void serial1_Handler()
   }
 }
 
+// Ultrasonic Sensor Pulse-------------------------------------------------------------------------------------------------
+void US_Get_Data()
+{
+  US_print_ready = 1;
+  for(int i = 0; i < 3; i++) {
+    if(digitalRead(US_echo_pins[i]) && !(is_reading[i])){ // starts timer for when received pin goes from low to high
+      Rising_Start_Time[i] = micros();
+      is_reading[i] = 1;
+    }
+    if(!(digitalRead(US_echo_pins[i])) && (is_reading[i])){
+      *(US_distance + i) = 0.0343*(micros() - Rising_Start_Time[i])/2; 
+      Rising_Start_Time[i] = 0;
+      is_reading[i] = 0;
+    }
+  }
+}
+
 
 // MAIN SETUP AND LOOP ------------------------------------------------------------------------------------------------
 
@@ -179,10 +227,21 @@ void setup() {
     for (int i = 0; i < 4; i++) { pinMode(driver_pins[i], OUTPUT); }
   }
 
+  if(ULTRASONICS_ON){
+    // Set pin modes for Ultrasonic sensors
+    for (int i = 0; i < 3; i++) { pinMode(US_trig_pins[i],OUTPUT); }
+    for (int i = 0; i < 3; i++) { pinMode(US_echo_pins[i],INPUT); }
+
+    // Ultrasonic Sensors, sets triggers low & interrupts
+    attachInterrupt(digitalPinToInterrupt(US_echo_pins[0]), US_Get_Data, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(US_echo_pins[1]), US_Get_Data, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(US_echo_pins[2]), US_Get_Data, CHANGE);
+  }
+
   if (UART_COMMS_ON)
   {
     Serial.begin(9600);
-    Serial1.begin(9600);
+    Serial1.begin(115200);
     Serial.println("Opening serial connection...");
     while (!Serial1) {;} // Wait until serial1 is ready
     Serial.println("Serial connections opened!");
@@ -190,31 +249,44 @@ void setup() {
 
 }
 
+
+
 void loop() {
 
-  if (MOTORS_ON)
-  {
-    uint8_t run_cycles = 1; // Set to 1 to run while block once
+  float New_Time = 0.0;
 
-    while (run_cycles)
-    {
-      stop(); delay(1000);  // Start with 1 second pause
-
-      // Test for no-load/load currents and voltages
-      // 30% through 100% in 10% intervals, 10+1 second runtime each
-      int i, j;
-      for (i = 3; i <= 10; i++)
-      {
-        move_rover(FORWARD, 22 * (i)); delay(1000 * 10);
-        stop(); delay(1000);
+  if(ULTRASONICS_ON){
+    New_Time = micros();
+    if((New_Time - Current_Time_US) > US_SAMPLE_RATE){ // Sets trigger pins on each US high every sample rate
+      for(int i = 0; i < 3; i++){
+        digitalWrite(US_trig_pins[i],HIGH);
       }
-      run_cycles--;
+      trigs_high = 1;
+      if(SEND_DATA_ON && US_print_ready) // sends data to rpi if desired
+        {
+          for(int i = 0;  i < 3; i ++){
+            Serial1.print(US_distance[i]); 
+            Serial1.print("cm ");
+          }
+          Serial1.print('\n');
+          US_print_ready = 0;
+        }
+    }
+    if(((New_Time - Current_Time_US) > US_SAMPLE_RATE + US_PULSE_DURATION) && trigs_high){ // Resets the triggers pin low after pulse duration has elapsed
+      for(int i = 0; i < 3; i++){
+        digitalWrite(US_trig_pins[i],LOW);
+      }
+      Current_Time_US = New_Time;
+      trigs_high = 0;
     }
   }
 
   if (UART_COMMS_ON)
   {
-    serial1_Handler();
+    if (IS_PERFORMING_COMMAND == 0)
+    {
+      serial1_Handler();
+    }
   }
 
 }
