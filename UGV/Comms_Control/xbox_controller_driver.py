@@ -10,9 +10,7 @@ class XboxController(object):
     
     MAX_TRIG_VAL = math.pow(2, 8)
     MAX_JOY_VAL = math.pow(2, 15)
-    
-    controller_connected = False
-    
+        
     def __init__(self):
         self.A = 0
         self.X = 0
@@ -45,34 +43,22 @@ class XboxController(object):
 
     def _monitor_controller(self):
         while True:
-            if not inputs.devices.gamepads:
-                self.controller_connected = False
-                print("No controller detected. Waiting 1s...")
-                time.sleep(1)                           # Wait a moment
-                inputs.devices = inputs.DeviceManager() # Poll the system for devices again
-                continue
-            else:
-                if not self.controller_connected:
-                    print("Controller connected.")
-                    self.controller_connected = True
-
-                events = inputs.get_gamepad()
-
-                for event in events:
-                    if event.code == 'ABS_Y':
-                        self.LeftJoystickY = event.state / XboxController.MAX_JOY_VAL # -1 to 1
-                    if event.code == 'BTN_TL':
-                        self.LeftBumper = event.state
-                    if event.code == 'BTN_TR':
-                        self.RightBumper = event.state
-                    if event.code == 'BTN_SOUTH':
-                        self.A = event.state
-                    if event.code == 'BTN_WEST':
-                        self.B = event.state
-                    if event.code == 'BTN_EAST':
-                        self.X = event.state
-                    if event.code == 'BTN_NORTH':
-                        self.Y = event.state
+            events = inputs.get_gamepad()
+            for event in events:
+                if event.code == 'ABS_Y':
+                    self.LeftJoystickY = event.state / XboxController.MAX_JOY_VAL # -1 to 1
+                if event.code == 'BTN_TL':
+                    self.LeftBumper = event.state
+                if event.code == 'BTN_TR':
+                    self.RightBumper = event.state
+                if event.code == 'BTN_SOUTH':
+                    self.A = event.state
+                if event.code == 'BTN_WEST':
+                    self.B = event.state
+                if event.code == 'BTN_EAST':
+                    self.X = event.state
+                if event.code == 'BTN_NORTH':
+                    self.Y = event.state
 
 if __name__ == '__main__':
 

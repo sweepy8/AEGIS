@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+    <title>AEGIS Live Feed</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <script type="text/javascript" src="../static/trip_select.js"></script>
+
+</head>
+<body>
+
+    <div class="data_container">
+
+        <div class="title">
+            <h1>A.E.G.I.S. Trip Viewer</h1>
+        </div>
+
+        <div class="trip_select">
+            <h1>Trip Select</h1>
+            <div class="trips_container">
+                <button class="trip_btn" id="lf_btn"> >>> Live Camera </button>
+                <button class="trip_btn" id="t1_btn"> Trip 01 (31:01) </button>
+                <button class="trip_btn" id="t2_btn"> Trip 02 (12:52) </button>
+                <button class="trip_btn" id="t3_btn"> Trip 03 (40:11) </button>
+                <button class="trip_btn" id="t4_btn"> Trip 04 (36:17) </button>
+                <button class="trip_btn" id="t5_btn"> Trip 05 (09:35) </button>
+                <button class="trip_btn" id="t1_btn"> Trip 06 (18:11) </button>
+                <button class="trip_btn" id="t2_btn"> Trip 07 (21:14) </button>
+                <button class="trip_btn" id="t3_btn"> Trip 08 (41:10) </button>
+                <button class="trip_btn" id="t4_btn"> Trip 09 (11:11) </button>
+                <button class="trip_btn" id="t5_btn"> Trip 10 (01:13) </button>
+            </div>
+        </div>
+
+        <img class="live_feed"  src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
+        <img class="visualizer" src="{{ url_for('visualizer') }}" alt="LiDAR Visualizer">
+
+        <div class="telemetry">
+            <div class="snaps_to_bottom">
+                <h1>Telemetry data (placeholder)</h1>
+                    <div class="telemetry_data">
+                        <p>15:37:21 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
+                        <p>15:37:22 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
+                        <p>15:37:23 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
+                        <p>15:37:24 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
+                        <p>15:37:25 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C, JUSTIN=GAY</p>
+                        <p>15:37:26 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
+                        <p>15:37:27 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
+                        <p>15:37:28 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
+                        <p>15:37:29 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
+                        <p>15:37:30 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
+                        <p>15:37:31 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
+                        <p>15:37:32 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C, JUSTIN=GAY</p>
+                        <p>15:37:33 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
+                        <p>15:37:34 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="scrubber_container">
+            <input class="scrubber_bar" id="scrubber" type="range">
+            <p class="scrubber_value">00:00:00</p>
+        </div>
+    </div>
+
+</body>
+</html>
