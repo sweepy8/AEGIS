@@ -11,9 +11,9 @@ from base64     import b64encode
 
 # This function taken from Shilleh on youtube.com/watch?v=NOAY1aaVPAw
 # To better understand, look into generator functions and iterators
-def generate_frames():
+def generate_frames(cam):
     while True:
-        frame = camera.capture_array()
+        frame = cam.capture_array()
         ret, buffer = imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
@@ -54,12 +54,16 @@ def update_telemetry_frame():
 
 app = Flask(__name__)
 
-camera = Picamera2()
-camera.configure(
-    camera.create_preview_configuration(
-        main={ "format": 'XRGB8888'} # Comment this and look at the feed :)
+def init_camera():
+    cam = Picamera2()
+    cam.configure(
+        cam.create_preview_configuration(
+            main={ "format": 'XRGB8888'} # Comment this and look at the feed :)
+        )
     )
-)
+    return cam
+
+camera = init_camera()
 camera.start()
 
 # Stop caching 
@@ -75,7 +79,7 @@ def show_main_page():
 @app.route('/video_feed')   # Embedded in root page
 def video_feed():
     return Response(
-        generate_frames(), 
+        generate_frames(camera), 
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
 
@@ -86,7 +90,10 @@ def visualizer():
         mimetype='image/png'
     )
 
-app.run(
-    host='0.0.0.0',         # 0.0.0.0 runs on all addresses
-    port=5000
+def main():
+    app.run(
+        host='0.0.0.0',         # 0.0.0.0 runs on all addresses
+        port=5000
 )
+    
+#main()

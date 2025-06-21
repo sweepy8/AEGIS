@@ -4,7 +4,11 @@
 # Uses RP1 chip's uart2 on GPIO4/5 (pins 7/29 (TX/RX))
 
 import serial, time, threading
-import xbox_controller_driver_v2 as xb
+
+if __name__ == "__main__":
+    import xbox_controller_driver_v2 as xb
+else:
+    from UGV.Comms_Control import xbox_controller_driver_v2 as xb
 
 LISTEN_TO_UGV = 1
 INPUT_BUFFER_SECONDS = 0.1
@@ -86,7 +90,6 @@ def main():
     serial_conn = open_serial_connection()
     xb_listener_thread.start()
 
-
     time_since_last_command = time.time()
 
     while True:
@@ -119,6 +122,5 @@ def main():
 
             time_since_last_command = current_time
 
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#    main()
