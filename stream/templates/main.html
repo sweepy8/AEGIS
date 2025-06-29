@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>AEGIS Live Feed</title>
+    <title>AEGIS Viewer</title>
     <link rel="stylesheet" href="../static/style.css">
     <script type="text/javascript" src="../static/trip_select.js"></script>
 
@@ -10,9 +10,7 @@
 
     <div class="data_container">
 
-        <div class="title">
-            <h1>A.E.G.I.S. Trip Viewer</h1>
-        </div>
+        <div class="title"> A.E.G.I.S. Viewer </div>
 
         <div class="trip_select">
             <h1>Trip Select</h1>
@@ -28,31 +26,50 @@
                 <button class="trip_btn" id="t3_btn"> Trip 08 (41:10) </button>
                 <button class="trip_btn" id="t4_btn"> Trip 09 (11:11) </button>
                 <button class="trip_btn" id="t5_btn"> Trip 10 (01:13) </button>
+                <button class="trip_btn" id="t1_btn"> Trip 11 (31:01) </button>
+                <button class="trip_btn" id="t2_btn"> Trip 12 (12:52) </button>
+                <button class="trip_btn" id="t3_btn"> Trip 13 (40:11) </button>
+                <button class="trip_btn" id="t4_btn"> Trip 14 (36:17) </button>
+                <button class="trip_btn" id="t5_btn"> Trip 15 (09:35) </button>
+                <button class="trip_btn" id="t1_btn"> Trip 16 (18:11) </button>
+                <button class="trip_btn" id="t2_btn"> Trip 17 (21:14) </button>
+                <button class="trip_btn" id="t3_btn"> Trip 18 (41:10) </button>
+                <button class="trip_btn" id="t4_btn"> Trip 19 (11:11) </button>
+                <button class="trip_btn" id="t5_btn"> Trip 20 (01:13) </button>
+                <button class="trip_btn" id="t1_btn"> Trip 21 (31:01) </button>
+                <button class="trip_btn" id="t2_btn"> Trip 22 (12:52) </button>
+                <button class="trip_btn" id="t3_btn"> Trip 23 (40:11) </button>
+                <button class="trip_btn" id="t4_btn"> Trip 24 (36:17) </button>
+                <button class="trip_btn" id="t5_btn"> Trip 25 (09:35) </button>
+                <button class="trip_btn" id="t1_btn"> Trip 26 (18:11) </button>
+                <button class="trip_btn" id="t2_btn"> Trip 27 (21:14) </button>
+                <button class="trip_btn" id="t3_btn"> Trip 28 (41:10) </button>
+                <button class="trip_btn" id="t4_btn"> Trip 29 (11:11) </button>
+                <button class="trip_btn" id="t5_btn"> Trip 30 (01:13) </button>
             </div>
         </div>
 
+        
         <img class="live_feed"  src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
         <img class="visualizer" src="{{ url_for('visualizer') }}" alt="LiDAR Visualizer">
 
         <div class="telemetry">
-            <div class="snaps_to_bottom">
-                <h1>Telemetry data (placeholder)</h1>
-                    <div class="telemetry_data">
-                        <p>15:37:21 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
-                        <p>15:37:22 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
-                        <p>15:37:23 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
-                        <p>15:37:24 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
-                        <p>15:37:25 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C, JUSTIN=GAY</p>
-                        <p>15:37:26 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
-                        <p>15:37:27 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
-                        <p>15:37:28 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
-                        <p>15:37:29 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C, JUSTIN=GAY</p>
-                        <p>15:37:30 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
-                        <p>15:37:31 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
-                        <p>15:37:32 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C, JUSTIN=GAY</p>
-                        <p>15:37:33 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C, JUSTIN=GAY</p>
-                        <p>15:37:34 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C, JUSTIN=GAY</p>
-                </div>
+            <h1>Telemetry</h1>
+                <div class="telemetry_data">
+                    <p>15:37:21 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C</p>
+                    <p>15:37:22 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C</p>
+                    <p>15:37:23 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
+                    <p>15:37:24 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
+                    <p>15:37:25 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C</p>
+                    <p>15:37:26 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
+                    <p>15:37:27 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
+                    <p>15:37:28 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C</p>
+                    <p>15:37:29 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C</p>
+                    <p>15:37:30 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
+                    <p>15:37:31 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
+                    <p>15:37:32 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C</p>
+                    <p>15:37:33 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
+                    <p>15:37:34 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
             </div>
         </div>
 

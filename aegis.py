@@ -1,16 +1,14 @@
 from threading import Thread
-from UGV.Comms_Control import UART_comms_driver as comms_driver
-from stream import web_viewer as web_app
+from ugv import rpi_UART
+from stream import web_viewer
 
-print("Creating UART communication thread:")
-controller_thread = Thread(target=comms_driver.main, daemon=True)
-print("Creating webserver thread")
-web_thread = Thread(target=web_app.main, daemon=True)
+controller_thread = Thread(target=rpi_UART.main, daemon=True)
+web_thread = Thread(target=web_viewer.run_stream, daemon=True)
 
-print("Starting UART communication thread:")
+print("aegis.py: Starting UART thread...")
 controller_thread.start()
-print("Starting webserver thread")
+print("aegis.py: Starting webserver thread...")
 web_thread.start()
-
+print("aegis.py: Joining threads into main program...")
 controller_thread.join()
 web_thread.join()

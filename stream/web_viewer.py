@@ -1,23 +1,11 @@
 # Unified web view program
 # AEGIS Senior Design, Created on 6/9/25
 
-from picamera2  import Picamera2
-from flask      import Flask, Response, render_template
-from cv2        import imencode
+from flask      import Flask, Response, render_template, send_file
 from matplotlib import figure
 from io         import BytesIO
-from base64     import b64encode
 
-
-# This function taken from Shilleh on youtube.com/watch?v=NOAY1aaVPAw
-# To better understand, look into generator functions and iterators
-def generate_frames(cam):
-    while True:
-        frame = cam.capture_array()
-        ret, buffer = imencode('.jpg', frame)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+from ugv.camera import Camera
 
 
 def create_visualizer_fig():
@@ -39,49 +27,44 @@ def create_visualizer_fig():
 
     output_png = BytesIO()
     fig.savefig(output_png, format='png')
-    encoded_data = b64encode(output_png.getbuffer()).decode('ascii')
 
     return output_png.getvalue()
 
-
-def init_telemetry_frame():
-    pass
-
-def update_telemetry_frame():
-    pass
 
 # ROUTES ----------------------------------------------------------------------
 
 app = Flask(__name__)
 
-def init_camera():
-    cam = Picamera2()
-    cam.configure(
-        cam.create_preview_configuration(
-            main={ "format": 'XRGB8888'} # Comment this and look at the feed :)
+try:
+    camera = Camera()
+    camera.start()
+except ValueError:
+    camera_connected = False
+else:
+    camera_connected = True
+
+
+@app.route('/video_feed')   # Embedded in root page
+def video_feed():
+    if camera_connected:
+        return Response(
+            camera.generate_frames(), 
+            mimetype='multipart/x-mixed-replace; boundary=frame'
         )
-    )
-    return cam
+    else:
+        return send_file(path_or_file='static/images/no_video.gif', mimetype='image/gif')
 
-camera = init_camera()
-camera.start()
 
-# Stop caching 
-@app.after_request
-def add_http_headers(response : Response):
-    response.headers['cache-control'] = 'no-store'
-    return response
+# # Prevent all caching 
+# @app.after_request
+# def add_http_headers(response : Response):
+#     response.headers['cache-control'] = 'no-store'
+#     return response
+
 
 @app.route('/')
 def show_main_page():
     return render_template('main.html')
-
-@app.route('/video_feed')   # Embedded in root page
-def video_feed():
-    return Response(
-        generate_frames(camera), 
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
 
 @app.route('/visualizer')   # Embedded in root page
 def visualizer():
@@ -90,10 +73,11 @@ def visualizer():
         mimetype='image/png'
     )
 
-def main():
+def run_stream():
     app.run(
         host='0.0.0.0',         # 0.0.0.0 runs on all addresses
         port=5000
 )
     
-#main()
+if __name__ == "__main__":
+    run_stream()
