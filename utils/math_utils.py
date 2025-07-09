@@ -1,3 +1,6 @@
+# Math Utilities
+# Created on 6/26/2025
+
 from numpy import cos, sin, deg2rad
 
 def pol_to_cart(rho: float, phi: float, mantissa: int) -> list[float]:

@@ -1,0 +1,15 @@
+# Ignore virtual environment files
+/venv/
+
+# Ignore large-file data
+/data/
+
+# Ignore drafting document
+planning.txt
+
+# Ignore VSCodeCounter if it is installed
+/.VSCodeCounter/
+
+# Ignore Python cache
+__pycache__/
+*.pyc

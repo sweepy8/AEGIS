@@ -5,6 +5,8 @@
 // Uses Serial1 TX/RX on pins 18/19
 // and motor control on 4, 5, 6, and 7
 
+#include <stdio.h>
+
 // VARIABLE declarations and preprocessor macros ------------------------------
 
 // Switch any of these on or off depending on their connection to the rover
@@ -191,7 +193,6 @@ void serial1_Handler()
     for (idx = 0; idx < 3; idx++)
     {
       command[idx] = Serial1.read();            // Record each byte into the command array
-      if (Serial1.available() == 0) {break;}    // CURRENTLY WON'T EVER TRIGGER BECAUSE OF CONDITION avail > 2
     }
 
     perform_rpi_command(command);
@@ -222,12 +223,13 @@ void US_Get_Data()
 
 void setup() {
 
-  // Set PWM forward and reverse connections as outputs
-  if (MOTORS_ON) {
+  if (MOTORS_ON)
+  {
+    // Set PWM forward and reverse connections as outputs
     for (int i = 0; i < 4; i++) { pinMode(driver_pins[i], OUTPUT); }
   }
-
-  if(ULTRASONICS_ON){
+  if (ULTRASONICS_ON)
+  {
     // Set pin modes for Ultrasonic sensors
     for (int i = 0; i < 3; i++) { pinMode(US_trig_pins[i],OUTPUT); }
     for (int i = 0; i < 3; i++) { pinMode(US_echo_pins[i],INPUT); }
@@ -237,7 +239,6 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(US_echo_pins[1]), US_Get_Data, CHANGE);
     attachInterrupt(digitalPinToInterrupt(US_echo_pins[2]), US_Get_Data, CHANGE);
   }
-
   if (UART_COMMS_ON)
   {
     Serial.begin(9600);
@@ -249,37 +250,10 @@ void setup() {
 
 }
 
-
-
 void loop() {
 
   float New_Time = 0.0;
-
-  if(ULTRASONICS_ON){
-    New_Time = micros();
-    if((New_Time - Current_Time_US) > US_SAMPLE_RATE){ // Sets trigger pins on each US high every sample rate
-      for(int i = 0; i < 3; i++){
-        digitalWrite(US_trig_pins[i],HIGH);
-      }
-      trigs_high = 1;
-      if(SEND_DATA_ON && US_print_ready) // sends data to rpi if desired
-        {
-          for(int i = 0;  i < 3; i ++){
-            Serial1.print(US_distance[i]); 
-            Serial1.print("cm ");
-          }
-          Serial1.print('\n');
-          US_print_ready = 0;
-        }
-    }
-    if(((New_Time - Current_Time_US) > US_SAMPLE_RATE + US_PULSE_DURATION) && trigs_high){ // Resets the triggers pin low after pulse duration has elapsed
-      for(int i = 0; i < 3; i++){
-        digitalWrite(US_trig_pins[i],LOW);
-      }
-      Current_Time_US = New_Time;
-      trigs_high = 0;
-    }
-  }
+  String telemetry_string = "Testing123";
 
   if (UART_COMMS_ON)
   {
@@ -289,4 +263,42 @@ void loop() {
     }
   }
 
+  if (ULTRASONICS_ON)
+  {
+    New_Time = micros();
+    if ((New_Time - Current_Time_US) > US_SAMPLE_RATE)
+    { 
+      // Set trigger pins on each US high every sample rate
+      for(int i = 0; i < 3; i++) { digitalWrite(US_trig_pins[i],HIGH); }
+
+      trigs_high = 1;
+      
+      if(SEND_DATA_ON && US_print_ready) // sends data to rpi if desired
+      {
+        for(int i = 0;  i < 3; i ++)
+        {
+          char US_data_string[7];
+          snprintf(US_data_string, 7, "%4fcm, ", US_distance[i]);
+          telemetry_string += String(US_data_string);
+
+          //Serial1.print(US_distance[i]); 
+          //Serial1.print("cm ");
+        }
+        //Serial1.print('\n');
+
+        Serial.println(telemetry_string);
+        US_print_ready = 0;
+      }
+    }
+    if (((New_Time - Current_Time_US) > US_SAMPLE_RATE + US_PULSE_DURATION) && trigs_high) { // Resets the triggers pin low after pulse duration has elapsed
+      for(int i = 0; i < 3; i++){
+        digitalWrite(US_trig_pins[i],LOW);
+      }
+      Current_Time_US = New_Time;
+      trigs_high = 0;
+    }
+  }
+
+  Serial1.println(telemetry_string);
+  Serial.println("end_of_loop");
 }

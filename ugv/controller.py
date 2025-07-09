@@ -12,26 +12,26 @@
 
 import asyncio
 from evdev import InputDevice, list_devices
+from time import sleep
 
 XBOX_DEVICE_NAME = 'Xbox One Wireless Controller'
 
 STICK_NORMALIZER_Y = -1 / 32768
 STICK_NORMALIZER_X =  1 / 32768
-TRIG_NORMALIZER =     1 / 1023
+TRIG_NORMALIZER    =  1 / 1023
 
 INPUT_CODES = {
     315: 'BTN_START',
-    304: 'BTN_A', 305: 'BTN_B', 307: 'BTN_X', 308: 'BTN_Y',
-    310: 'BTN_TL', 311: 'BTN_TR', 2: 'BTN_Z', 5: 'BTN_RZ',
-    1: 'ABS_Y', 3: 'ABS_RX',
+    304: 'BTN_A',  305: 'BTN_B', 307: 'BTN_X', 308: 'BTN_Y',
+    310: 'BTN_TL', 311: 'BTN_TR', 
+      2: 'BTN_Z',    3: 'ABS_RX',  4: 'ABS_RY',  5: 'BTN_RZ'
 }
 
-# We're all adults here. To get controller state from another file, access dict 'input_states' directly.
-input_states = {
-    'BTN_START' : 0,
+# To get controller state from another file, access dict 'input_states' directly.
+input_states = { 'BTN_START' : 0,
     'BTN_A' : 0, 'BTN_B' : 0, 'BTN_X' : 0, 'BTN_Y' : 0,
-    'BTN_TL' : 0, 'BTN_TR' : 0, 'BTN_Z' : 0, 'BTN_RZ' : 0,
-    'ABS_Y' : 0, 'ABS_RX' : 0,
+    'BTN_TL': 0, 'BTN_TR': 0,
+    'BTN_Z' : 0, 'ABS_RX': 0, 'ABS_RY': 0, 'BTN_RZ': 0
 }
 
 def get_event_path(dev_name : str) -> str:
@@ -46,7 +46,6 @@ def get_event_path(dev_name : str) -> str:
         raise OSError('Event object path not found!')
     
     return dev_event_path
-
 
 def normalize_input(name : str, value : int) -> int:
     if name in ['ABS_X', 'ABS_RX']:
@@ -65,20 +64,30 @@ async def listener(dev, print_updates):
             event_name = INPUT_CODES[event.code]
             input_states[event_name] = normalize_input(event_name, event.value)
 
-            if print_updates:
+            if print_updates: 
                 print(input_states)
             
-        #print(dev.path, evdev.categorize(event), sep=': ')
+        #print(dev.path, evdev.categorize(event), sep=': ') # Debug print
 
 def listen(print_updates=0):
-    try:
-        xbox_event_path = get_event_path(XBOX_DEVICE_NAME)
-        xb_device = InputDevice(xbox_event_path)
+    '''
+    Attempts to connect to a controller infinitely. Upon connection, runs the asynchronous
+    listener function, which updates the controller input_state dict. Upon disconnection,
+    an OSError is caught and the loop waits 5 seconds before trying to connect again.
+    '''
+    while True:
+        try:
+            xbox_event_path = get_event_path(XBOX_DEVICE_NAME)
+            xb_device = InputDevice(xbox_event_path)
 
-        asyncio.run(listener(xb_device, print_updates)) 
-    
-    except OSError:
-        print("controller.py: No controller detected!")
+            print(f"controller.py: {XBOX_DEVICE_NAME} connected!")
+            asyncio.run(listener(xb_device, print_updates))
+        
+        except OSError:
+            print("controller.py: No controller detected! Searching every 5s...")
+        
+        finally:
+            sleep(5)
 
 
 if __name__ == '__main__':

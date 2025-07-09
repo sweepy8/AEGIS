@@ -1,9 +1,15 @@
 <!doctype html>
 <html>
 <head>
+
+    <meta charset="utf-8">
     <title>AEGIS Viewer</title>
     <link rel="stylesheet" href="../static/style.css">
-    <script type="text/javascript" src="../static/trip_select.js"></script>
+
+    <script>
+        const liveFeedURL = "{{ url_for('video_feed') }}";
+        const visualizerURL = "{{ url_for('visualizer') }}";
+    </script>
 
 </head>
 <body>
@@ -15,69 +21,40 @@
         <div class="trip_select">
             <h1>Trip Select</h1>
             <div class="trips_container">
-                <button class="trip_btn" id="lf_btn"> >>> Live Camera </button>
-                <button class="trip_btn" id="t1_btn"> Trip 01 (31:01) </button>
-                <button class="trip_btn" id="t2_btn"> Trip 02 (12:52) </button>
-                <button class="trip_btn" id="t3_btn"> Trip 03 (40:11) </button>
-                <button class="trip_btn" id="t4_btn"> Trip 04 (36:17) </button>
-                <button class="trip_btn" id="t5_btn"> Trip 05 (09:35) </button>
-                <button class="trip_btn" id="t1_btn"> Trip 06 (18:11) </button>
-                <button class="trip_btn" id="t2_btn"> Trip 07 (21:14) </button>
-                <button class="trip_btn" id="t3_btn"> Trip 08 (41:10) </button>
-                <button class="trip_btn" id="t4_btn"> Trip 09 (11:11) </button>
-                <button class="trip_btn" id="t5_btn"> Trip 10 (01:13) </button>
-                <button class="trip_btn" id="t1_btn"> Trip 11 (31:01) </button>
-                <button class="trip_btn" id="t2_btn"> Trip 12 (12:52) </button>
-                <button class="trip_btn" id="t3_btn"> Trip 13 (40:11) </button>
-                <button class="trip_btn" id="t4_btn"> Trip 14 (36:17) </button>
-                <button class="trip_btn" id="t5_btn"> Trip 15 (09:35) </button>
-                <button class="trip_btn" id="t1_btn"> Trip 16 (18:11) </button>
-                <button class="trip_btn" id="t2_btn"> Trip 17 (21:14) </button>
-                <button class="trip_btn" id="t3_btn"> Trip 18 (41:10) </button>
-                <button class="trip_btn" id="t4_btn"> Trip 19 (11:11) </button>
-                <button class="trip_btn" id="t5_btn"> Trip 20 (01:13) </button>
-                <button class="trip_btn" id="t1_btn"> Trip 21 (31:01) </button>
-                <button class="trip_btn" id="t2_btn"> Trip 22 (12:52) </button>
-                <button class="trip_btn" id="t3_btn"> Trip 23 (40:11) </button>
-                <button class="trip_btn" id="t4_btn"> Trip 24 (36:17) </button>
-                <button class="trip_btn" id="t5_btn"> Trip 25 (09:35) </button>
-                <button class="trip_btn" id="t1_btn"> Trip 26 (18:11) </button>
-                <button class="trip_btn" id="t2_btn"> Trip 27 (21:14) </button>
-                <button class="trip_btn" id="t3_btn"> Trip 28 (41:10) </button>
-                <button class="trip_btn" id="t4_btn"> Trip 29 (11:11) </button>
-                <button class="trip_btn" id="t5_btn"> Trip 30 (01:13) </button>
+                <button class="trip_btn" id="lf_btn">
+                    Live Camera </button>
+                <button class="trip_btn" id="trip1_btn">
+                    Trip 01 </button>
+                <button class="trip_btn" id="trip2_btn">
+                    Trip 02 </button>
+                <button class="trip_btn" id="trip3_btn">
+                    Trip 03 </button>
             </div>
         </div>
 
-        
-        <img class="live_feed"  src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
-        <img class="visualizer" src="{{ url_for('visualizer') }}" alt="LiDAR Visualizer">
+        <div class="video_container" id="video_container"></div>
+
+        <div class=visualizer_container>
+            <img class="visualizer" 
+                src="{{ url_for('visualizer') }}" alt="LiDAR Visualizer">
+        </div>
 
         <div class="telemetry">
-            <h1>Telemetry</h1>
-                <div class="telemetry_data">
-                    <p>15:37:21 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C</p>
-                    <p>15:37:22 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C</p>
-                    <p>15:37:23 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
-                    <p>15:37:24 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
-                    <p>15:37:25 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C</p>
-                    <p>15:37:26 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
-                    <p>15:37:27 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
-                    <p>15:37:28 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=25C</p>
-                    <p>15:37:29 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.0m/s, BATT=15.9V, TEMP=25C</p>
-                    <p>15:37:30 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
-                    <p>15:37:31 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
-                    <p>15:37:32 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.8V, TEMP=27C</p>
-                    <p>15:37:33 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.1m/s, BATT=15.9V, TEMP=26C</p>
-                    <p>15:37:34 > US1=09cm, US2=12cm, US3=34cm, V1=5.6V, A1=7.8A, P1=99W, LUX=ON, SPD=2.2m/s, BATT=15.9V, TEMP=27C</p>
+            <h1>Telemetry Data</h1>
+            <div class="telemetry_data" id="telemetry_data">
             </div>
         </div>
 
         <div class="scrubber_container">
-            <input class="scrubber_bar" id="scrubber" type="range">
-            <p class="scrubber_value">00:00:00</p>
+            <input class="scrubber" id="scrubber" 
+                type="range" min="0" max="362439" value="0"> <!--99h:99m:99s-->
+            <button class="play_btn" id="play_btn"> ▶ </button>
+            <output class="scrubber_value" id="scrubber_value">00:00:00</output>
         </div>
     </div>
+
+
+    <script type="text/javascript" src="../static/js/trip_select.js"></script>
 
 </body>
 </html>
