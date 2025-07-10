@@ -41,7 +41,7 @@ def visualizer() -> Response:
 
 def run_stream() -> None:
     app.run(
-        host='0.0.0.0',
+        host='10.40.78.112',
         port=5000
 )
 

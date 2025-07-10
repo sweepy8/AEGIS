@@ -1,4 +1,4 @@
--e ..
+-e .
 Flask==2.2.2
 gpiozero==2.0.1
 inputs==0.5
