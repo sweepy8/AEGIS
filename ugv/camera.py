@@ -1,6 +1,9 @@
+# Raspberry Pi Camera Module v2 program
+# AEGIS Senior Design, Created on ../../25
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
+from picamera2.outputs import PyavOutput, FileOutput
 from time import sleep
 from cv2 import imencode
 
@@ -9,6 +12,16 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "2"
 
 from utils.file_utils import get_timestamped_filename
 
+
+
+'''
+UPDATE THE ENCODER OUTPUTS! ONE FileOutput AND ONE PyavOutput, PIPE FILEOUTPUT
+TO RPI_UART.PY and PIPE PyavOutput TO STREAM.PY
+
+'''
+
+
+
 # Wrapper around Picamera2 object
 class Camera(Picamera2):
     '''
@@ -16,35 +29,28 @@ class Camera(Picamera2):
     For information about Picamera2, visit 'datasheets.raspberrypi.com/camera/picamera2-manual.pdf'
     '''
 
-    def __init__(self, mode: str = 'preview') -> None:
+    def __init__(self) -> None:
         '''
         PLACEHOLDER, TO BE FILLED IN LATER ***
         '''
         super(Camera, self).__init__()
-        self.configure_mode(mode)
+
+        self.config = self.create_video_configuration(
+            main={
+                'format':'XRGB8888'
+            },
+            lores={
+                'format':'XRGB8888'
+            }
+        )
 
         self.attrs = {
-            'mode': mode,
             'quality': Quality.VERY_HIGH,
             'encoder': H264Encoder(repeat=True),
             'connected': True,
-            'recording': False
+            'recording': False,
+            'streaming': False
         }
-
-
-    def configure_mode(self, mode: str) -> None:
-        '''
-        PLACEHOLDER, TO BE FILLED IN LATER ***
-        '''
-        if mode == 'video':
-            self.configuration = self.create_video_configuration(
-                main={'format':'XRGB8888'}
-            )
-        elif mode == 'preview':
-            self.configuration = self.create_preview_configuration(
-                main={'format':'XRGB8888'}
-            )
-        self.configure(self.configuration)
 
 
     # This function taken from Shilleh on youtube.com/watch?v=NOAY1aaVPAw
@@ -66,10 +72,10 @@ class Camera(Picamera2):
         PLACEHOLDER, TO BE FILLED IN LATER ***
         '''
         if self.attrs['recording'] == False:
-            filename = get_timestamped_filename('data/videos', 'video', '.h264')
+            filename = get_timestamped_filename('data/videos', 'video', '.mp4')
             self.start_recording(
                 encoder=self.attrs['encoder'],
-                output=filename,
+                output=PyavOutput(filename),
                 quality=self.attrs['quality']
             )
             self.attrs['recording'] = True

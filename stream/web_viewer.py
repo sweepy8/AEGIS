@@ -11,12 +11,19 @@ app = Flask(__name__)
 
 @app.route('/video_feed')   # Embedded in root page
 def video_feed() -> Response:
-    if UGV_Cam.attrs['connected'] == True:
+    '''
+    *************************************.
+    '''
+    if UGV_Cam.attrs['connected']:
+        if not UGV_Cam.attrs['streaming']: 
+            UGV_Cam.attrs['streaming'] = True
         return Response(
             UGV_Cam.generate_frames(), 
             mimetype='multipart/x-mixed-replace; boundary=frame'
         )
     else:
+        if UGV_Cam.attrs['streaming']:
+            UGV_Cam.attrs['streaming'] = False
         return send_file(
             path_or_file='static/images/no_video.gif',
             mimetype='image/gif'
@@ -24,10 +31,16 @@ def video_feed() -> Response:
 
 @app.route('/')
 def show_main_page() -> str:
+    '''
+    **********************************.
+    '''
     return render_template('main.html')
 
 @app.route('/visualizer')   # Embedded in root page
 def visualizer() -> Response:
+    '''
+    **********************************.
+    '''
     return Response(
         create_visualizer_fig(),
         mimetype='image/png'
@@ -36,10 +49,16 @@ def visualizer() -> Response:
 # # Prevent all caching
 # @app.after_request
 # def add_http_headers(response : Response) -> Response:
+#     '''
+#     **********************************.
+#     '''
 #     response.headers['cache-control'] = 'no-store'
 #     return response
 
 def run_stream() -> None:
+    '''
+    **********************************.
+    '''
     app.run(
         host='10.40.78.112',
         port=5000

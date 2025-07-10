@@ -19,6 +19,9 @@ INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift lol
 
 def generate_command(op : str, **kwargs) -> list[int]:
+    '''
+    *******************************.
+    '''
 
     # See table in docs for 3-byte command structure
     command = [-1, -1, -1]
@@ -48,6 +51,9 @@ def generate_command(op : str, **kwargs) -> list[int]:
     return command
 
 def open_serial_connection() -> Serial:
+    '''
+    ****************.
+    '''
     
     s = Serial()		    # Create serial connection
     s.port = '/dev/ttyAMA2'	# UART port on GPIO 4 and 5
@@ -56,6 +62,7 @@ def open_serial_connection() -> Serial:
     s.parity = 'N'			# No parity bit
     #s.stopbits = 0			# One stop bit per byte
     s.timeout = 0			# Non-blocking mode (return immediately)
+    s.exclusive = True      # Restrict cross-module access
 
     # Open configured serial connection
     print(f"rpi_UART.py: Opening UGV serial via {s.name}...")
@@ -67,6 +74,9 @@ def open_serial_connection() -> Serial:
     return s
 
 def read_data(serial_conn : Serial) -> bytes | None:
+    '''
+    *****************.
+    '''
     if serial_conn.is_open:
         if bytes_waiting := serial_conn.in_waiting > 0:
             data = serial_conn.read(bytes_waiting)
@@ -77,6 +87,9 @@ def read_data(serial_conn : Serial) -> bytes | None:
         raise RuntimeError("Attempted to read from closed serial port!")
     
 def listen_to_UGV(serial_conn : Serial) -> str | None:
+    '''
+    *************************.
+    '''
     while True:
         sleep(1/UART_BAUDRATE)
         ugv_data = read_data(serial_conn)
@@ -88,7 +101,9 @@ def listen_to_UGV(serial_conn : Serial) -> str | None:
 
 
 def control_UGV(serial_conn : Serial) -> None:
-
+    '''
+    *******************************.
+    '''
     xb_listener_thread = Thread(target=controller.listen, daemon=True)
     xb_listener_thread.start()
     time_since_last_command = time()
@@ -135,9 +150,10 @@ def control_UGV(serial_conn : Serial) -> None:
 
             time_since_last_command = current_time
     
-
 def run_comms() -> None:
-    
+    '''
+    *******************.
+    '''
     serial_conn = open_serial_connection()
     
     controller_thread = Thread(target=control_UGV, args=[serial_conn], daemon=True)
@@ -148,7 +164,6 @@ def run_comms() -> None:
 
     while True:
         pass
-
 
 if __name__ == "__main__":
     run_comms()

@@ -43,12 +43,12 @@ class Lidar:
         0x9c, 0xd1, 0x7f, 0x32, 0xe5, 0xa8]
     
     
-    '''
-    Initializes a lidar object with UART parameters and application-specific parameters
-    @param None
-    @return: None
-    '''
     def __init__(self):
+        '''
+        Initializes a lidar object with UART parameters and application-specific parameters
+        @param None
+        @return: None
+        '''
         
         self.name        = 'STL27L'
         self.max_packets = 245				# (921600b/s) / (10Hz) / (8b/B) / (47 B/p)
@@ -66,13 +66,13 @@ class Lidar:
         self.timeout     = 0				# Non-blocking mode (return immediately)
         
     
-    '''
-    Opens a serial connection using UART parameters defined in initializer
-    @param None
-    @return: None
-    '''
+
     def open_serial(self):
-        
+        '''
+        Opens a serial connection using UART parameters defined in initializer
+        @param None
+        @return: None
+        '''        
         # Configure serial connection parameters
         self.serial_conn.port     = self.port_name
         self.serial_conn.baudrate = self.baudrate
@@ -87,25 +87,27 @@ class Lidar:
         # Allow connection to form
         time.sleep(0.05)
     
-    '''
-    Closes the serial connection if it is open
-    @param None
-    @return: None
-    '''
+
     def close_serial(self):
+        '''
+        Closes the serial connection if it is open
+        @param None
+        @return None
+        '''
         if self.serial_conn.is_open:
             self.serial_conn.close()
         
     
-    '''
-    Obtains data packets from the LiDAR device over the serial connection.
-    @param  packets: Number of packets to retrieve
+    def get_packets(self, packets, show=0, no_vis=0):
+        '''
+        Obtains data packets from the LiDAR device over the serial connection.
+        @param  
+            packets: Number of packets to retrieve
             show: A flag value to either print (1) or hide (0) detailed information to the console
             no_vis: A flag value specifying whether (0) or not (1) a visualizer is being used
-    @return data_arr: Array containing packet arrays
-    '''
-    def get_packets(self, packets, show=0, no_vis=0):
-        
+        @return
+            data_arr: Array containing packet arrays
+        '''
         data_arr = []
 
         for p in range(0, packets):
@@ -143,16 +145,18 @@ class Lidar:
             
         return data_arr 
 
-    '''
-    Extracts information from packet data in accordance with STL27L communication protocol
-    @param  p: packet to process as an array of bytes 
+    def process_packet(self, p, show=0, motor_angle=None):
+        '''
+        Extracts information from packet data in accordance with STL27L communication protocol
+        @param  
+            p: packet to process as an array of bytes 
             show: A flag value to either print (1) or hide (0) detailed information to the console
             motor_angle: Current angle of motor used to describe a point in spherical coordinates
-    @return pts_arr: Array containing points as either 3 or 4 element float arrays
-    '''
-    def process_packet(self, p, show=0, motor_angle=None):
+        @return
+            pts_arr: Array containing points as either 3 or 4 element float arrays
+        '''
         
-                                                # data comes in as LSB then MSB
+        # data comes in as LSB then MSB
         speed       = p[3]  * (2**8) + p[2]		# speed of rotation in degrees per second
         start_angle = p[5]  * (2**8) + p[4]		# start angle in units of 0.01 degrees
         end_angle   = p[43] * (2**8) + p[42]	# end angle in units of 0.01 degrees
@@ -181,14 +185,17 @@ class Lidar:
     
         return pts_arr
     
-    '''
-    Obtains a ring's worth of data from the LiDAR device over the serial connection.
-    @param  show: A flag value to either print (1) or hide (0) detailed information to the console
+    def get_processed_ring(self, show=0, no_vis=1, motor_angle=None):
+        '''
+        Obtains a ring's worth of data from the LiDAR device over the serial connection.
+        @param  
+            show: A flag value to either print (1) or hide (0) detailed information to the console
             no_vis: A flag value specifying whether (0) or not (1) a visualizer is being used
             motor_angle: Current angle of motor used to describe a point in spherical coordinates
-    @return pts: Array containing points as either 3 or 4 element float arrays
-    '''
-    def get_processed_ring(self, show=0, no_vis=1, motor_angle=None):
+        @return 
+            pts: Array containing points as either 3 or 4 element float arrays
+        '''
+
         pts = []
         
         while (len(pts) / 12 < self.max_packets * self.hit_rate_threshold):
@@ -205,24 +212,29 @@ class Lidar:
         
         return pts
     
-    '''
-    Calculates the CRC8 checksum in accordance with the STL27L communications protocol.
-    @param  packet: Packet to be verified (as an array of bytes)
-    @return crc: The correct integer checksum of the packet
-    '''
     def calc_crc8(self, packet):
+        '''
+        Calculates the CRC8 checksum in accordance with the STL27L communications protocol.
+        @param 
+            packet: Packet to be verified (as an array of bytes)
+        @return
+            crc: The correct integer checksum of the packet
+        '''
+
         crc = 0
         for i in range(0, self.packet_size - 1):
             crc = self.CRCTABLE[(crc ^ packet[i]) & 0xff]
         return crc
     
-    '''
-    Converts an array of two-dimensional points from polar to cartesian coordinates.
-    @param  pts: Array containing polar points
-    @return cart_pts: Array containing cartesian points
-    '''
+
     def conv_pts_coords(self, pts):
-        
+        '''
+        Converts an array of two-dimensional points from polar to cartesian coordinates.
+        @param 
+            pts: Array containing polar points
+        @return
+            cart_pts: Array containing cartesian points
+        '''    
         cart_pts = []
         
         for pt in pts:
@@ -232,20 +244,23 @@ class Lidar:
             
         return cart_pts
 
-    '''
-    ****************************************************8.
-    @param  pts: Array containing polar points
-    @return cart_pts: Array containing cartesian points
-    '''
     def make_file(self):
+        '''
+        ****************************************************.
+        @param  pts: Array containing polar points
+        @return cart_pts: Array containing cartesian points
+        '''
         timestamp = datetime.datetime.now().strftime("%Y_%m_%d_time_%H_%M_%S")
         filename = f"../test_clouds/cloud_{timestamp}.pcd"
         print(f"File '{filename}' created successfully.")
         return filename
     
     
+
     def write_pcd_header_to_file(self, filename, pts_count):
-        
+        '''
+        ***********************************************.
+        '''    
         header = ["VERSION .7\n",
                   "FIELDS x y z rgb\n",
                   "SIZE 4 4 4 4\n",
@@ -263,6 +278,9 @@ class Lidar:
     
     
     def write_pts_to_file(self, filename, pts):
+        '''
+        *******************************.
+        '''
         with open(filename, "a") as file:
             for pt in pts:
                 file.write("%s %s %s %s\n" % (pt[0], pt[1], pt[2], pt[3]))
@@ -271,12 +289,18 @@ class Lidar:
 # GLOBAL FUNCTIONS (MOVE TO SEPARATE FILE) -----------------------------------------------------------------
 
 def pol_to_cart(rho, phi):		# Takes radius and angle (IN DEG) and converts coordinate system of a point
+    '''
+    **************************.
+    '''
     x = rho * numpy.cos(numpy.deg2rad(phi))
     y = rho * numpy.sin(numpy.deg2rad(phi))
     return [round(x, 8), round(y, 8)]
 
 
 def print_pts_test():
+    '''
+    ***************************.
+    '''
     print("Instantiating LiDAR object...", end='')
     L1 = Lidar()
     print(" Done!\nOpening serial connection...", end='')
@@ -300,6 +324,9 @@ def print_pts_test():
 
 
 def visualize_pts_test():
+    '''
+    *********************************.
+    '''
     
     def init():
         scat.set_offsets(numpy.empty(2))
