@@ -8,9 +8,10 @@ from time import sleep, time
 from serial import Serial
 from threading import Thread
 
+# Relative import if called directly, otherwise package import
 from ugv import controller
-
 from ugv.camera import UGV_Cam
+
 
 #from lidar.motor import Motor as Lidar_Motor
 
@@ -65,12 +66,12 @@ def open_serial_connection() -> Serial:
     s.exclusive = True      # Restrict cross-module access
 
     # Open configured serial connection
-    print(f"rpi_UART.py: Opening UGV serial via {s.name}...")
+    print(f"[INIT] rpi_UART.py: Opening UGV serial via {s.name}...")
     s.open()
 
     # Allow connection to form
     sleep(0.05)
-    print(f"rpi_UART.py: UGV serial port opened.")
+    print(f"[INIT] rpi_UART.py: UGV serial port opened.")
     return s
 
 def read_data(serial_conn : Serial) -> bytes | None:
@@ -97,8 +98,7 @@ def listen_to_UGV(serial_conn : Serial) -> str | None:
             for b in ugv_data:
                 print(chr(b), end='')
                 if chr(b) == '\n':
-                    print("rpi_UART.py: [UGV]>>", end='')
-
+                    print("[UGV] arduino_UART.ino: >>> ", end='')
 
 def control_UGV(serial_conn : Serial) -> None:
     '''
@@ -115,12 +115,12 @@ def control_UGV(serial_conn : Serial) -> None:
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
 
             # START + A: start recording
-            if controller.input_states['BTN_START'] and controller.input_states['BTN_A'] and not UGV_Cam.is_recording:
+            if controller.input_states['BTN_START'] and controller.input_states['BTN_A'] and not UGV_Cam.recording:
                 video_filename = UGV_Cam.my_start_recording()
                 print(f"rpi_UART.py: Recording video to '{video_filename}'...")
 
             # START + B: stop recording
-            if controller.input_states['BTN_START'] and controller.input_states['BTN_B'] and UGV_Cam.is_recording:
+            if controller.input_states['BTN_START'] and controller.input_states['BTN_B'] and UGV_Cam.recording:
                 UGV_Cam.my_stop_recording()
                 print(f"Recording saved at {video_filename}")
 

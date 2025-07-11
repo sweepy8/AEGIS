@@ -3,7 +3,7 @@
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
-from picamera2.outputs import PyavOutput, FileOutput
+from picamera2.outputs import PyavOutput
 from time import sleep
 from cv2 import imencode
 
@@ -12,17 +12,6 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "2"
 
 from utils.file_utils import get_timestamped_filename
 
-
-
-'''
-UPDATE THE ENCODER OUTPUTS! ONE FileOutput AND ONE PyavOutput, PIPE FILEOUTPUT
-TO RPI_UART.PY and PIPE PyavOutput TO STREAM.PY
-
-'''
-
-
-
-# Wrapper around Picamera2 object
 class Camera(Picamera2):
     '''
     An extension of the Picamera2 class that includes AEGIS-specific data fields and class methods.\n
@@ -36,78 +25,83 @@ class Camera(Picamera2):
         super(Camera, self).__init__()
 
         self.config = self.create_video_configuration(
-            main={
-                'format':'XRGB8888'
-            },
-            lores={
-                'format':'XRGB8888'
-            }
+            main=  {'format':'XRGB8888'},
+            lores= {'format':'RGB888'}
         )
 
-        self.attrs = {
-            'quality': Quality.VERY_HIGH,
-            'encoder': H264Encoder(repeat=True),
-            'connected': True,
-            'recording': False,
-            'streaming': False
-        }
+        self.video_quality = Quality.VERY_HIGH
+        self.stream_quality = Quality.VERY_LOW
+        self.encoder = H264Encoder(repeat=True)
+        self.connected = True
+        self.recording = False
+        self.streaming = False
 
-
-    # This function taken from Shilleh on youtube.com/watch?v=NOAY1aaVPAw
-    # To better understand, look into generator functions and iterators
     def generate_frames(self):
         '''
         PLACEHOLDER, TO BE FILLED IN LATER ***
+        ### This function taken from Shilleh on youtube.com/watch?v=NOAY1aaVPAw
+        ### To better understand, look into generator functions and iterators
         '''
         while True:
-            frame = self.capture_array()
-            ret, buffer = imencode('.jpg', frame)
+            frame = self.capture_array("lores")
+            success, buffer = imencode(ext='.jpg', img=frame)
             frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            if (success):
+                yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
     def my_start_recording(self) -> str | None:
         '''
         PLACEHOLDER, TO BE FILLED IN LATER ***
         '''
-        if self.attrs['recording'] == False:
+        if self.recording == False:
             filename = get_timestamped_filename('data/videos', 'video', '.mp4')
-            self.start_recording(
-                encoder=self.attrs['encoder'],
+            self.start_encoder(
+                encoder=self.encoder,
                 output=PyavOutput(filename),
-                quality=self.attrs['quality']
+                quality=self.video_quality
             )
-            self.attrs['recording'] = True
+            print("[RUNTIME] camera.py: Began hi-res encoder...")
+            self.start()
+            print(f"[RUNTIME] camera.py: Began recording to {filename}...")
+            self.recording = True
             return filename
         else:
-            print("camera.py: Failed to start recording, are you already recording?")
+            print("[RUN_ERROR] camera.py: Failed to start recording, are you already recording?")
             return None
     
     def my_stop_recording(self) -> None:
         '''
         PLACEHOLDER, TO BE FILLED IN LATER ***
         '''
-        if self.attrs['recording'] == True:
-            self.stop_recording()
-            self.attrs['recording'] = False
+        if self.recording == True:
+            print("[RUNTIME] camera.py: Attempting to stop recording...")
+            self.stop_encoder()
+            print("[RUNTIME] camera.py: Stopped hi-res encoder...")
+            self.recording = False
         else:
-            print("camera.py: Failed to stop recording, are you sure you are recording?")
-
-# Global UGV camera object to be shared between other modules.
-# Additional cameras could be instantiated here and shared similarly.
-UGV_Cam = Camera()
-UGV_Cam.start()
+            print("[RUN_ERROR] camera.py: Failed to stop recording, are you sure you are recording?")
+#Endclass
 
 def record_test(seconds : int) -> None:
     '''
     Simple test to record and save a video with a timestamped filename.
     '''
+
     filename = UGV_Cam.my_start_recording()
-    print(f"camera.py: Recording video to: '{filename}'...")
-    sleep(seconds)
+    for i in range(0, seconds):
+        sleep(1)
     UGV_Cam.my_stop_recording()
-    print(f"camera.py: Saved video at:     '{filename}'.")
+
+
+# Global UGV camera object to be shared between other modules.
+# Starts camera configured with 
+# Additional cameras could be instantiated here and shared similarly.
+UGV_Cam = Camera()
+UGV_Cam.start(UGV_Cam.config)
+print("[INIT] camera.py: UGV camera initialized successfully...")
+
 
 if __name__ == "__main__":
     record_test(30)

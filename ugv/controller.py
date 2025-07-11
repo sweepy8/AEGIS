@@ -43,7 +43,7 @@ def get_event_path(dev_name : str) -> str:
             dev_event_path = device.path
 
     if dev_event_path is None:
-        raise OSError('Event object path not found!')
+        raise OSError('[INIT_ERROR] Event object path not found!')
     
     return dev_event_path
 
@@ -80,11 +80,11 @@ def listen(print_updates=0):
             xbox_event_path = get_event_path(XBOX_DEVICE_NAME)
             xb_device = InputDevice(xbox_event_path)
 
-            print(f"controller.py: {XBOX_DEVICE_NAME} connected!")
+            print(f"[RUNTIME] controller.py: {XBOX_DEVICE_NAME} connected!")
             asyncio.run(listener(xb_device, print_updates))
         
         except OSError:
-            print("controller.py: No controller detected! Searching every 5s...")
+            print("[RUNTIME] controller.py: No controller detected! Searching every 5s...")
         
         finally:
             sleep(5)

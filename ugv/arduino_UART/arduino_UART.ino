@@ -51,7 +51,7 @@ volatile uint8_t rpm;
 #define MAX_RPM 223
 #define MIN_PW 0
 #define MAX_PW 255
-#define MIN_SAFE_DIST 17 + 30 // 17cm offset from US sensors to front of tires
+#define MIN_SAFE_DIST -100 // 17cm offset from US sensors to front of tires (47)
 
 // Simple string macros to improve readability, not necessary
 #define STOP        String("stop")
@@ -253,7 +253,7 @@ void setup() {
 void loop() {
 
   float New_Time = 0.0;
-  String telemetry_string = "Testing123";
+  String telemetry_string = "\nTesting123\n";
 
   if (UART_COMMS_ON)
   {

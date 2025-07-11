@@ -11,35 +11,22 @@ from multiprocessing import Process
 from time import sleep
 
 from ugv import rpi_UART
-from stream import web_viewer
+#from stream import web_viewer
 
-from ugv.camera import UGV_Cam
+uart_p = Process(target=rpi_UART.run_comms, daemon=True)
+#web_p = Process(target=web_viewer.run_stream, daemon=True)
 
-ser = rpi_UART.open_serial_connection()
+print("[INIT] aegis.py: Starting UART subprocess...")
+uart_p.start()
 
-control_p = Process(target=rpi_UART.control_UGV, args=[ser], daemon=True)
-telemetry_p = Process(target=rpi_UART.listen_to_UGV, args=[ser], daemon=True)
-web_p = Process(target=web_viewer.run_stream, daemon=True)
-
-print("aegis.py: Starting UART subprocesses...")
-control_p.start()
-telemetry_p.start()
-
-print("aegis.py: Starting web subprocess...")
-web_p.start()
+print("[INIT] aegis.py: Starting web subprocess...")
+#web_p.start()
 
 # Test sequence goes here
-print("Running test sequence (PLACEHOLDER)...")
+print("[INIT] Running test sequence (PLACEHOLDER)...")
 sleep(1)
 
-print("aegis.py: Entering infinite pass loop...")
-while True: pass
+print("[RUNTIME] aegis.py: Entering infinite pass loop...")
 
-
-
-'''
-I need to import the ugv and stream files without calling their functions, but I need to provide multiple functions in the stream file with the camera object. So,
-I can't pass the camera object to the subprocesses, I must pass the camera object to the stream file before creating the subprocess
-
-
-'''
+while True: 
+    pass
