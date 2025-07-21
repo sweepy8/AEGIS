@@ -98,9 +98,13 @@ def record_test(seconds : int) -> None:
 # Global UGV camera object to be shared between other modules.
 # Starts camera configured with 
 # Additional cameras could be instantiated here and shared similarly.
-UGV_Cam = Camera()
-UGV_Cam.start(UGV_Cam.config)
-print("[INIT] camera.py: UGV camera initialized successfully...")
+try:
+    UGV_Cam = Camera()
+    UGV_Cam.start(UGV_Cam.config)
+    print("[INIT] camera.py: UGV camera initialized successfully...")
+except IndexError:
+    print("[ERROR] camera.py: Camera not connected!")
+    UGV_Cam = None
 
 
 if __name__ == "__main__":

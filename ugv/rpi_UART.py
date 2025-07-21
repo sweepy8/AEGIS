@@ -11,11 +11,11 @@ from threading import Thread
 # Relative import if called directly, otherwise package import
 from ugv import controller
 from ugv.camera import UGV_Cam
+from utils.serial_utils import UGV_BAUDRATE
 
 
 #from lidar.motor import Motor as Lidar_Motor
 
-UART_BAUDRATE = 115200
 INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift lol
 
@@ -58,11 +58,11 @@ def open_serial_connection() -> Serial:
     
     s = Serial()		    # Create serial connection
     s.port = '/dev/ttyAMA2'	# UART port on GPIO 4 and 5
-    s.baudrate = 115200		# 9600 bps Baud
+    s.baudrate = UGV_BAUDRATE
     s.bytesize = 8			# 8 bits per byte
     s.parity = 'N'			# No parity bit
     #s.stopbits = 0			# One stop bit per byte
-    s.timeout = 0			# Non-blocking mode (return immediately)
+    s.timeout = None		# Wait forever if necessary
     s.exclusive = True      # Restrict cross-module access
 
     # Open configured serial connection
@@ -89,16 +89,16 @@ def read_data(serial_conn : Serial) -> bytes | None:
     
 def listen_to_UGV(serial_conn : Serial) -> str | None:
     '''
-    *************************.
+    *************************. This whole function needs to be redesigned
     '''
     while True:
-        sleep(1/UART_BAUDRATE)
-        ugv_data = read_data(serial_conn)
-        if ugv_data is not None:
-            for b in ugv_data:
-                print(chr(b), end='')
-                if chr(b) == '\n':
-                    print("[UGV] arduino_UART.ino: >>> ", end='')
+        ugv_data = serial_conn.read_until(expected=b'\n')
+        
+        try:
+            telemetry_str = ugv_data.decode('utf-8')
+        except UnicodeDecodeError:
+            telemetry_str = "[ERROR] rpi_UART.py: DECODE ERROR, SOLVE THIS\n"
+        print("[UGV] arduino_UART.ino:", telemetry_str, end='')
 
 def control_UGV(serial_conn : Serial) -> None:
     '''
@@ -115,23 +115,31 @@ def control_UGV(serial_conn : Serial) -> None:
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
 
             # START + A: start recording
-            if controller.input_states['BTN_START'] and controller.input_states['BTN_A'] and not UGV_Cam.recording:
+            if (controller.input_states['BTN_START'] and 
+            controller.input_states['BTN_A'] and not UGV_Cam.recording):
                 video_filename = UGV_Cam.my_start_recording()
                 print(f"rpi_UART.py: Recording video to '{video_filename}'...")
 
             # START + B: stop recording
-            if controller.input_states['BTN_START'] and controller.input_states['BTN_B'] and UGV_Cam.recording:
+            if (controller.input_states['BTN_START'] and 
+            controller.input_states['BTN_B'] and UGV_Cam.recording):
                 UGV_Cam.my_stop_recording()
                 print(f"Recording saved at {video_filename}")
 
             # RIGHT TRIGGER: move forward
-            if (controller.input_states['BTN_RZ'] and not controller.input_states['BTN_Z']):
-                move_command = generate_command("MOVE", joy_pos=controller.input_states['BTN_RZ'])
+            if (controller.input_states['BTN_RZ'] and
+            not controller.input_states['BTN_Z']):
+                move_command = generate_command(
+                    "MOVE", joy_pos=controller.input_states['BTN_RZ']
+                )
                 serial_conn.write(move_command)
 
             # LEFT TRIGGER: move backward
-            if (controller.input_states['BTN_Z'] and not controller.input_states['BTN_RZ']):
-                move_command = generate_command("MOVE", joy_pos=controller.input_states['BTN_Z'] * -1)
+            if (controller.input_states['BTN_Z'] and 
+            not controller.input_states['BTN_RZ']):
+                move_command = generate_command(
+                    "MOVE", joy_pos=controller.input_states['BTN_Z'] * -1
+                )
                 serial_conn.write(move_command)
 
             # LEFT BUMPER: spin turn left
@@ -144,8 +152,9 @@ def control_UGV(serial_conn : Serial) -> None:
                 move_command = generate_command("TURN", turn_dir="RIGHT")
                 serial_conn.write(move_command)
 
-            # RIGHT JOYSTICK: move (currently unmapped, gotta think about the formula)
-            if controller.input_states['ABS_RY'] > STICK_MOVE_THRESHOLD or controller.input_states['ABS_RX'] > STICK_MOVE_THRESHOLD:
+            # RIGHT JOYSTICK: move (currently unmapped)
+            if (controller.input_states['ABS_RY'] > STICK_MOVE_THRESHOLD or 
+            controller.input_states['ABS_RX'] > STICK_MOVE_THRESHOLD):
                 pass
 
             time_since_last_command = current_time
@@ -156,14 +165,14 @@ def run_comms() -> None:
     '''
     serial_conn = open_serial_connection()
     
-    controller_thread = Thread(target=control_UGV, args=[serial_conn], daemon=True)
-    telemetry_thread = Thread(target=listen_to_UGV, args=[serial_conn], daemon=True)
+    controller_thread = Thread(target=control_UGV, args=[serial_conn])
+    telemetry_thread = Thread(target=listen_to_UGV, args=[serial_conn])
 
     controller_thread.start()
     telemetry_thread.start()
 
-    while True:
-        pass
+    controller_thread.join()
+    telemetry_thread.join()
 
 if __name__ == "__main__":
     run_comms()
