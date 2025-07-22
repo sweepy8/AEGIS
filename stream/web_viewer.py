@@ -1,12 +1,14 @@
 # Unified web view program
 # AEGIS Senior Design, Created on 6/9/25
 
-from flask import Flask, Response, render_template, send_file
-from ugv.camera import UGV_Cam
-from utils.stream_utils import create_visualizer_fig
-
 from time import sleep
 from multiprocessing import Process
+
+from flask import Flask, Response, render_template, send_file
+from utils.stream_utils import create_visualizer_fig
+
+from ugv.camera import UGV_Cam
+
 
 # ROUTES ----------------------------------------------------------------------
 

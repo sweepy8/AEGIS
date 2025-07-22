@@ -14,8 +14,8 @@ from utils.file_utils import get_timestamped_filename
 
 class Camera(Picamera2):
     '''
-    An extension of the Picamera2 class that includes AEGIS-specific data fields and class methods.\n
-    For information about Picamera2, visit 'datasheets.raspberrypi.com/camera/picamera2-manual.pdf'
+    An extension of the Picamera2 class that includes AEGIS-specific fields and methods.\n
+    For info about Picamera2, visit 'datasheets.raspberrypi.com/camera/picamera2-manual.pdf'
     '''
 
     def __init__(self) -> None:
@@ -88,7 +88,10 @@ def record_test(seconds : int) -> None:
     '''
     Simple test to record and save a video with a timestamped filename.
     '''
-
+    if (UGV_Cam is None):
+        print("[ERROR] camera.py->record_test(): Can't perform test without a camera!")
+        return
+    
     filename = UGV_Cam.my_start_recording()
     for i in range(0, seconds):
         sleep(1)
@@ -102,8 +105,8 @@ try:
     UGV_Cam = Camera()
     UGV_Cam.start(UGV_Cam.config)
     print("[INIT] camera.py: UGV camera initialized successfully...")
-except IndexError:
-    print("[ERROR] camera.py: Camera not connected!")
+except IndexError as e:
+    print(f"[ERROR] camera.py: Camera not connected!")
     UGV_Cam = None
 
 

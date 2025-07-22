@@ -11,22 +11,22 @@ from multiprocessing import Process
 from time import sleep
 
 from ugv import rpi_UART
-#from stream import web_viewer
+from stream import web_viewer
 
 uart_p = Process(target=rpi_UART.run_comms, daemon=True)
-#web_p = Process(target=web_viewer.run_stream, daemon=True)
+web_p = Process(target=web_viewer.run_stream, daemon=True)
 
 print("[INIT] aegis.py: Starting UART subprocess...")
 uart_p.start()
 
 print("[INIT] aegis.py: Starting web subprocess...")
-#web_p.start()
+web_p.start()
 
 # Test sequence goes here
-print("[INIT] Running test sequence (PLACEHOLDER)...")
-sleep(1)
+#print("[INIT] aegis.py: Running test sequence (PLACEHOLDER)...")
+#sleep(1)
 
 print("[RUNTIME] aegis.py: Entering infinite pass loop...")
 
-while True: 
+while True:
     pass
