@@ -20,19 +20,16 @@ btn_folder = os.path.join(app.static_folder, 'trips')
 # app routes for each html page
 @app.route('/') # inside '' is the link for href to link page
 def main_page():
-    return render_template('main.html') # Loads main html page
-@app.route('/trip_viewer')
-def trip_viewer():
-    return render_template('trip_viewer.html') # loads trip viewer
-@app.route('/trip_raw_data')
-def trip_raw_data():
-    return render_template('trip_raw_data.html') # loads trip raw data
-@app.route('/about')
-def about():
-    return render_template('about.html') # loads about page
+    return render_template('home.html') # Loads home html page
+@app.route('/telemetry')
+def telemetry_page():
+    return render_template('telemetry.html') # Loads telemetry html page
 @app.route('/admin')
-def admin():
-    return render_template('admin.html') # loads admin page
+def admin_page():
+    return render_template('admin.html') # Loads admin html page
+@app.route('/about')
+def about_page():
+    return render_template('about.html') # Loads about html page
 
 @app.route('/trips')
 def get_trips():

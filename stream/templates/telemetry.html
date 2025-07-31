@@ -1,0 +1,115 @@
+<!-- Telemetry Viewer Data/Visual -->
+<!-- Created: 7/30/2025 -->
+<!DOCTYPE html>
+
+<html>
+
+    <head>
+        <title>Trip Viewer Web Page</title>
+        <link rel="stylesheet" href="../static/style.css">
+        <!-- Plotly scripts -->
+        <script src='https://cdn.plot.ly/plotly-3.0.1.min.js'></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
+        <!-- Add Icons -->
+        <script src="https://kit.fontawesome.com/a848d7736f.js" crossorigin="anonymous"></script>
+    </head>
+
+    <body>
+        
+        <!-- Grid Layout Divs -->
+        <div class="container">
+            <div class="nav_bar">
+                <ul>
+                    <li><a href="/"><i class="fa-regular fa-house fa-xl"></i> Home</a></li>
+                    <li><a class="active" href="/telemetry"><i class="fa-regular fa-folder-open fa-xl"></i> Telemetry</a></li>
+                    <li><a href="/admin"><i class="fa-regular fa-keyboard fa-xl"></i> Admin</a></li>
+                    <li><a href="/about"><i class="fa-regular fa-user fa-xl"></i> About</a></li>
+                    <li><a href="https://github.com/sweepy8/AEGIS"><i class="fa-regular fa-file-code fa-xl"></i> Github</a></li>
+                </ul>
+            </div>
+            <div class="trip">
+                <div>
+                    <p>Choose a trip:</p>
+                    <select name="trips" id="trip_select">
+                        <option>--Please choose a Trip--</option>
+                    </select>
+                </div>
+                <img src="../static/images/AEGIS_Transparent.png" alt="AEGIS">
+                <div style="margin-left: 30%;">
+                    <h3><i>Dare Mighty Things</i></h3>
+                </div>
+            </div>
+            <div class="plot1_header">
+                <div>
+                    <p>Choose a plot:</p>
+                    <select name="plot1" id="plot_select_1">
+                        <option>--Please choose a plot--</option>
+                        <option>Video MP4</option>
+                        <option>LiDAR Plot</option>
+                        <option>Motor Voltage & Current</option>
+                        <option>Motor RPM</option>
+                        <option>RPI util</option>
+                        <option>Video Data</option>
+                        <option>LiDAR Data</option>
+                        <option>IMU: Roll Pitch Yaw</option>
+                        <option>IMU: Accelerameter</option>
+                        <option>Ultrasonics</option>
+                    </select>
+                </div>
+            </div>
+            <div class="plot1" id="plot1">
+                <button onclick="toggleFullScreen1()" style="position: absolute;left: 0;top: 0;margin:10px;">
+                    Fullscreen
+                </button>
+            </div>
+            <div class="plot2_header">
+                <div>
+                    <p>Choose a plot:</p>
+                    <select name="plot2" id="plot_select_2">
+                        <option>--Please choose a plot--</option>
+                        <option>Video MP4</option>
+                        <option>LiDAR Plot</option>
+                        <option>Motor Voltage & Current</option>
+                        <option>Motor RPM</option>
+                        <option>RPI util</option>
+                        <option>Video Data</option>
+                        <option>LiDAR Data</option>
+                        <option>IMU: Roll Pitch Yaw</option>
+                        <option>IMU: Accelerameter</option>
+                        <option>Ultrasonics</option>
+                    </select>
+                </div>
+            </div>
+            <div class="plot2" id="plot2">
+                <button onclick="toggleFullScreen2()" style="position: absolute;left: 0;top: 0;margin:10px;">
+                    FullScreen
+                </button>
+            </div>
+            <div class="plot3_header">
+                <div>
+                    <p>Choose a plot:</p>
+                    <select name="plot3" id="plot_select_3">
+                        <option>--Please choose a plot--</option>
+                        <option>Video MP4</option>
+                        <option>LiDAR Plot</option>
+                        <option>Motor Voltage & Current</option>
+                        <option>Motor RPM</option>
+                        <option>RPI util</option>
+                        <option>Video Data</option>
+                        <option>LiDAR Data</option>
+                        <option>IMU: Roll Pitch Yaw</option>
+                        <option>IMU: Accelerameter</option>
+                        <option>Ultrasonics</option>
+                    </select>
+                </div>
+            </div>
+            <div class="plot3" id="plot3">
+                <button onclick="toggleFullScreen3()" style="position: absolute;left: 0;top: 0;margin:10px;">
+                    FullScreen
+                </button>
+            </div>
+        </div>
+        
+        <script src="{{ url_for('static', filename='../static/js/dynamic.js') }}"></script>
+    </body>
+</html>

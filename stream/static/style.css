@@ -1,56 +1,8 @@
-/* Website total view to visibile screen without any overflow */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background-image: url('images/mars_2.jpg');
-  background-size: cover;
-}
-img {
-  height: 100%;
-  width: 100%;
-}
 * {
   box-sizing: border-box;
 }
-.csun_logo {
-  background-image: url('../static/images/CSUN_logo.png');
-  background-position: center;
-  background-size: contain;
-  background-repeat: no-repeat;
-}
 
-/* Navigation Bar Style Section */
-.navigation_bar ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background-color: #333;
-}
-.navigation_bar li {
-  float: left;
-  border-right:1px solid #bbb;
-}
-.navigation_bar li:last-child {
-  border-right: none;
-}
-.navigation_bar li a {
-  color: white;
-  padding: 14px 16px;
-  text-decoration: none;
-  display: block;
-}
-.navigation_bar li a:hover:not(.active) {
-  background-color: #111;
-}
-.navigation_bar .active {
-  background-color: #D22030;
-}
-
-
-
-/* Structure grid layout using fractions and line start/ends */
+/* Grid Layout Section */
 html, body {
   margin: 0;
   padding: 0;
@@ -58,305 +10,112 @@ html, body {
   overflow: hidden;
 }
 .container {
-  display: grid;
-  height: 100%;
-  grid-template-rows: repeat(16,1fr);
-  grid-template-columns: repeat(16, 1fr);
-  gap: 5px;
-  margin: 5px;
+display: grid;
+height:100%;
+grid-template-columns: repeat(12, 1fr);
+grid-template-rows: repeat(12, 1fr);
+grid-column-gap: 5px;
+grid-row-gap: 5px;
 }
-.navigation_bar {
-  grid-row: 1 / span 1;
-  grid-column: 1 / span 16;
-  background-color: hsl(0, 0%, 20%, 0.5);
-  border-radius: 10px;
-  color: white;
-  margin-top: auto;
-  margin-bottom: auto;
-  align-items: center;
-}
-.trip_list {
-  grid-row: 2 / span 7;
-  grid-column: 1 / span 2;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: block;
-  align-items: center;
-  justify-content: center;
+.nav_bar { 
+  grid-area: 1 / 1 / 13 / 2;
+  background-color: orange;
   overflow: hidden;
 }
-.trip_list_raw_data {
-  grid-row: 2 / span 14;
-  grid-column: 1 / span 2;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: block;
-  align-items: center;
-  justify-content: center;
+.trip { 
+  grid-area: 1 / 2 / 2 / 13; 
+  background-color: yellow;
+  display: flex;
   overflow: hidden;
 }
-.raw_data {
-  grid-row: 2 / span 14;
-  grid-column: 3 / span 16;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: block;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
+.plot1_header { 
+  grid-area: 2 / 2 / 3 / 8; 
+  background-color: green;
+  display:flex;
+  overflow: hidden;
 }
-.camera {
-  grid-row: 2 / span 7;
-  grid-column: 3 / span 8;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.plot1 { 
+  grid-area: 3 / 2 / 8 / 8; 
+  background-color: lightgreen;
+  position:relative;
 }
-.lidar {
-  grid-row: 2 / span 7;
-  grid-column: 11 / span 6;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.plot2_header { 
+  grid-area: 2 / 8 / 3 / 13;
+  background-color: blue; 
+  display:flex;
+  overflow: hidden;
 }
-.lidar img {
-  width: 100%;
-  object-fit: cover;
+.plot2 { 
+  grid-area: 3 / 8 / 8 / 13; 
+  background-color: lightblue;
+  position:relative;
+} 
+.plot3_header { 
+  grid-area: 8 / 2 / 9 / 13; 
+  background-color: coral;
+  display:flex;
+  overflow: hidden;
 }
-.lidar h2 {
-  position: absolute;
-  align-items: center;
-  justify-content: center;
-  color:#D22030;
-}
-.telemetry_data {
-  grid-row: 9 / span 4;
-  grid-column: 1 / span 16;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-y: scroll;
-}
-.telemetry_stamp {
-  grid-row: 13 / span 2;
-  grid-column: 1 / span 16;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-y: scroll;
-}
-.scrubber_container {
-  grid-row: 15 / span 2;
-  grid-column: 1 / span 16;
-  background-color: hsl(0, 0%, 80%, 0.2);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.plot3 { 
+  grid-area: 9 / 2 / 13 / 13; 
+  background-color: lightcoral;
+  position:relative;
 }
 .fullscreen_div {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; 
-    z-index: 9999; /* Ensures it's on top of other elements */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%; 
+  z-index: 9999; /* Ensures it's on top of other elements */
 }
 
-/* Trip Select List/Scroll Section */
-.scroll_list {
-  max-height: 85%;
-  width: 100%;
-  overflow-y: auto;
-  padding: 0px;
-  margin: 0px;
-  margin-top: 5%;
-  align-items: center;
-  justify-content: center;
-  /* border: 1px solid blue; */
-}
-.trip_list ul {
-  width: 100%;
+/* Navigation Bar Vertical */
+.nav_bar ul {
   list-style-type: none;
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  margin-left: 7.5%;
+  padding: 0;
 }
-.trip_list li {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0px;
-  padding: 0px;
+.nav_bar li a {
+  display: block;
+  width: 90%;
+  margin: 0;
+  margin-top: 30px;
+  padding: 0;
+  color: black;
+  text-decoration: none;
 }
-.trip_list button.open-btn {
-  height: 50px;
-  width: 75%;
-  background-color: #333;
-  margin-top:2px;
+.nav_bar li a:hover:not(.active) {
   color: white;
-  text-align: center;
-  border-radius: 10px;
-  font-size: medium;
 }
-.trip_list button.open-btn:hover {
-  background-color: #111;
-}
-.trip_list_raw_data ul {
-  width: 100%;
-  list-style-type: none;
-  margin: 0px;
-  padding: 0px;
-}
-.trip_list_raw_data li {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0px;
-  padding: 0px;
-}
-.trip_list_raw_data button.open-btn {
-  height: 50px;
-  width: 75%;
-  background-color: #333;
-  margin-top:2px;
-  color: white;
-  text-align: center;
-  border-radius: 10px;
-  font-size: medium;
-}
-.trip_list_raw_data button.open-btn:hover {
-  background-color: #111;
+.nav_bar .active {
+  color: red;
 }
 
-/* Telemetry Overview Section */
-.data {
-  height: 100%;
-  width: 25%;
+/* Trip Select Section */
+.trip p {
   margin: 0;
   padding: 0;
-  margin-left: 2%;
 }
-.data * {
-  color: white;
-  margin: auto;
-  padding: 0;
-}
-.data p {
-  margin-left: 10%;
-}
-.data h4 {
-  margin-left: 10%;
-}
-.data_2 {
-  height: 100%;
-  width: auto;
-  margin: 0;
-  padding: 0;
-  margin-left: 2%;
-}
-.data_2 * {
-  color: white;
-  margin: auto;
-  padding: 0;
-}
-.data_2 p {
-  margin-left: 10%;
-}
-.motor_vals {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
-}
-.rpi_data {
-  display: inline-block;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
-}
-.lidar_data {
-  display: inline-block;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
-}
-.camera_data {
-  display: inline-block;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
-}
-.ultrasonic_data {
-  display: inline-block;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
-}
-.imu_data {
-  display: inline-block;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
-}
-.ugv_data {
-  display: inline-block;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  margin-top: 5px;
+.trip img {
+  margin-left: 35%;
 }
 
-/* Raw Data Print Section */
-.raw_data p {
-  color: white;
-  font-size: large;
+/* Plot1 Select Section */
+.plot1_header p {
+  margin: 0;
+  padding: 0;
 }
 
-/* Scrubber Section */ 
-.scrubber {
-    height: 100%;
-    width: 85%;
-    margin-left: 5px;
-} 
-.play_btn {
-    font-size: large;
-    border-radius: 5px;
-    margin: 5px;
-    padding: 0px;
-    height: 50%;
-} 
-.scrubber_value {
-    color: white;
-    text-align: center;
-    margin-right: 5px;
+/* Plot2 Select Section */
+.plot2_header p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Plot3 Select Section */
+.plot3_header p {
+  margin: 0;
+  padding: 0;
 }

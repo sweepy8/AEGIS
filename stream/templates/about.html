@@ -1,28 +1,33 @@
-<!-- About Web HTML -->
-<!-- Created 7/14/2025 -->
-
+<!-- About Page -->
+<!-- Created: 7/30/2025 -->
 <!DOCTYPE html>
+
 <html>
 
-<head>
-    <title>About Web Page</title>
-    <link rel="stylesheet" href="../static/style.css">
-</head>
+    <head>
+        <title>About Web Page</title>
+        <link rel="stylesheet" href="../static/style.css">
+        <!-- Plotly scripts -->
+        <script src='https://cdn.plot.ly/plotly-3.0.1.min.js'></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
+        <!-- Add Icons -->
+        <script src="https://kit.fontawesome.com/a848d7736f.js" crossorigin="anonymous"></script>
+    </head>
 
-<body style="background-color: #55565a;">
-    <!-- Grid Layout Container -->
-    <div class="container">
-        <!-- Navigation Bar Section -->
-        <div class="navigation_bar">
-            <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/trip_viewer">Trips</a></li>
-            <li><a href="/trip_raw_data">Raw Data</a></li>
-            <li><a href="/admin">Admin</a></li>
-            <li style="float:right"><a class="active" href="/about">About</a></li>
-            </ul>
+    <body>
+        
+        <!-- Grid Layout Divs -->
+        <div class="container">
+            <div class="nav_bar">
+                <ul>
+                    <li><a href="/"><i class="fa-regular fa-house fa-xl"></i> Home</a></li>
+                    <li><a href="/telemetry"><i class="fa-regular fa-folder-open fa-xl"></i> Telemetry</a></li>
+                    <li><a href="/admin"><i class="fa-regular fa-keyboard fa-xl"></i> Admin</a></li>
+                    <li><a class="active" href="/about"><i class="fa-regular fa-user fa-xl"></i> About</a></li>
+                    <li><a href="https://github.com/sweepy8/AEGIS"><i class="fa-regular fa-file-code fa-xl"></i> Github</a></li>
+                </ul>
+            </div>
         </div>
-    </div>
-</body>
-
+        
+    </body>
 </html>
