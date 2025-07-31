@@ -1,162 +1,362 @@
-
-body {
-    background-color: black;
+/* Website total view to visibile screen without any overflow */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-image: url('images/mars_2.jpg');
+  background-size: cover;
+}
+img {
+  height: 100%;
+  width: 100%;
+}
+* {
+  box-sizing: border-box;
+}
+.csun_logo {
+  background-image: url('../static/images/CSUN_logo.png');
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
-.data_container {
-    max-width: 100vw;
-    max-height: 98vh;
-    min-height: 98vh;
-    margin: auto;
-
-    display: grid;
-    grid-template-columns: 15% 42.5% 42.5%;
-    grid-template-rows: 8% 55% 30% 7%;
-
-    justify-items: center;
-    align-items: center;
-} .data_container * {
-    font-family: 'Courier New', Courier, monospace;
-    color: white;
-    max-height: 100%;
-    max-width: 100%;
-
-    scrollbar-color: red black;
-} .data_container > * {
-    box-sizing: border-box;
-    border: 1px solid red;
-    border-radius: 10px;
-
-    width: 100%;
-    height: 100%;
-    padding: 10px;
+/* Navigation Bar Style Section */
+.navigation_bar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333;
+}
+.navigation_bar li {
+  float: left;
+  border-right:1px solid #bbb;
+}
+.navigation_bar li:last-child {
+  border-right: none;
+}
+.navigation_bar li a {
+  color: white;
+  padding: 14px 16px;
+  text-decoration: none;
+  display: block;
+}
+.navigation_bar li a:hover:not(.active) {
+  background-color: #111;
+}
+.navigation_bar .active {
+  background-color: #D22030;
 }
 
-.title {
-    grid-column: 1 / span 3;
-    grid-row: 1 / span 1;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
 
-    font-size: 36pt;
-    font-weight: bold;
+/* Structure grid layout using fractions and line start/ends */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
 }
-
-.trip_select {
-    grid-column: 1 / span 1;
-    grid-row: 2 / span 3;
-
-    display: flex;
-    flex-direction: column;
-
-    height: 100%;
-
-    align-items: center;
-    justify-content: center;
-} .trip_select > * {
-    width: 100%;
-    height: 100%;
-
-} .trip_select h1 {
-    flex: 5;
-    margin: 1px;
-    font-weight: bold;
-    font-size: x-large;
-    text-align: center;
-} .trips_container {
-    display: flex;
-    flex-direction: column;
-    flex: 95;
-    box-sizing: border-box;
-    border: 1px solid red;
-    border-radius: 10px;
-
-    align-items: center;
-    overflow-y: auto;
-    width: 100%;
-    height: 100%;
-} .trip_btn {
-    font-weight: light;
-    font-size:medium;
-
-    box-sizing: border-box;
-    border: 1px solid red;
-    border-radius: 5px;
-    background-color:black;
-    padding: 5px;
+.container {
+  display: grid;
+  height: 100%;
+  grid-template-rows: repeat(16,1fr);
+  grid-template-columns: repeat(16, 1fr);
+  gap: 5px;
+  margin: 5px;
 }
-
-.video_container {
-    grid-column: 2 / span 1;
-    grid-row: 2 / span 1;
-} .video_container * {
-    margin: auto;
-    width: 100%;
+.navigation_bar {
+  grid-row: 1 / span 1;
+  grid-column: 1 / span 16;
+  background-color: hsl(0, 0%, 20%, 0.5);
+  border-radius: 10px;
+  color: white;
+  margin-top: auto;
+  margin-bottom: auto;
+  align-items: center;
 }
-
-.visualizer_container {
-    grid-column: 3 / span 1;
-    grid-row: 2 / span 1;
+.trip_list {
+  grid-row: 2 / span 7;
+  grid-column: 1 / span 2;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: block;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-
-.telemetry {
-    grid-column: 2 / span 2;
-    grid-row: 3 / span 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height:100%;
-} .telemetry h1 {
-    font-weight: bold;
-    font-size: x-large;
-    margin: 0px;
-    flex: 1;
-} .telemetry_data {
-    display: flex;
-    flex: 9;
-    flex-direction: column-reverse;
-    overflow-y: auto;
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid red;
-    border-radius: 10px;
-} .telemetry_data p {
-    margin: 1px;
-    font-size: medium;
-    overflow-wrap: break-word;
-    padding-left: 2.5em;
-    text-indent: -2em;
-    min-height: 1em;
+.trip_list_raw_data {
+  grid-row: 2 / span 14;
+  grid-column: 1 / span 2;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: block;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-
+.raw_data {
+  grid-row: 2 / span 14;
+  grid-column: 3 / span 16;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: block;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+.camera {
+  grid-row: 2 / span 7;
+  grid-column: 3 / span 8;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lidar {
+  grid-row: 2 / span 7;
+  grid-column: 11 / span 6;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lidar img {
+  width: 100%;
+  object-fit: cover;
+}
+.lidar h2 {
+  position: absolute;
+  align-items: center;
+  justify-content: center;
+  color:#D22030;
+}
+.telemetry_data {
+  grid-row: 9 / span 4;
+  grid-column: 1 / span 16;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: scroll;
+}
+.telemetry_stamp {
+  grid-row: 13 / span 2;
+  grid-column: 1 / span 16;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: scroll;
+}
 .scrubber_container {
-    grid-column: 2 / span 2;
-    grid-row: 4 / span 1;
+  grid-row: 15 / span 2;
+  grid-column: 1 / span 16;
+  background-color: hsl(0, 0%, 80%, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fullscreen_div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%; 
+    z-index: 9999; /* Ensures it's on top of other elements */
+}
 
-    display: flex;
-    flex-direction: row;
+/* Trip Select List/Scroll Section */
+.scroll_list {
+  max-height: 85%;
+  width: 100%;
+  overflow-y: auto;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 5%;
+  align-items: center;
+  justify-content: center;
+  /* border: 1px solid blue; */
+}
+.trip_list ul {
+  width: 100%;
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
+.trip_list li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0px;
+  padding: 0px;
+}
+.trip_list button.open-btn {
+  height: 50px;
+  width: 75%;
+  background-color: #333;
+  margin-top:2px;
+  color: white;
+  text-align: center;
+  border-radius: 10px;
+  font-size: medium;
+}
+.trip_list button.open-btn:hover {
+  background-color: #111;
+}
+.trip_list_raw_data ul {
+  width: 100%;
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
+.trip_list_raw_data li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0px;
+  padding: 0px;
+}
+.trip_list_raw_data button.open-btn {
+  height: 50px;
+  width: 75%;
+  background-color: #333;
+  margin-top:2px;
+  color: white;
+  text-align: center;
+  border-radius: 10px;
+  font-size: medium;
+}
+.trip_list_raw_data button.open-btn:hover {
+  background-color: #111;
+}
 
-    align-items: center;
-    justify-content: center;
-} .scrubber {
-    flex: 0 0 85%;
-    accent-color: red;
-} .play_btn {
-    flex: 0 0 5%;
-    
-    font-size: large;
+/* Telemetry Overview Section */
+.data {
+  height: 100%;
+  width: 25%;
+  margin: 0;
+  padding: 0;
+  margin-left: 2%;
+}
+.data * {
+  color: white;
+  margin: auto;
+  padding: 0;
+}
+.data p {
+  margin-left: 10%;
+}
+.data h4 {
+  margin-left: 10%;
+}
+.data_2 {
+  height: 100%;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  margin-left: 2%;
+}
+.data_2 * {
+  color: white;
+  margin: auto;
+  padding: 0;
+}
+.data_2 p {
+  margin-left: 10%;
+}
+.motor_vals {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
+.rpi_data {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
+.lidar_data {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
+.camera_data {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
+.ultrasonic_data {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
+.imu_data {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
+.ugv_data {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  margin-top: 5px;
+}
 
-    box-sizing: border-box;
-    border: 1px solid red;
-    border-radius: 50px;
-    background-color:black;
-    margin-left: 15px;
-    padding: 0px;
+/* Raw Data Print Section */
+.raw_data p {
+  color: white;
+  font-size: large;
+}
+
+/* Scrubber Section */ 
+.scrubber {
     height: 100%;
-
-} .scrubber_value {
-    flex: 0 0 10%;
+    width: 85%;
+    margin-left: 5px;
+} 
+.play_btn {
+    font-size: large;
+    border-radius: 5px;
+    margin: 5px;
+    padding: 0px;
+    height: 50%;
+} 
+.scrubber_value {
+    color: white;
     text-align: center;
+    margin-right: 5px;
 }

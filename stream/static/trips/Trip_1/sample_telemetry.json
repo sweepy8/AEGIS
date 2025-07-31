@@ -1,0 +1,181 @@
+{
+    "timestamp": "2025_07_14_12_00_56",
+    "duration_s": 2,
+
+    "traits":{
+        "battery_cap_mah": 6000,
+        "models": {
+            "lidar": "STL27L",
+            "lidar_motor": "NEMA17 Stepper Motor",
+            "motors": "Yellowjacket 5203",
+            "ultrasonics": "HC-SR04",
+            "camera": "Raspberry Pi Camera Module 3",
+            "rpi": "Raspberry Pi 5 8GB",
+            "arduino": "Arduino Mega 2560 Rev3",
+            "battery": "Zeee 14.8V Lipo Battery (4S, 60C)"
+        }
+    },
+    "telemetry": [
+        {
+            "rpi": {
+                "uptime_s": 13,
+                "cpu_util_pct": 99,
+                "mem_util_pct": 4300,
+                "storage_avail_mb": 218209,
+                "temp_c": 51.8
+            },
+            "lidar": {
+                "connected": true,
+                "scanning": false,
+                "scan_pct": 0,
+                "saving_file": false,
+                "fixed_mode": false,
+                "motor_pos_deg": 165
+            },
+            "camera": {
+                "connected": true,
+                "recording": true,
+                "streaming": true,
+                "last_file": "camera/video"
+            },
+            "motors": {
+                "front_left": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                },
+                "mid_left": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                },
+                "rear_left": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                },
+                "front_right": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                },
+                "mid_right": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                },
+                "rear_right": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                }
+            },
+            "ultrasonics": {
+                "lidar_cm": null,
+                "left_cm": 21,
+                "center_cm": 22,
+                "right_cm": 19,
+                "rear_cm": null
+            },
+            "imu": {
+                "roll_dps": 2.1,
+                "pitch_dps": 3.03,
+                "yaw_dps": 0.1,
+                "accel_x_mps2": 0.21,
+                "accel_y_mps2": 0.13,
+                "accel_z_mps2": 9.82
+            },
+            "ugv": {
+                "battery": {
+                    "capacity_pct": 98,
+                    "voltage_v": 16.2,
+                    "current_a": 9.2
+                },
+                "headlights": true,
+                "ambient_temp_c": 26,
+                "ambient_light_wpm2": 1401
+            }
+        },
+        {
+            "rpi": {
+                "uptime_s": 14,
+                "cpu_util_pct": 98,
+                "mem_util_pct": 4295,
+                "storage_avail_mb": 218201,
+                "temp_c": 51.9
+            },
+            "lidar": {
+                "connected": true,
+                "scanning": true,
+                "scan_pct": 0,
+                "saving_file": false,
+                "fixed_mode": false,
+                "motor_pos_deg": 179
+            },
+            "camera": {
+                "connected": true,
+                "recording": true,
+                "streaming": false,
+                "last_file": "video_2025_07_14_12_00_57"
+            },
+            "motors": {
+                "front_left": {
+                    "voltage_v": 9.0,
+                    "current_a": 1.7,
+                    "rpm": 202
+                },
+                "mid_left": {
+                    "voltage_v": 9.0,
+                    "current_a": 1.7,
+                    "rpm": 202
+                },
+                "rear_left": {
+                    "voltage_v": 9.0,
+                    "current_a": 1.7,
+                    "rpm": 202
+                },
+                "front_right": {
+                    "voltage_v": 9.0,
+                    "current_a": 1.7,
+                    "rpm": 202
+                },
+                "mid_right": {
+                    "voltage_v": 9.0,
+                    "current_a": 1.7,
+                    "rpm": 202
+                },
+                "rear_right": {
+                    "voltage_v": 9.1,
+                    "current_a": 1.6,
+                    "rpm": 199
+                }
+            },
+            "ultrasonics": {
+                "lidar_cm": 104,
+                "left_cm": 35,
+                "center_cm": 44,
+                "right_cm": 39,
+                "rear_cm": null
+            },
+            "imu": {
+                "roll_dps": 2.0,
+                "pitch_dps": 2.11,
+                "yaw_dps": 0.08,
+                "accel_x_mps2": 0.04,
+                "accel_y_mps2": 1.02,
+                "accel_z_mps2": 9.83
+            },
+            "ugv": {
+                "battery": {
+                    "capacity_pct": 97,
+                    "voltage_v": 16.17,
+                    "current_a": 9.22
+                },
+                "headlights": false,
+                "ambient_temp_c": 27.1,
+                "ambient_light_wpm2": 1366
+            }
+        }
+    ]
+
+}

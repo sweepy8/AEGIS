@@ -1,83 +1,64 @@
 # Unified web view program
 # AEGIS Senior Design, Created on 6/9/25
 
+from flask import Flask, Response, render_template, send_file, jsonify
+import os # os allows directory navigation
+# from ugv.camera import UGV_Cam
+# from utils.stream_utils import create_visualizer_fig
+
 from time import sleep
-from multiprocessing import Process
-
-from flask import Flask, Response, render_template, send_file
-from utils.stream_utils import create_visualizer_fig
-
-from ugv.camera import UGV_Cam
-
+# from multiprocessing import Process
 
 # ROUTES ----------------------------------------------------------------------
 
-app = Flask(__name__)
+app = Flask(__name__) # Creates Flask app instance
 
-@app.route('/video_feed')   # Embedded in root page
-def video_feed() -> Response:
-    '''
-    *************************************.
-    '''
-    if UGV_Cam.connected:
-        return Response(
-            UGV_Cam.generate_frames(), 
-            mimetype='multipart/x-mixed-replace; boundary=frame'
-        )
-    else:
-        return send_file(
-            path_or_file='static/images/no_video.gif',
-            mimetype='image/gif'
-        )
+# Sets absolute directory path because python is stupid
+btn_folder = os.path.join(app.static_folder, 'trips') 
+# Directory to be monitored for buttons
 
-@app.route('/')
-def show_main_page() -> str:
-    '''
-    **********************************.
-    '''
-    return render_template('main.html')
+# app routes for each html page
+@app.route('/') # inside '' is the link for href to link page
+def main_page():
+    return render_template('main.html') # Loads main html page
+@app.route('/trip_viewer')
+def trip_viewer():
+    return render_template('trip_viewer.html') # loads trip viewer
+@app.route('/trip_raw_data')
+def trip_raw_data():
+    return render_template('trip_raw_data.html') # loads trip raw data
+@app.route('/about')
+def about():
+    return render_template('about.html') # loads about page
+@app.route('/admin')
+def admin():
+    return render_template('admin.html') # loads admin page
 
-@app.route('/visualizer')   # Embedded in root page
-def visualizer() -> Response:
-    '''
-    **********************************.
-    '''
-    return Response(
-        create_visualizer_fig(),
-        mimetype='image/png'
-    )
+@app.route('/trips')
+def get_trips():
+    try:
+        # gets list of all files and folders in btn_folder path
+        entries = os.listdir(btn_folder)
 
-# # Prevent all caching
-# @app.after_request
-# def add_http_headers(response : Response) -> Response:
-#     '''
-#     **********************************.
-#     '''
-#     response.headers['cache-control'] = 'no-store'
-#     return response
+        # removes files from array and leaves on folders
+        folders = [f for f in entries if os.path.isdir(os.path.join(btn_folder, f))]
+        # path.isdir returns folders only, not files
+        return jsonify(folders) # convertes list to JSON and returns
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500 
 
-def test_rec():
-    filename = UGV_Cam.my_start_recording()
+# Python Functions ----------------------------------------------------------
 
-    for x in range(1, 21):
-        sleep(1)
-        print(x, " seconds into 10s video...")
-    UGV_Cam.my_stop_recording()
-    print(f"multi_cam_test.py: Saved video at:     '{filename}'.")
-
-    print("test_rec all done!")
-
-
-def run_stream() -> None:
-    '''
-    **********************************.
-    '''
-
-    app.run(
-        host='10.40.78.112',
-        port=5000,
-        use_reloader=False
-    )
+# def run_stream() -> None:
+#     # Runs the website and its functions at the bellow ip address
+#     app.run(
+#         host='10.40.119.174',
+#         port=5000,
+#         use_reloader=False
+#     )
 
 if __name__ == "__main__":
-    run_stream()
+    # run_stream() # Start Server
+    # os.makedirs(btn_folder, exist_ok=True)
+    app.run(debug=True)
