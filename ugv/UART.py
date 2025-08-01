@@ -66,12 +66,12 @@ def open_serial_connection() -> Serial:
     s.exclusive = True      # Restrict cross-module access
 
     # Open configured serial connection
-    print(f"[INIT] rpi_UART.py: Opening UGV serial via {s.name}...")
+    print(f"[INIT] UART.py: Opening UGV serial via {s.name}...")
     s.open()
 
     # Allow connection to form
     sleep(0.05)
-    print(f"[INIT] rpi_UART.py: UGV serial port opened.")
+    print(f"[INIT] UART.py: UGV serial port opened.")
     return s
 
 def read_data(serial_conn : Serial) -> bytes | None:
@@ -97,8 +97,8 @@ def listen_to_UGV(serial_conn : Serial) -> str | None:
         try:
             telemetry_str = ugv_data.decode('utf-8')
         except UnicodeDecodeError:
-            telemetry_str = "[ERROR] rpi_UART.py: DECODE ERROR, SOLVE THIS\n"
-        print("[UGV] arduino_UART.ino:", telemetry_str, end='')
+            telemetry_str = "[ERROR] UART.py: DECODE ERROR, SOLVE THIS\n"
+        print("[UGV] UART.ino: ", telemetry_str, end='')
 
 def control_UGV(serial_conn : Serial) -> None:
     '''
@@ -118,13 +118,13 @@ def control_UGV(serial_conn : Serial) -> None:
             if (controller.input_states['BTN_START'] and 
             controller.input_states['BTN_A'] and not UGV_Cam.recording):
                 video_filename = UGV_Cam.my_start_recording()
-                print(f"rpi_UART.py: Recording video to '{video_filename}'...")
+                print(f"UART.py: Recording video to '{video_filename}'...")
 
             # START + B: stop recording
             if (controller.input_states['BTN_START'] and 
             controller.input_states['BTN_B'] and UGV_Cam.recording):
                 UGV_Cam.my_stop_recording()
-                print(f"Recording saved at {video_filename}")
+                print(f"UART.py: Recording saved to '{video_filename}'.")   #type: ignore
 
             # RIGHT TRIGGER: move forward
             if (controller.input_states['BTN_RZ'] and
@@ -132,7 +132,7 @@ def control_UGV(serial_conn : Serial) -> None:
                 move_command = generate_command(
                     "MOVE", joy_pos=controller.input_states['BTN_RZ']
                 )
-                serial_conn.write(move_command)
+                serial_conn.write(move_command)     #type: ignore
 
             # LEFT TRIGGER: move backward
             if (controller.input_states['BTN_Z'] and 
@@ -140,17 +140,17 @@ def control_UGV(serial_conn : Serial) -> None:
                 move_command = generate_command(
                     "MOVE", joy_pos=controller.input_states['BTN_Z'] * -1
                 )
-                serial_conn.write(move_command)
+                serial_conn.write(move_command)     #type: ignore
 
             # LEFT BUMPER: spin turn left
             if (controller.input_states['BTN_TL']):
                 move_command = generate_command("TURN", turn_dir="LEFT")
-                serial_conn.write(move_command)
+                serial_conn.write(move_command)     #type: ignore
 
             # RIGHT BUMPER: spin turn right
             if (controller.input_states['BTN_TR']):
                 move_command = generate_command("TURN", turn_dir="RIGHT")
-                serial_conn.write(move_command)
+                serial_conn.write(move_command)     #type: ignore
 
             # RIGHT JOYSTICK: move (currently unmapped)
             if (controller.input_states['ABS_RY'] > STICK_MOVE_THRESHOLD or 

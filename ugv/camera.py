@@ -8,7 +8,7 @@ from time import sleep
 from cv2 import imencode
 
 import os
-os.environ["LIBCAMERA_LOG_LEVELS"] = "2"
+os.environ["LIBCAMERA_LOG_LEVELS"] = "2"    # Prevents console print clutter
 
 from utils.file_utils import get_timestamped_filename
 
@@ -56,10 +56,11 @@ class Camera(Picamera2):
         PLACEHOLDER, TO BE FILLED IN LATER ***
         '''
         if self.recording == False:
-            filename = get_timestamped_filename('data/videos', 'video', '.mp4')
+            filename: str = get_timestamped_filename(
+                save_path='data/videos', prefix='video', ext='.mp4')
             self.start_encoder(
                 encoder=self.encoder,
-                output=PyavOutput(filename),
+                output=PyavOutput(output_name=filename),
                 quality=self.video_quality
             )
             print("[RUNTIME] camera.py: Began hi-res encoder...")
@@ -92,9 +93,8 @@ def record_test(seconds : int) -> None:
         print("[ERROR] camera.py->record_test(): Can't perform test without a camera!")
         return
     
-    filename = UGV_Cam.my_start_recording()
-    for i in range(0, seconds):
-        sleep(1)
+    UGV_Cam.my_start_recording()
+    sleep(seconds)
     UGV_Cam.my_stop_recording()
 
 
@@ -103,12 +103,12 @@ def record_test(seconds : int) -> None:
 # Additional cameras could be instantiated here and shared similarly.
 try:
     UGV_Cam = Camera()
-    UGV_Cam.start(UGV_Cam.config)
+    UGV_Cam.start(config=UGV_Cam.config)
     print("[INIT] camera.py: UGV camera initialized successfully...")
-except IndexError as e:
+except IndexError:
     print(f"[ERROR] camera.py: Camera not connected!")
     UGV_Cam = None
 
 
 if __name__ == "__main__":
-    record_test(30)
+    record_test(seconds=30)

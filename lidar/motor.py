@@ -63,12 +63,12 @@ class Motor:
         '''
         
         self.speed  = 1.0												# Speed in Hz
-        self.dir    = gpz.OutputDevice(pin=6, initial_value=False)		# Direction signal on GPIO 6 (pin 31)
-        self.step   = gpz.OutputDevice(pin=13, initial_value=False)		# Step signal on GPIO 5 (pin 29)
+        self.dir    = gpz.OutputDevice(pin=26, initial_value=False)		# Direction signal on GPIO 6 (pin 31)
+        self.step   = gpz.OutputDevice(pin=20, initial_value=False)		# Step signal on GPIO 5 (pin 29)
         self.ms_res = gpz.CompositeOutputDevice(						# Microstep resolution on GPIO 17, 27, 22 (pins 11, 13, 15)
-            gpz.OutputDevice(pin=22, initial_value=False),
-            gpz.OutputDevice(pin=27, initial_value=False),
-            gpz.OutputDevice(pin=17, initial_value=False)
+            gpz.OutputDevice(pin=13, initial_value=False),
+            gpz.OutputDevice(pin=19, initial_value=False),
+            gpz.OutputDevice(pin=6, initial_value=False)
         )
         
         self.curr_angle = None				# None implies "start angle not yet assigned"
@@ -194,7 +194,7 @@ class Motor:
         raise Exception("Failed to retrieve MS_RES_DENOM.")
         
 
-def main():
+def main() -> None:
     '''
     This main function instantiates a motor object and turns the motor a set number of steps.
     @param None
@@ -208,9 +208,9 @@ def main():
     print(f"MS_RES set to {M1.ms_res.value}, ms_res_denom = {M1.get_ms_res_denom()}")
 
     M1.set_dir("CW")
-    for i in range(0, 180):
-        M1.turn_steps(8)
-        sleep(0.25)
+    for i in range(0, 800):
+        M1.turn_steps(2)
+        sleep(0.1)
         
 
 if __name__ == "__main__":

@@ -16,11 +16,11 @@ from time import sleep
 
 XBOX_DEVICE_NAME = 'Xbox One Wireless Controller'
 
-STICK_NORMALIZER_Y = -1 / 32768
-STICK_NORMALIZER_X =  1 / 32768
-TRIG_NORMALIZER    =  1 / 1023
+STICK_NORMALIZER_Y: float = -1 / 32768
+STICK_NORMALIZER_X: float =  1 / 32768
+TRIG_NORMALIZER: float    =  1 / 1023
 
-INPUT_CODES = {
+INPUT_CODES: dict[int, str] = {
     315: 'BTN_START',
     304: 'BTN_A',  305: 'BTN_B', 307: 'BTN_X', 308: 'BTN_Y',
     310: 'BTN_TL', 311: 'BTN_TR', 
@@ -28,10 +28,10 @@ INPUT_CODES = {
 }
 
 # To get controller state from another file, access dict 'input_states' directly.
-input_states = { 'BTN_START' : 0,
-    'BTN_A' : 0, 'BTN_B' : 0, 'BTN_X' : 0, 'BTN_Y' : 0,
-    'BTN_TL': 0, 'BTN_TR': 0,
-    'BTN_Z' : 0, 'ABS_RX': 0, 'ABS_RY': 0, 'BTN_RZ': 0
+input_states: dict[str, int|float] = { 
+    'BTN_START': 0, 'BTN_A': 0, 'BTN_B': 0, 'BTN_X': 0, 'BTN_Y': 0,
+    'BTN_TL': 0.0, 'BTN_TR': 0.0,
+    'BTN_Z' : 0.0, 'ABS_RX': 0.0, 'ABS_RY': 0.0, 'BTN_RZ': 0.0
 }
 
 def get_event_path(dev_name : str) -> str:
@@ -47,7 +47,7 @@ def get_event_path(dev_name : str) -> str:
     
     return dev_event_path
 
-def normalize_input(name : str, value : int) -> int:
+def normalize_input(name : str, value : int) -> float:
     if name in ['ABS_X', 'ABS_RX']:
         return round(value * STICK_NORMALIZER_X, 3)
     if name in ['ABS_Y', 'ABS_RY']:
@@ -57,11 +57,11 @@ def normalize_input(name : str, value : int) -> int:
     return value
 
 # Asynchronous approach
-async def listener(dev, print_updates):
+async def listener(dev, print_updates) -> None:
 
     async for event in dev.async_read_loop(): 
         if event.code in INPUT_CODES:
-            event_name = INPUT_CODES[event.code]
+            event_name: str = INPUT_CODES[event.code]
             input_states[event_name] = normalize_input(event_name, event.value)
 
             if print_updates: 
@@ -69,7 +69,7 @@ async def listener(dev, print_updates):
             
         #print(dev.path, evdev.categorize(event), sep=': ') # Debug print
 
-def listen(print_updates=0):
+def listen(print_updates=0) -> None:
     '''
     Attempts to connect to a controller infinitely. Upon connection, runs the asynchronous
     listener function, which updates the controller input_state dict. Upon disconnection,
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
 
 """
->>> device.capabilities(verbose=True)   # Returns the following:
+>>> device.capabilities(verbose=True)   # Returns the following (XBOX Controller):
 {
     ('EV_SYN', 0): [
         ('SYN_REPORT', 0), 

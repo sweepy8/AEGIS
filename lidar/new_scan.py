@@ -1,4 +1,17 @@
 '''
+3D LiDAR scanner driver for AEGIS senior design. Version 2
+Compatible with STL27L LiDAR scanner, A4988 motor driver, and NEMA17 stepper 
+motor.
+'''
+
+import new_lidar as Lidar
+import new_motor as Motor
+
+
+
+"""
+
+'''
 3D LiDAR scanner driver for AEGIS senior design.
 Compatible with STL27L LiDAR sensor, A4988 motor driver, and NEMA17 stepper motor.
 '''
@@ -119,3 +132,5 @@ def main():
 if __name__ =="__main__":
     main()
     
+
+"""

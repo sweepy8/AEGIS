@@ -252,7 +252,7 @@ class Lidar:
         @return cart_pts: Array containing cartesian points
         '''
         timestamp = datetime.datetime.now().strftime("%Y_%m_%d_time_%H_%M_%S")
-        filename = f"../test_clouds/cloud_{timestamp}.pcd"
+        filename = f"cloud_{timestamp}.pcd"
         print(f"File '{filename}' created successfully.")
         return filename
     

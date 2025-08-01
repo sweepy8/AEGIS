@@ -2,7 +2,6 @@
 # AEGIS Senior Design, Created on 6/9/25
 
 from time import sleep
-from multiprocessing import Process
 
 from flask import Flask, Response, render_template, send_file
 from utils.stream_utils import create_visualizer_fig
@@ -21,7 +20,7 @@ def video_feed() -> Response:
     '''
     if UGV_Cam.connected:
         return Response(
-            UGV_Cam.generate_frames(), 
+            response=UGV_Cam.generate_frames(), 
             mimetype='multipart/x-mixed-replace; boundary=frame'
         )
     else:
