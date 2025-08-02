@@ -62,3 +62,16 @@ def write_pcd_file_header(filename: str, pts: int | None = None, header: list[st
     
     with open(filename, "a") as file:
         file.writelines(header)
+
+def write_points_to_file(filename: str, points: list[list[float]]) -> None:
+    '''
+    Writes point data to a file. Currently no validation or error handling.
+
+    Args:
+        filename (str): The filename to write to.
+        points (list[list[float]]): The points to be written.
+    '''
+
+    with open(filename, 'a') as file:
+        for point in points:
+            file.write(f"{' '.join([str(val) for val in point])}\n")

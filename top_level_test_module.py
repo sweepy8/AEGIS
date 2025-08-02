@@ -15,3 +15,9 @@
 # for x in range(0, 100):
 #     duration_s, pts = new_lidar.test_ring_capture(save=False, verbose=False)
 #     print(f"Duration: %.4f, Points: %4d" % (duration_s, pts))
+
+'''SCANNER TEST'''
+from lidar import new_scan
+
+print("/nTESTING 3D SCANNER (SAVES FILE)")
+new_scan.test_scan(save=True, verbose=False)

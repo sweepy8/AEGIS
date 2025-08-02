@@ -3,27 +3,63 @@
 
 import numpy as np      # deg2rad(), cos(), sin()
 
-def pol_to_cart(rho: float, phi: float) -> list[float]:
+SENSOR_OFFSET_MM = 80   # Any offset away from the motor shaft will skew scans. Measure this distance with calipers.
+
+def pol_to_cart(rho: float, phi: float, intensity: float | None = None) -> list[float]:
     '''
     Converts coordinates of a point from polar to cartesian system.
 
     Args:
-        rho: A float representing the radial distance from the origin.
-        phi: A float representing the angular distance from zero degrees.
+        rho (float): The radial distance from the origin.
+        phi (float): The angular distance from zero degrees.
+    Returns:
+        The converted point.
     '''
     x = rho * np.cos(np.deg2rad(phi))
     y = rho * np.sin(np.deg2rad(phi))
-    return [x, y]
+
+    return [x, y, intensity] if intensity is not None else [x, y]
+
 
 def pol_to_cart_array(points: list[list[float]]) -> list[list[float]]:
     '''
-    Converts an array of polar points to a cartesian coordinate system.
+    Converts an array of polar (rho, theta) points to the cartesian (x, y) system.
+
     Args:
-        points: A list of points to be converted.
+        points (list[list[float]]): A list of polar points to be converted.
     Returns:
-        A list of converted points.
+        cartesian_points (list[list[float]]): A list of converted cartesian points.
     '''
-    return [pol_to_cart(rho=point[0], phi=point[1]) for point in points]
+    
+    cartesian_points: list[list[float]] = [pol_to_cart(*point) for point in points]
+
+    return cartesian_points
 
 
-# This file should include 3d conversion as well
+def sph_to_cart(rho: float, phi: float, theta: float, intensity: float | None = None) -> list[float]:
+    """
+    
+    """
+
+    dist: float = rho								    # radial distance rho in meters
+    l_angle: float = np.deg2rad(phi)				    # lidar angle phi in radians
+    m_angle: float = np.deg2rad(theta)				    # motor angle theta in radians
+    
+    x: float = dist*np.sin(l_angle)*np.cos(m_angle)	    # x = r*sin(phi)*cos(theta)
+    y: float = dist*np.sin(l_angle)*np.sin(m_angle)	    # y = r*sin(phi)*sin(theta)
+    z: float = dist*np.cos(l_angle)					    # z = r*cos(phi)
+    
+    x += SENSOR_OFFSET_MM*np.sin(m_angle)		# Correct for horizontal lidar offset
+    y += SENSOR_OFFSET_MM*np.cos(m_angle)		# Correct for horizontal lidar offset
+
+    return [x, y, z, intensity] if intensity is not None else [x, y, z]
+    
+
+def sph_to_cart_array(points: list[list[float]]) -> list[list[float]]:
+    """
+    
+    """
+    
+    cartesian_points: list[list[float]] = [sph_to_cart(*point) for point in points]
+        
+    return cartesian_points

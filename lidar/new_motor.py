@@ -34,11 +34,15 @@ class Motor:
         ms_res_pins (gpiozero.CompositeOutputDevice): A GPZ device that ties the
             MS1, MS2, and MS3 GPIO pins together, allowing the resolution to be 
             configured.
+        ms_res (str): The name of the current microstep resolution.
+        ms_res_denom (int): The denominator of the current microstep resolution.
         dir (str): The motor's turn direction. Either clockwise ("CW") or 
             counterclockwise ("CCW"). 
         step (gpiozero.OutputDevice): A GPZ device that provides access to the 
             motor driver's step pin via the step.on() and step.off() methods.
         speed (float): The speed at which the motor turns in Hz (0, 4.5].
+        start_angle (float): The starting angle of the motor in degrees.
+        curr_angle (float): The current angle of the motor in degrees.
     """
 
     microstep_resolutions: dict[str, dict[str, tuple[int,int,int] | int]] = {
@@ -55,29 +59,30 @@ class Motor:
         and declaring the speed and starting angle.
         
         Args:
+            res_name (str): The name of the microstep resolution of the motor.
             speed (float): The speed at which the motor turns in Hz (0, 4.5].
             start_angle (float): The starting angle of the motor in degrees.
-       """
+        """
         
-        self.ms_res_pins = gpz.CompositeOutputDevice(
+        self.ms_res_pins: gpz.CompositeOutputDevice = gpz.CompositeOutputDevice(
             MS1 = gpz.OutputDevice(pin=MS1_PIN),
             MS2 = gpz.OutputDevice(pin=MS2_PIN),
             MS3 = gpz.OutputDevice(pin=MS3_PIN))
-        self.ms_res = "full"                            # Always overriden
-        self.ms_res_denom = 1                           # Always overriden
+        self.ms_res: str = "full"                            # Always overriden
+        self.ms_res_denom: int = 1                           # Always overriden
         self.set_microstep_resolution(res_name)
 
-        self.dir = gpz.OutputDevice(pin=DIR_PIN)
-        self.step = gpz.OutputDevice(pin=STEP_PIN)
-        self.speed = speed
-        self.start_angle = start_angle
-        self.curr_angle = start_angle
+        self.dir: gpz.OutputDevice = gpz.OutputDevice(pin=DIR_PIN)
+        self.step: gpz.OutputDevice = gpz.OutputDevice(pin=STEP_PIN)
+        self.speed: float = speed
+        self.start_angle: float = start_angle
+        self.curr_angle: float = start_angle
 
     def set_microstep_resolution(self, res_name: str) -> None:
         """
         Sets the microstep resolution by looking up the argument key in the 
         microstep_resolution dictionary and writing corresponding values to the 
-        MS1, MS2, and MS3 pins. Also stores resolution info in class fields.
+        MS1, MS2, and MS3 pins. Also updates resolution info in class fields.
         
         Args:
             res_name (str): The name of the desired resolution (e.g. "half").
@@ -142,7 +147,8 @@ class Motor:
 
     def turn(self, steps: int, verbose: bool = False) -> None:
         """
-        Turns the stepper motor a specified number of steps.
+        Turns the stepper motor a specified number of steps. Also updates
+        curr_angle in accordance with the current microstep resolution. 
 
         Args:
             steps (int): The number of steps to turn.

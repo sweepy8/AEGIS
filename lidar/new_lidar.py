@@ -153,7 +153,7 @@ class Lidar:
         for i in range(0,12):
             pt_dist: float    = (packet[7+3*i] * (2**8) + packet[6+3*i]) / 1000	# distance in mm, converted to meters
             pt_angle: float   = (start_angle + angle_delta*i) / 100		        # angle in 0.01 deg, converted to deg
-            pt_intensity: int = packet[8+3*i]								    # reflection intensity
+            pt_intensity: float = packet[8+3*i] / 255					        # reflection intensity (normalized)
             
             # Enable 2D for tests without motor
             if motor_angle is not None: 
@@ -215,19 +215,6 @@ class Lidar:
             crc = serial_utils.CRC_TABLE[(crc ^ packet[i]) & 0xff]
         return crc
 
-    def write_points_to_file(self, filename: str, points: list[list[float]]) -> None:
-        '''
-        Writes point data to a file. Currently no validation or error handling.
-
-        Args:
-            filename (str): The filename to write to.
-            points (list[list[float]]): The points to be written.
-        '''
-
-        with open(filename, 'a') as file:
-            for point in points:
-                file.write(f"{' '.join([str(val) for val in point])}\n")
-
 
 def test_ring_capture(save: bool = False, verbose: bool = True) -> tuple[float, int]:
     '''
@@ -265,7 +252,7 @@ def test_ring_capture(save: bool = False, verbose: bool = True) -> tuple[float, 
 
     if save:
         test_file: str = file_utils.get_timestamped_filename(save_path='.', prefix='test', ext='.txt')
-        L1.write_points_to_file(filename=test_file, points=cartesian_points)
+        file_utils.write_points_to_file(filename=test_file, points=cartesian_points)
         if verbose:
             print(f"[RUNTIME] lidar.py: Points written to {test_file}!")
 
