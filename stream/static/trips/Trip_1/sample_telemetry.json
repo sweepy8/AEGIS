@@ -251,7 +251,7 @@
                     "voltage_v": 16.17,
                     "current_a": 9.22
                 },
-                "headlights": false,
+                "headlights": true,
                 "ambient_temp_c": 27.1,
                 "ambient_light_wpm2": 1366
             }

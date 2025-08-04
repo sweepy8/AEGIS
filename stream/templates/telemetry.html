@@ -19,93 +19,98 @@
         <!-- Grid Layout Divs -->
         <div class="container">
             <div class="nav_bar">
-                <ul>
-                    <li><a href="/"><i class="fa-regular fa-house fa-xl"></i> Home</a></li>
-                    <li><a class="active" href="/telemetry"><i class="fa-regular fa-folder-open fa-xl"></i> Telemetry</a></li>
-                    <li><a href="/admin"><i class="fa-regular fa-keyboard fa-xl"></i> Admin</a></li>
-                    <li><a href="/about"><i class="fa-regular fa-user fa-xl"></i> About</a></li>
-                    <li><a href="https://github.com/sweepy8/AEGIS"><i class="fa-regular fa-file-code fa-xl"></i> Github</a></li>
-                </ul>
+                <div>
+                    <ul>
+                        <li><a href="/"><i class="fa-regular fa-house fa-xl"></i> Home</a></li>
+                        <li><a class="active" href="/telemetry"><i class="fa-regular fa-folder-open fa-xl"></i> Trips</a></li>
+                        <li><a href="/admin"><i class="fa-regular fa-keyboard fa-xl"></i> Admin</a></li>
+                        <li><a href="/about"><i class="fa-regular fa-user fa-xl"></i> About</a></li>
+                        <li><a href="https://github.com/sweepy8/AEGIS" target="_blank"><i class="fa-regular fa-file-code fa-xl"></i> Github</a></li>
+                    </ul>
+                </div>
+                <div style="position: absolute;bottom: 20px;left: 20%">
+                    <a href="https://www.csun.edu/engineering-computer-science/electrical-computer-engineering" target="_blank">
+                        <img src="../static/images/CSUN_logo.png" alt="AEGIS" style="width: 75%;">
+                    </a>
+                </div>
             </div>
             <div class="trip">
-                <div>
-                    <p>Choose a trip:</p>
-                    <select name="trips" id="trip_select">
-                        <option>--Please choose a Trip--</option>
+                <div style="margin-left: 20px">
+                    <select class="gradient_select" id="trip_select">
+                        <option>-- Please choose a Trip --</option>
                     </select>
                 </div>
-                <img src="../static/images/AEGIS_Transparent.png" alt="AEGIS">
-                <div style="margin-left: 30%;">
+                <div style="height:100%; margin-left: 25%">
+                    <img src="../static/images/AEGIS_Logo.png" alt="AEGIS" style="height: 100%;">
+                </div>
+                <div style="margin-left: 30%;color: white">
                     <h3><i>Dare Mighty Things</i></h3>
                 </div>
             </div>
             <div class="plot1_header">
                 <div>
-                    <p>Choose a plot:</p>
-                    <select name="plot1" id="plot_select_1">
-                        <option>--Please choose a plot--</option>
-                        <option>Video MP4</option>
-                        <option>LiDAR Plot</option>
-                        <option>Motor Voltage & Current</option>
-                        <option>Motor RPM</option>
-                        <option>RPI util</option>
-                        <option>Video Data</option>
-                        <option>LiDAR Data</option>
-                        <option>IMU: Roll Pitch Yaw</option>
-                        <option>IMU: Accelerameter</option>
-                        <option>Ultrasonics</option>
+                    <h2><i style="color: #F5F5F5;">Plot 1</i></h2>
+                </div>
+                <div>
+                    <select class="gradient_select" id="plot_1_type">
+                        <option>-- Please choose a type --</option>
+                        <option>Camera</option>
+                        <option>LiDAR</option>
+                        <option>Plots</option>
+                    </select>
+                </div>
+                <div>
+                    <select class="gradient_select" id="plot_select_1">
                     </select>
                 </div>
             </div>
             <div class="plot1" id="plot1">
-                <button onclick="toggleFullScreen1()" style="position: absolute;left: 0;top: 0;margin:10px;">
-                    Fullscreen
+                <button onclick="toggleFullScreen1()" style="position: absolute;left: 0;top: 10px;margin:10px;"> 
+                    <i class="fa-regular fa-square-plus fa-2xl"></i>
                 </button>
             </div>
             <div class="plot2_header">
                 <div>
-                    <p>Choose a plot:</p>
-                    <select name="plot2" id="plot_select_2">
-                        <option>--Please choose a plot--</option>
-                        <option>Video MP4</option>
-                        <option>LiDAR Plot</option>
-                        <option>Motor Voltage & Current</option>
-                        <option>Motor RPM</option>
-                        <option>RPI util</option>
-                        <option>Video Data</option>
-                        <option>LiDAR Data</option>
-                        <option>IMU: Roll Pitch Yaw</option>
-                        <option>IMU: Accelerameter</option>
-                        <option>Ultrasonics</option>
+                    <h2><i style="color: #F5F5F5;">Plot 2</i></h2>
+                </div>
+                <div>
+                    <select class="gradient_select" id="plot_2_type">
+                        <option>-- Please choose a type --</option>
+                        <option>Camera</option>
+                        <option>LiDAR</option>
+                        <option>Plots</option>
+                    </select>
+                </div>
+                <div>
+                    <select class="gradient_select" id="plot_select_2">
                     </select>
                 </div>
             </div>
             <div class="plot2" id="plot2">
-                <button onclick="toggleFullScreen2()" style="position: absolute;left: 0;top: 0;margin:10px;">
-                    FullScreen
+                <button onclick="toggleFullScreen2()" style="position: absolute;left: 0;top: 10px;margin:10px;">
+                    <i class="fa-regular fa-square-plus fa-2xl"></i>
                 </button>
             </div>
             <div class="plot3_header">
                 <div>
-                    <p>Choose a plot:</p>
-                    <select name="plot3" id="plot_select_3">
-                        <option>--Please choose a plot--</option>
-                        <option>Video MP4</option>
-                        <option>LiDAR Plot</option>
-                        <option>Motor Voltage & Current</option>
-                        <option>Motor RPM</option>
-                        <option>RPI util</option>
-                        <option>Video Data</option>
-                        <option>LiDAR Data</option>
-                        <option>IMU: Roll Pitch Yaw</option>
-                        <option>IMU: Accelerameter</option>
-                        <option>Ultrasonics</option>
+                    <h2><i style="color: #F5F5F5;">Plot 3</i></h2>
+                </div>
+                <div>
+                    <select class="gradient_select" id="plot_3_type">
+                        <option>--Please choose a type--</option>
+                        <option>Camera</option>
+                        <option>LiDAR</option>
+                        <option>Plots</option>
+                    </select>
+                </div>
+                <div>
+                    <select class="gradient_select" id="plot_select_3">
                     </select>
                 </div>
             </div>
             <div class="plot3" id="plot3">
-                <button onclick="toggleFullScreen3()" style="position: absolute;left: 0;top: 0;margin:10px;">
-                    FullScreen
+                <button onclick="toggleFullScreen3()" style="position: absolute;left: 0;top: 10px;margin:10px;">
+                    <i class="fa-regular fa-square-plus fa-2xl"></i>
                 </button>
             </div>
         </div>
