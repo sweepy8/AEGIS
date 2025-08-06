@@ -3,7 +3,7 @@
 
 import numpy as np      # deg2rad(), cos(), sin()
 
-SENSOR_OFFSET_MM = 80   # Any offset away from the motor shaft will skew scans. Measure this distance with calipers.
+SENSOR_OFFSET_MM = 0.080   # Any offset away from the motor shaft will skew scans. Measure this distance with calipers.
 
 def pol_to_cart(rho: float, phi: float, intensity: float | None = None) -> list[float]:
     '''
@@ -36,30 +36,30 @@ def pol_to_cart_array(points: list[list[float]]) -> list[list[float]]:
     return cartesian_points
 
 
-def sph_to_cart(rho: float, phi: float, theta: float, intensity: float | None = None) -> list[float]:
+def sph_to_cart(dist: float, l_a: float, m_a: float, i: float | None = None) -> list[float]:
     """
     
     """
+    # print(f"D={dist}, LA={l_a}, MA={m_a}, I={i} --> ", end='')
 
-    dist: float = rho								    # radial distance rho in meters
-    l_angle: float = np.deg2rad(phi)				    # lidar angle phi in radians
-    m_angle: float = np.deg2rad(theta)				    # motor angle theta in radians
+    l_angle: float = np.deg2rad(l_a)				    # lidar angle phi in radians
+    m_angle: float = np.deg2rad(m_a)				    # motor angle theta in radians
     
-    x: float = dist*np.sin(l_angle)*np.cos(m_angle)	    # x = r*sin(phi)*cos(theta)
-    y: float = dist*np.sin(l_angle)*np.sin(m_angle)	    # y = r*sin(phi)*sin(theta)
-    z: float = dist*np.cos(l_angle)					    # z = r*cos(phi)
+    x: float = dist*np.cos(l_angle)*np.cos(m_angle)	    # x = r*sin(phi)*cos(theta)
+    y: float = dist*np.cos(l_angle)*np.sin(m_angle)	    # y = r*sin(phi)*sin(theta)
+    z: float = dist*np.sin(l_angle)					    # z = r*cos(phi)
     
     x += SENSOR_OFFSET_MM*np.sin(m_angle)		# Correct for horizontal lidar offset
     y += SENSOR_OFFSET_MM*np.cos(m_angle)		# Correct for horizontal lidar offset
 
-    return [x, y, z, intensity] if intensity is not None else [x, y, z]
+    point = [round(dim, 4) for dim in ([x, y, z, i] if i is not None else [x, y, z])]
+
+    return point
     
 
 def sph_to_cart_array(points: list[list[float]]) -> list[list[float]]:
     """
     
     """
-    
-    cartesian_points: list[list[float]] = [sph_to_cart(*point) for point in points]
-        
-    return cartesian_points
+
+    return [sph_to_cart(*point) for point in points]

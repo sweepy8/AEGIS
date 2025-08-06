@@ -1,19 +1,7 @@
-'''
-Motor driver for AEGIS senior design.
+"""
+Motor driver for AEGIS senior design. Version 2
 Compatible with A4988 Stepper motor driver and NEMA17 stepper motor.
-'''
-
-#################################
-# Raspberry Pi to A4988 Pinout  #
-#-------------------------------#
-#   Pin 31 == GPIO 6  --> DIR   #
-#   Pin 33 == GPIO 13 --> STEP  #
-#   Pin 11 == GPIO 17 --> MS3   #
-#   Pin 13 == GPIO 27 --> MS2   #
-#   Pin 15 == GPIO 22 --> MS1   #
-#   Pin  9 == GROUND            #
-#   Pin  1 == VDD               #
-#################################
+"""
 
 #################################
 # MS1 | MS2 | MS3 | Resolution  #
@@ -28,191 +16,197 @@ Compatible with A4988 Stepper motor driver and NEMA17 stepper motor.
 import gpiozero as gpz		# gpz.OutputDevice, gpz.CompositeOutputDevice
 from time import sleep
 
-# Class to hold microstep resolution characteristics (move to tuple eventually)
-class microstep_resolution:
-    
-    def __init__(self, name : str, denom : int, value : tuple):
-        self.name = name
-        self.value = value
-        self.denom = denom
-
+DIR_PIN  = 26
+STEP_PIN = 20
+MS1_PIN  = 13
+MS2_PIN  = 19
+MS3_PIN  = 6
 
 class Motor:
-    '''
-    Class intro **********************.
-    '''
-    
-    # Array of all possible microstep resolutions as class instances
-    microstep_resolutions = [
-        microstep_resolution("FULL",       1, (0, 0, 0)),
-        microstep_resolution("HALF",       2, (1, 0, 0)),
-        microstep_resolution("QUARTER",    4, (0, 1, 0)),
-        microstep_resolution("EIGHTH",     8, (1, 1, 0)),
-        microstep_resolution("SIXTEENTH", 16, (1, 1, 1))
-    ]
+    """
+    The NEMA17 stepper motor class.
 
+    Attributes:
+        microstep_resolutions (dict[str, dict[str, tuple[int,int,int] | int]]): 
+            A dictionary containing the names, pin values, and denominator 
+            values for each of the five possible resolutions (full, half, 
+            quarter, eighth, and sixteenth-step).
+        ms_res_pins (gpiozero.CompositeOutputDevice): A GPZ device that ties the
+            MS1, MS2, and MS3 GPIO pins together, allowing the resolution to be 
+            configured.
+        ms_res (str): The name of the current microstep resolution.
+        ms_res_denom (int): The denominator of the current microstep resolution.
+        dir (str): The motor's turn direction. Either clockwise ("CW") or 
+            counterclockwise ("CCW"). 
+        step (gpiozero.OutputDevice): A GPZ device that provides access to the 
+            motor driver's step pin via the step.on() and step.off() methods.
+        speed (float): The speed at which the motor turns in Hz (0, 4.5].
+        start_angle (float): The starting angle of the motor in degrees.
+        curr_angle (float): The current angle of the motor in degrees.
+    """
 
-    def __init__(self):
-        '''
-        Initializes a motor object by attaching R.Pi GPIO pins to various fields and
-        declaring the current angle and angle correction factor values.
-        @param 
-            None
-        @return: 
-            None
-        '''
+    microstep_resolutions: dict[str, dict[str, tuple[int,int,int] | int]] = {
+        "full":     { "pin_vals": (0,0,0), "denom": 1 },
+        "half":     { "pin_vals": (1,0,0), "denom": 2 },
+        "quarter":  { "pin_vals": (0,1,0), "denom": 4 },
+        "eighth":   { "pin_vals": (1,1,0), "denom": 8 },
+        "sixteenth":{ "pin_vals": (1,1,1), "denom": 16 }
+    }
+
+    def __init__(self, res_name: str, start_angle: float, speed: float) -> None:
+        """
+        Initializes a motor object by attaching R.Pi GPIO pins to various fields
+        and declaring the speed and starting angle.
         
-        self.speed  = 1.0												# Speed in Hz
-        self.dir    = gpz.OutputDevice(pin=26, initial_value=False)		# Direction signal on GPIO 6 (pin 31)
-        self.step   = gpz.OutputDevice(pin=20, initial_value=False)		# Step signal on GPIO 5 (pin 29)
-        self.ms_res = gpz.CompositeOutputDevice(						# Microstep resolution on GPIO 17, 27, 22 (pins 11, 13, 15)
-            gpz.OutputDevice(pin=13, initial_value=False),
-            gpz.OutputDevice(pin=19, initial_value=False),
-            gpz.OutputDevice(pin=6, initial_value=False)
-        )
+        Args:
+            res_name (str): The name of the microstep resolution of the motor.
+            speed (float): The speed at which the motor turns in Hz (0, 4.5].
+            start_angle (float): The starting angle of the motor in degrees.
+        """
         
-        self.curr_angle = None				# None implies "start angle not yet assigned"
-        self.angle_correction_factor = 1.0	# Default to no prescribed angle correction (x1)
+        self.ms_res_pins: gpz.CompositeOutputDevice = gpz.CompositeOutputDevice(
+            MS1 = gpz.OutputDevice(pin=MS1_PIN),
+            MS2 = gpz.OutputDevice(pin=MS2_PIN),
+            MS3 = gpz.OutputDevice(pin=MS3_PIN))
+        self.ms_res: str = "full"                            # Always overriden
+        self.ms_res_denom: int = 1                           # Always overriden
+        self.set_microstep_resolution(res_name)
 
-    def set_speed(self, speed : float):
-        '''
+        self.dir: gpz.OutputDevice = gpz.OutputDevice(pin=DIR_PIN)
+        self.step: gpz.OutputDevice = gpz.OutputDevice(pin=STEP_PIN)
+        self.speed: float = speed
+        self.start_angle: float = start_angle
+        self.curr_angle: float = start_angle
+
+    def set_microstep_resolution(self, res_name: str) -> None:
+        """
+        Sets the microstep resolution by looking up the argument key in the 
+        microstep_resolution dictionary and writing corresponding values to the 
+        MS1, MS2, and MS3 pins. Also updates resolution info in class fields.
+        
+        Args:
+            res_name (str): The name of the desired resolution (e.g. "half").
+        Raises:
+            ValueError: If the res_name string is not a key in the 
+                microstep_resolutions dictionary.
+        """
+
+        res: dict|None = self.microstep_resolutions.get(res_name, None)
+
+        if res is None:
+            raise ValueError(
+                f"[ERROR] motor.py: Invalid resolution! ('{res_name}')"
+            )
+        
+        self.ms_res = res_name
+        self.ms_res_pins.value = res["pin_vals"]
+        self.ms_res_denom = res["denom"]
+
+    def set_speed(self, speed : float) -> None:
+        """
         Sets the speed of the motor.
-        @param 
-            speed: Speed in Hz (0, 4.5]
-        @return: 
-            None
-        '''
 
+        Args:
+            speed (float): The speed at which the motor turns in Hz (0, 4.5].
+        Raises:
+            ValueError: If speed is outside of the valid range.
+        """
+
+        if speed <= 0 or speed > 4.5:
+            raise ValueError(
+                f"[ERROR] motor.py: Invalid speed (0, 4.5]! ({speed})")
+        
         self.speed = speed
 
-
-    def set_dir(self, dir : str):
-        '''
-        Sets the direction of the motor.    
-        Raises exception if string does not match either "CW" (clockwise) or "CCW" (counterclockwise).
-        @param 
-            dir: A string representing the direction of turn ("CW" or "CCW"). 
-        @return: 
-            None
-        '''
+    def set_dir(self, dir : str) -> None:
+        """
+        Sets the direction of the motor.
+        
+        Args:
+            dir (str): The motor's turn direction. Either clockwise ("CW") or 
+                counterclockwise ("CCW"). 
+        Raises:
+            ValueError: If dir does not match either "CW" or "CCW".
+        """
 
         if   dir == "CW":  self.dir.on()
         elif dir == "CCW": self.dir.off()
-        else: raise Exception("Failed to set direction. Invalid input!")
+        else: raise ValueError(
+            f"[ERROR] motor.py: Invalid direction! ('{dir})")
 
+    def set_start_angle(self, angle: float) -> None:
+        """
+        Sets the starting angle of the motor in software. This currently has no
+        relationship to physical angle and is only used in coordinate transform.
 
-    def set_start_angle(self, angle : int):
-        '''
-        Sets the starting angle of the motor.
-        @param 
-            speed: Angle in degrees
-        @return: 
-            None
-        '''
-        self.curr_angle = angle
-        
+        Args:
+            angle (float): The starting angle of the motor in degrees.
+        """
 
-    def set_correction_factor(self, f : float):
-        '''
-        Sets the angular correction factor of the motor.
-        The value is multiplied to the angle added to curr_angle after each movement.
-        E.g. 1 degree per ring * 0.5 --> Despite physically moving 1 degree, prescribed
-        angle only increases by 0.5 degrees
-        @param 
-            f: Correction factor multiplier
-        @return: 
-            None
-        '''
-        self.angle_correction_factor = f
+        self.curr_angle: float = angle
 
+    def turn(self, steps: int, verbose: bool = False) -> None:
+        """
+        Turns the stepper motor a specified number of steps. Also updates
+        curr_angle in accordance with the current microstep resolution. 
 
-    def turn_degs(self, deg : int):
-        '''
-        Turns the motor a set number of degrees.
-        @param 
-            speed: Speed in Hz
-        @return: 
-            None
-        '''
+        Args:
+            steps (int): The number of steps to turn.
+            verbose (bool): Whether or not to print debug info. Defaults to
+                False.
+        Raises:
+            ValueError: If the steps argument is less than 1.
+        """
 
-        steps = (deg / 360) * (200 * self.get_ms_res_denom())
         if steps < 1:
-            raise Exception("Turn amount is too small!")
-        delay = 1 / (200 * self.get_ms_res_denom() * self.speed)
+            raise ValueError(f"Steps argument must be positive! ({steps})")
 
-        print(f"Current Angle: {round(self.curr_angle, 3)}")
+        degrees: float = float(steps) / (200 * self.ms_res_denom) * 360
+        step_delay: float = 1 / (200 * self.ms_res_denom * self.speed)
         
-        for i in range(0, int(steps)):
-            self.step.on()
-            sleep(delay / 2)        # 50% Duty Cycle
-            self.step.off()
-            sleep(delay / 2)
-        
-        self.curr_angle += deg * self.angle_correction_factor
-        
+        if verbose:
+            print(f"Current Angle: {round(self.curr_angle, 3)}")
 
-    def turn_steps(self, steps : int):
-        '''
-        ******************.
-        '''
-        deg = float(steps) / (200 * self.get_ms_res_denom()) * 360
-        if steps < 1:
-            raise Exception("Turn amount is too small!")
-        delay = 1 / (200 * self.get_ms_res_denom() * self.speed)
-        
-        print(f"Current Angle: {round(self.curr_angle, 3)}")
-        
         for i in range(0, steps):
             self.step.on()
-            sleep(delay / 2)
+            sleep(step_delay/2)
             self.step.off()
-            sleep(delay / 2)
-        
-        self.curr_angle += deg * self.angle_correction_factor
-        
-        
-    def set_ms_res(self, res : str):        
-        '''
-        **************.
-        '''
-        for msr in self.microstep_resolutions:
-            if msr.name == res:
-                self.ms_res.value = msr.value
-                return
-        print(res)
-        raise Exception("Invalid microstep resolution!")
+            sleep(step_delay/2)
+
+        self.curr_angle += degrees
 
 
-    def get_ms_res_denom(self):
-        '''
-        ***************.
-        '''
-        for msr in self.microstep_resolutions:
-            if msr.value == self.ms_res.value:
-                return msr.denom
+def test_motor() -> None:
+    """
+    Tests the motor by instantiating a motor object and allowing the user to
+    repeatedly turn it a set number of steps in either direction.
+    """
+
+    M1 = Motor(
+        res_name="sixteenth",
+        start_angle=0,
+        speed=1.0
+    )
+
+    print(f"[INIT] motor.py: Created motor ({M1.ms_res}-step, {M1.speed}Hz)...")
+
+    while True:
+        dir_in: str = input("Enter direction (0 for CW, anything else for CCW):")
+        print(f"Direction: {'CW' if int(dir_in) == 0 else 'CCW'}")
+        M1.set_dir("CW") if int(dir_in) == 0 else M1.set_dir("CCW")
+
+        steps_in = int(input("Enter the number of steps to turn:"))
+        print(f"Steps: {steps_in}")
+
+        if steps_in > 100 * M1.ms_res_denom:
+            print("Nice try, you're gonna break the cable!")
+            continue
             
-        raise Exception("Failed to retrieve MS_RES_DENOM.")
-        
+        chunk_in = int(input("Enter chunk size (must cleanly divide steps):"))
+        print(f"Chunk size: {chunk_in}")
 
-def main() -> None:
-    '''
-    This main function instantiates a motor object and turns the motor a set number of steps.
-    @param None
-    @return: None
-    '''
+        for i in range(0, int(steps_in / chunk_in)):
+            M1.turn(chunk_in, verbose=True)
+            sleep(0.1)
 
-    M1 = Motor()
-    M1.set_speed(1)
-    M1.set_ms_res("SIXTEENTH")
-    M1.set_start_angle(0)
-    print(f"MS_RES set to {M1.ms_res.value}, ms_res_denom = {M1.get_ms_res_denom()}")
-
-    M1.set_dir("CW")
-    for i in range(0, 800):
-        M1.turn_steps(2)
-        sleep(0.1)
-        
-
-if __name__ == "__main__":
-    main()
-    
+        input("Enter anything to continue, CTRL+C to exit:")

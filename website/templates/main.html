@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <title>AEGIS Viewer</title>
+    <link rel="stylesheet" href="../static/style.css">
+
+    <script>
+        const liveFeedURL = "{{ url_for('video_feed') }}";
+        const visualizerURL = "{{ url_for('visualizer') }}";
+    </script>
+
+</head>
+<body>
+
+    <div class="data_container">
+
+        <div class="title"> A.E.G.I.S. Viewer </div>
+
+        <div class="trip_select">
+            <h1>Trip Select</h1>
+            <div class="trips_container">
+                <button class="trip_btn" id="lf_btn">
+                    Live Camera </button>
+                <button class="trip_btn" id="trip1_btn">
+                    Trip 01 </button>
+                <button class="trip_btn" id="trip2_btn">
+                    Trip 02 </button>
+                <button class="trip_btn" id="trip3_btn">
+                    Trip 03 </button>
+            </div>
+        </div>
+
+        <div class="video_container" id="video_container"></div>
+
+        <div class=visualizer_container>
+            <img class="visualizer" 
+                src="{{ url_for('visualizer') }}" alt="LiDAR Visualizer">
+        </div>
+
+        <div class="telemetry">
+            <h1>Telemetry Data</h1>
+            <div class="telemetry_data" id="telemetry_data">
+            </div>
+        </div>
+
+        <div class="scrubber_container">
+            <input class="scrubber" id="scrubber" 
+                type="range" min="0" max="362439" value="0"> <!--99h:99m:99s-->
+            <button class="play_btn" id="play_btn"> ▶ </button>
+            <output class="scrubber_value" id="scrubber_value">00:00:00</output>
+        </div>
+    </div>
+
+
+    <script type="text/javascript" src="../static/js/trip_select.js"></script>
+
+</body>
+</html>
