@@ -1,121 +1,146 @@
 '''
-3D LiDAR scanner driver for AEGIS senior design.
-Compatible with STL27L LiDAR sensor, A4988 motor driver, and NEMA17 stepper motor.
+3D LiDAR scanner driver for AEGIS senior design. Version 2
+Compatible with STL27L LiDAR scanner, A4988 motor driver, and NEMA17 stepper 
+motor.
 '''
 
-import lidar.lidar as Lidar
-import lidar.motor as Motor
-import numpy as np				# deg2rad(), cos(), sin()
-import time						# time(), sleep()
+import time                     # time()
 
-# Global motor parameters
-MOTOR_TURN_SPD = 1				# (0, 4] Hz
-MOTOR_TURN_DIR = "CCW"			# "CW" = clockwise or "CCW" = counterclockwise
-MOTOR_TURN_RES = "SIXTEENTH"	# "FULL", "HALF", "QUARTER", "EIGTH", "SIXTEENTH"
-MOTOR_TURN_RESET = False		# Turn back to initial position after scan?
-MOTOR_CORRECTION_FACTOR = 1		# Scales prescribed motor turn. 0.5 --> 1 degree actual is 0.5 degrees prescribed
-MOTOR_START_ANGLE = 0			# Initial motor angle in software (for coordinate transform)
-
-#Global scan parameters
-END_ANGLE = 180			# Span == END_ANGLE - MOTOR_START_ANGLE
-USE_STEPS = True		# Use steps (or degrees) to increment rings?
-DEG_PER_RING = 1		# Number of degrees between each ring (if using degrees)
-NUM_RINGS = 200			# Number of rings to capture per scan (if using steps)
-STEPS_PER_RING = 8		# NUM_RINGS * STEPS_PER_RING == 0.5 revs * 200 steps/rev * MOTOR_TURN_RES_DENOM
+from lidar import lidar
+from lidar import motor
+from utils import file_utils    # get_timestamped_filename()
+from utils import math_utils    # sph_to_cart_array()
 
 
-'''
-This function converts an array of points from spherical to cartesian coordinates.
-@param pts: An array of 4-element arrays containing point data (rho, phi, theta, intensity)
-@return: The converted array of 4-element arrays containing point data (x, y, z, intensity)
-'''
-def conv_pts_sph_to_cart(pts):
+class Scanner():
+    """
+    The AEGIS 3D LiDAR scanner class.
     
-    c_pts = []
-    sensor_offset = 0.044 # Horizontal lidar offset in meters
-    
-    for pt in pts:
-        c_pt = []
-        
-        dist = pt[0]								# radial distance rho in meters
-        l_angle = np.deg2rad(pt[1])					# lidar angle phi in radians
-        m_angle = np.deg2rad(pt[2])					# motor angle theta in radians
-        
-        x = dist*np.sin(l_angle)*np.cos(m_angle)	# x = r*sin(phi)*cos(theta)
-        y = dist*np.sin(l_angle)*np.sin(m_angle)	# y = r*sin(phi)*sin(theta)
-        z = dist*np.cos(l_angle)					# z = r*cos(phi)
-        i = pt[3]									# intensity
-        
-        x = x + sensor_offset*np.sin(m_angle)		# Correct for horizontal lidar offset
-        y = y + sensor_offset*np.cos(m_angle)		# Correct for horizontal lidar offset
-        
-        c_pt.extend([x, y, z, i])					# Add dimensions to cartesian point
-        c_pts.append(c_pt)							# Add cartesian point to points array
-        
-    return c_pts
+    This class combines the STL27L LiDAR scanner and NEMA17 stepper motor as a 
+    single 360 degree, 3D scanner with configurable scan resolution. It 
+    provides methods that configure the resolution of scans, and take, print, 
+    and save scans.
 
-'''
-This main function instantiates a motor and lidar unit, takes a spherical scan, and
-    writes the processed data to two PCD files.
-@param None
-@return: None
-'''
-def main():
-    
-    # Initialize motor object and configure using global parameters
-    M1 = Motor.Motor()
-    M1.set_dir(MOTOR_TURN_DIR)
-    M1.set_speed(MOTOR_TURN_SPD)
-    M1.set_ms_res(MOTOR_TURN_RES)
-    M1.set_start_angle(MOTOR_START_ANGLE)
-    M1.set_correction_factor(MOTOR_CORRECTION_FACTOR)
-    
-    # Initialize LiDAR object
-    L1 = Lidar.Lidar()
-    
-    start_time = time.time()		# Start scan timer
-    
-    # Take as many scans as fit into span according to global parameters
-    file_data = []
-    while M1.curr_angle < END_ANGLE:
-    
-        # Open serial connection FOR EACH RING! THIS SHOULD BE IMPROVED
-        L1.open_serial()
-       
-        pts = L1.get_processed_ring(
-            motor_angle = M1.curr_angle)	# Get a ring (formatted into array of spherical points)
-        
-        file_data.extend(pts)				# Add ring of points to end of file_data array
+    Attributes:
+        lidar (Lidar): An object of the Lidar class which enables STL27L sensor
+            functionality.
+        motor (Motor): An object of the Motor class which enables stepper motor
+            functionality.
+        rings_per_cloud (int): The number of rings per point cloud.
+        steps_per_ring (int): The number of steps taken by the stepper motor
+            after capturing each ring.
+        resolution (float): The angular resolution of scans on the XY plane
+            (i.e. the angular distance between rings).
+    """
 
-        # Rotate motor according to preferred units
-        if USE_STEPS: M1.turn_steps(STEPS_PER_RING)
-        else:		  M1.turn_degs(DEG_PER_RING)
-        
-        L1.close_serial()
-                
-        
-    print(f"Data captured! Num pts: {len(file_data)}. Elapsed time: {round(time.time()-start_time, 1)} seconds.")
+    def __init__(self) -> None:
+        """
+        """
+        self.lidar: lidar.Lidar = lidar.Lidar()
+        self.motor: motor.Motor = motor.Motor(res_name="sixteenth", start_angle=0, speed=1)
+        self.rings_per_cloud: int = 200
+        self.steps_per_ring: int = int(100 * self.motor.ms_res_denom / self.rings_per_cloud)
+        self.resolution: float = 180 / self.rings_per_cloud
     
-#     pcd_filename_pre = L1.make_file()								# Create PCD file to store raw data    
-#     L1.write_pcd_header_to_file(pcd_filename_pre+"_raw", len(file_data)) 	# PCD header requires number of points in cloud
-#     L1.write_pts_to_file(pcd_filename_pre, file_data)				# Write raw points to file
-#     print(f"Raw points written to file! Elapsed time: {round(time.time()-start_time, 1)} seconds.")
+    def set_rings_per_cloud(self, num_rings: int) -> None:
+        '''
+        
+        Note that values not divisible by 100 or values which call for 
+        one-step-at-a-time motion below full resolution have not been tested.
+        The actual vs. expected motor.curr_angle error might be too large to get
+        good scans when turning less than 4 or 8 steps per ring at sixteenth-step 
+        resolution, for example.
+        '''
 
-    # Convert all points from spherical (r, phi, theta) coordinates to cartesian (x, y, z)
-    file_data = conv_pts_sph_to_cart(file_data)
-    print(f"Points converted! Elapsed time: {round(time.time()-start_time, 1)} seconds.")
-    
-    #time.sleep(1)												# Ensure that file names are unique
-    pcd_filename = L1.make_file()								# Create PCD file to store converted data
-    L1.write_pcd_header_to_file(pcd_filename, len(file_data))	# PCD header requires number of points in cloud
-    L1.write_pts_to_file(pcd_filename, file_data)				# Write converted points to file
-    print(f"Processed points written to file! Elapsed time: {round(time.time()-start_time, 1)} seconds.")
-    
-    # Rotate the motor in the opposite direction to the starting point
-    #if MOTOR_TURN_RESET:
-    #    M1.set_dir("CCW") if MOTOR_TURN_DIR == "CW" else M1.set_dir("CW")
-    #    M1.turn_degs(END_ANGLE / MOTOR_CORRECTION_FACTOR) 
-    
-if __name__ =="__main__":
-    main()
-    
+        if (num_rings > self.motor.ms_res_denom * 100):
+            raise ValueError(f"Resolution is too high!",
+                "Must not exceed (steps/rev) / 2 at currently configured",
+                "microstep resolution. ({resolution}, {self.motor.ms_res})")
+        
+        self.rings_per_cloud = num_rings
+        self.steps_per_ring: int = int(100 * self.motor.ms_res_denom / self.rings_per_cloud)
+        self.resolution: float = 180 / self.rings_per_cloud
+
+    def capture_cloud(self) -> list[list[float]]:
+        """
+        Takes a 3D scan of the environment.
+
+        Returns:
+            cloud (list[list[float]]): A 3D point cloud array.
+            num_points (int): The number of points in the cloud.
+            duration_s (float): The time in seconds it took to complete the scan.
+        """
+
+        print("[RUNTIME] scan.py: Beginning cloud capture...")
+
+        start_time_s: float = time.time()
+
+        self.motor.set_dir("CW")
+
+        cloud: list[list[float]] = []
+
+        while self.motor.curr_angle < 180:
+            self.lidar.open_serial()    # See cylindrical distortion error in documentation
+
+            ring: list[list[float]] = self.lidar.capture_ring(motor_angle=self.motor.curr_angle)
+            cloud.extend(ring)
+            self.motor.turn(self.steps_per_ring)
+
+            self.lidar.close_serial()
+
+        self.motor.set_dir("CCW")
+        self.motor.turn(self.motor.ms_res_denom * 100)
+
+        num_points: int = len(cloud)
+
+        duration_s: float = time.time() - start_time_s
+        duration_s = round(duration_s, 2)
+
+        print(f"[RUNTIME] scan.py: Cloud captured in {duration_s} seconds ({num_points} points).")
+
+        return cloud
+
+    def print_scan(self, cloud: list[list[float]], cartesian: bool = True) -> None:
+        """
+            Should this even exist? Probably not.
+        """
+
+        print("[RUNTIME] scan.py: Printing cloud data...")
+
+        for index, point in enumerate(math_utils.sph_to_cart_array(cloud) if cartesian else cloud):
+            print(f"\t{index}: " + f"{' '.join([str(val) for val in point])}\n")
+
+        print("[RUNTIME] scan.py: Cloud data finished printing!")
+
+    def save_scan(self, cloud: list[list[float]], cartesian: bool = True, filename: str | None = None) -> str:
+        """
+        
+        """
+
+        if filename is None:
+            filename = file_utils.get_timestamped_filename(
+                save_path='.', prefix='cloud', ext='.txt')
+            
+        print(f"[RUNTIME] scan.py: Saving cloud to {filename}...")
+        
+        file_utils.write_points_to_file(
+            filename = filename,
+            points = math_utils.sph_to_cart_array(cloud) if cartesian else cloud
+        )
+
+        print(f"[RUNTIME] scan.py: Cloud saved to {filename}.")
+
+        return filename
+
+
+def test_scan(save: bool, verbose: bool) -> None:
+    test_scanner = Scanner()
+    test_scanner.set_rings_per_cloud(num_rings=200)
+
+    test_cloud: list[list[float]] = test_scanner.capture_cloud()
+
+    if save:
+        test_file: str = test_scanner.save_scan(cloud=test_cloud)
+
+    if verbose:
+        test_scanner.print_scan(cloud=test_cloud)
