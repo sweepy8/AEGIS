@@ -23,12 +23,12 @@ async function fetchTrips() {
 
     // Sort trip folders by length first then by alphabet
     // if done just alphabetically Trip_19 would go between Trip_1 and Trip_2
-    folders.sort((a, b) => {
-        if (a.length !== b.length) {
-            return a.length - b.length;
-        }
-        return a.localeCompare(b);
-    });
+    // folders.sort((a, b) => {
+    //     if (a.length !== b.length) {
+    //         return a.length - b.length;
+    //     }
+    //     return a.localeCompare(b);
+    // });
     // console.log('Fetched trips: ', folders);
 
     // gets the list by referencing its id in html
@@ -50,14 +50,14 @@ async function fetchTrips() {
     }
 
     // Set default plot images
-    selectPlot1("--Please choose a plot--");
-    selectPlot2("--Please choose a plot--");
-    selectPlot3("--Please choose a plot--");
+    // selectPlot1("--Please choose a plot--");
+    // selectPlot2("--Please choose a plot--");
+    // selectPlot3("--Please choose a plot--");
 }
 
 var telemetry = '';
-var ptsArr = '';
 var trip = '';
+var scanNames = '';
 async function fetchTelemetry(trip_name) {
     /**
      * Attemps to retrieve JSON file containing a trips telemetry data
@@ -68,7 +68,6 @@ async function fetchTelemetry(trip_name) {
      */
 
     telemetry = '';
-    ptsArr = '';
     trip = trip_name;
     try {
         const response = await fetch(`/static/trips/${trip_name}/sample_telemetry.json`);
@@ -76,11 +75,12 @@ async function fetchTelemetry(trip_name) {
             console.log('Failed to load telemetry');
         }
         telemetry = await response.json();
-        ptsArr = await getPoints(`/static/trips/${trip_name}/scan_${trip_name}.txt`);
         console.log(telemetry);
     } catch (error) {
         console.error('Fetch error:', error);
     }
+
+    scanNames = await getScanNames(trip_name);
 }
 
 // Plot Selection and call Section
@@ -96,25 +96,32 @@ function plotTypeOptions(type, select_filler) {
         const video = document.createElement("option");
         video.textContent = "Video";
         select_filler.appendChild(video);
-        const tf = document.createElement("option");
-        tf.textContent = "Cam True/False";
-        select_filler.appendChild(tf);
     }
     if (type == "LiDAR"){
-        const lidar = document.createElement("option");
-        lidar.textContent = "Point Cloud";
-        select_filler.appendChild(lidar);
+        console.log(scanNames);
+        if(Array.isArray(scanNames)) {
+        scanNames.forEach(item => {
+            const lidarPC = document.createElement("option");
+            lidarPC.textContent = item;
+            select_filler.appendChild(lidarPC);
+        });
+        } else {
+            select_filler.innerHTML = `<option>Error loading Point Clouds</option>`;
+        }
+    }
+    if (type == "Plots"){
         const m_pos = document.createElement("option");
         m_pos.textContent = "Motor Position";
         select_filler.appendChild(m_pos);
         const scan_pct = document.createElement("option");
         scan_pct.textContent = "Scan Percentage";
         select_filler.appendChild(scan_pct);
-        const tf = document.createElement("option");
-        tf.textContent = "True/False";
-        select_filler.appendChild(tf);
-    }
-    if (type == "Plots"){
+        const tf_l = document.createElement("option");
+        tf_l.textContent = "LiDAR True/False";
+        select_filler.appendChild(tf_l);
+        const tf_c = document.createElement("option");
+        tf_c.textContent = "Camera True/False";
+        select_filler.appendChild(tf_c);
         const motor_v = document.createElement("option");
         motor_v.textContent = "Motor Voltage";
         select_filler.appendChild(motor_v);
@@ -234,7 +241,7 @@ function plotFunction(plot_type, plot_name) {
     if(plot_type == "Video") {
         videoPlot(plot_name);
     }
-    if(plot_type == "Cam True/False") {
+    if(plot_type == "Camera True/False") {
         cameraTFPlot(plot_name);
     }
     if(plot_type == "Point Cloud") {
@@ -246,8 +253,25 @@ function plotFunction(plot_type, plot_name) {
     if(plot_type == "Scan Percentage") {
         lidarScanPlot(plot_name);
     }
-    if(plot_type == "True/False") {
+    if(plot_type == "LiDAR True/False") {
         lidarTFPlot(plot_name);
+    }
+}
+
+async function getScanNames(trip_name){
+    try {
+        const response = await fetch(`/scanFiles?trip=${encodeURIComponent(trip_name)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+            // console.log(data);
+            return data; // This is the returned array of scan file names
+        } else {
+            console.error("Error from server:", data.error);
+            return [];
+        }
+    } catch (err) {
+        console.error("Fetch error:", err);
+        return [];
     }
 }
 
@@ -1041,12 +1065,19 @@ function cameraTFPlot(plot_name) {
     }
     Plotly.newPlot(plot_name, plot, layout);
 }
-function pointCloudPlot(plot_name) {
+async function pointCloudPlot(plot_name, pc_name) {
     /**
      * Creates a Plotly plot containing the LiDAR point cloud or '3D scatter plot'.
      * 
      * @param {string} plot_name - Id of the div to display the Plotly point cloud.
      */
+
+    var ptsArr = '';
+    try {
+        ptsArr = await getPoints(`/static/trips/${trip}/${pc_name}.txt`);
+    } catch (error) {
+        console.error('Fetch error point cloud:', error);
+    }
 
     console.log("pointCloudPlot()");
     var intensity = getDimFromPoints(ptsArr,3);
@@ -1342,7 +1373,14 @@ document.addEventListener("DOMContentLoaded", async function() {
         var plot = select_Plot1.value;
         console.log("Selected plot1 plot: " + plot);
         purgePlot("plot1");
-        plotFunction(plot, "plot1");
+        if(select_plot1_type.value == "LiDAR"){
+            pointCloudPlot("plot1", plot);
+        }
+        else if (select_plot1_type.value == "Camera"){
+            // camera spot for mp4 select
+        } else {
+            plotFunction(plot, "plot1");
+        }
     });
 
     // event listener for plot 2 type

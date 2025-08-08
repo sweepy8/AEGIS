@@ -1,7 +1,7 @@
 # Unified web view program
 # AEGIS Senior Design, Created on 6/9/25
 
-from flask import Flask, Response, render_template, send_file, jsonify
+from flask import Flask, Response, render_template, send_file, jsonify, request
 import os # os allows directory navigation
 # from ugv.camera import UGV_Cam
 # from utils.stream_utils import create_visualizer_fig
@@ -14,7 +14,7 @@ from time import sleep
 app = Flask(__name__) # Creates Flask app instance
 
 # Sets absolute directory path because python is stupid
-btn_folder = os.path.join(app.static_folder, 'trips') 
+btn_folder = os.path.join(app.static_folder, 'trips')
 # Directory to be monitored for buttons
 
 # app routes for each html page
@@ -44,6 +44,17 @@ def get_trips():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500 
+    
+@app.route('/scanFiles')
+def scan_files():
+    trip = request.args.get('trip', '')  # Get trip name from query
+    abs_path = os.path.abspath(os.path.join(btn_folder, trip))
+
+    # Only .txt files
+    text_files = [os.path.splitext(f)[0] for f in os.listdir(abs_path)
+              if f.endswith('.txt') and os.path.isfile(os.path.join(abs_path, f))]
+
+    return jsonify(text_files)
 
 # Python Functions ----------------------------------------------------------
 
