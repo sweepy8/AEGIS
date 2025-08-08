@@ -145,13 +145,14 @@ class Motor:
 
         self.curr_angle: float = angle
 
-    def turn(self, steps: int, verbose: bool = False) -> None:
+    def turn(self, direction: str, steps: int, verbose: bool = False) -> None:
         """
         Turns the stepper motor a specified number of steps. Also updates
         curr_angle in accordance with the current microstep resolution. 
 
         Args:
             steps (int): The number of steps to turn.
+            direction (str): The direction of turn ("CW" or "CCW").
             verbose (bool): Whether or not to print debug info. Defaults to
                 False.
         Raises:
@@ -173,7 +174,13 @@ class Motor:
             self.step.off()
             sleep(step_delay/2)
 
-        self.curr_angle += degrees
+        if direction == "CW":
+            self.curr_angle += degrees
+        else:
+            self.curr_angle -= degrees
+
+        if self.curr_angle > 360:
+            self.curr_angle %= 360
 
 
 def test_motor() -> None:
@@ -206,7 +213,7 @@ def test_motor() -> None:
         print(f"Chunk size: {chunk_in}")
 
         for i in range(0, int(steps_in / chunk_in)):
-            M1.turn(chunk_in, verbose=True)
+            M1.turn(direction=dir_in, steps=chunk_in, verbose=True)
             sleep(0.1)
 
         input("Enter anything to continue, CTRL+C to exit:")

@@ -97,7 +97,7 @@ def listen_to_UGV(serial_conn : Serial) -> str | None:
         try:
             telemetry_str = ugv_data.decode('utf-8')
         except UnicodeDecodeError:
-            telemetry_str = "[ERROR] UART.py: DECODE ERROR, SOLVE THIS\n"
+            telemetry_str = "[ERROR] UART.py: UNICODE DECODE ERROR, SOLVE THIS\n"
         print("[UGV] UART.ino: ", telemetry_str, end='')
 
 def control_UGV(serial_conn : Serial) -> None:

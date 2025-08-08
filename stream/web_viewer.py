@@ -7,42 +7,15 @@ import os # os allows directory navigation
 # from utils.stream_utils import create_visualizer_fig
 
 from time import sleep
-<<<<<<< HEAD
 # from multiprocessing import Process
-=======
-
-from flask import Flask, Response, render_template, send_file
-from utils.stream_utils import create_visualizer_fig
-
-from rover.camera import UGV_Cam
-
->>>>>>> main
 
 # ROUTES ----------------------------------------------------------------------
 
 app = Flask(__name__) # Creates Flask app instance
 
-<<<<<<< HEAD
 # Sets absolute directory path because python is stupid
-btn_folder = os.path.join(app.static_folder, 'trips') 
+btn_folder = os.path.join(app.static_folder, 'trips')       # type: ignore
 # Directory to be monitored for buttons
-=======
-@app.route('/video_feed')   # Embedded in root page
-def video_feed() -> Response:
-    '''
-    *************************************.
-    '''
-    if UGV_Cam.connected:
-        return Response(
-            response=UGV_Cam.generate_frames(), 
-            mimetype='multipart/x-mixed-replace; boundary=frame'
-        )
-    else:
-        return send_file(
-            path_or_file='static/images/no_video.gif',
-            mimetype='image/gif'
-        )
->>>>>>> main
 
 # app routes for each html page
 @app.route('/') # inside '' is the link for href to link page

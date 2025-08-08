@@ -84,12 +84,12 @@ class Scanner():
 
             ring: list[list[float]] = self.lidar.capture_ring(motor_angle=self.motor.curr_angle)
             cloud.extend(ring)
-            self.motor.turn(self.steps_per_ring)
+            self.motor.turn("CW", self.steps_per_ring)
 
             self.lidar.close_serial()
 
         self.motor.set_dir("CCW")
-        self.motor.turn(self.motor.ms_res_denom * 100)
+        self.motor.turn("CCW", self.motor.ms_res_denom * 100)
 
         num_points: int = len(cloud)
 

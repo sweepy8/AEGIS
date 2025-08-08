@@ -383,6 +383,7 @@ void setup() {
     } 
   }
 
+  // CONFIGURE MOTOR ENCODER PINS
   if (MOTORS_ATTACHED && UART_ATTACHED)
   {
     for (int i = 0; i < 6; i++)
@@ -423,10 +424,10 @@ void setup() {
   // CONFIGURE ARDUINO IDE AND RASPBERRY PI SERIAL PORTS
   if (UART_ATTACHED)
   {
-    Serial.begin(115200);
+    Serial.begin(9600);
     Serial1.begin(UGV_BAUDRATE);
     Serial.println("\nOpening serial connection...");
-    while (!Serial1) {;} // Wait until serial1 is ready
+    while (!Serial || !Serial1) {;} // Wait until serial1 is ready
     Serial.println("Serial connection opened!");
   }
 
@@ -445,11 +446,8 @@ void loop() {
       {
         // pulses in window / pulses per revolution / length of window in ms * ms per minute
         actual_rpms[i] = double(enc_pulse_counts[i]) / 753.2 / ENCODER_PULSE_WINDOW_MS * 60000;
-        Serial.print(actual_rpms[i]);
-        Serial.print(" ");
         enc_pulse_counts[i] = 0;
       }
-      Serial.println();
       last_flush_time_us = micros();
     }
   }
