@@ -2,7 +2,7 @@
     "timestamp": "2025_07_14_12_00_56",
     "duration_s": 2,
 
-    "traits":{
+    "traits": {
         "battery_cap_mah": 6000,
         "models": {
             "lidar": "STL27L",
@@ -15,6 +15,32 @@
             "battery": "Zeee 14.8V Lipo Battery (4S, 60C)"
         }
     },
+
+    "videos": [
+        {
+            "filename": null,
+            "start_time": null
+        },
+        {
+            "filename": null,
+            "start_time": null
+        },
+        {
+            "filename": null,
+            "start_time": null
+        }
+    ],
+
+    "scans": [
+        {
+            "filename":null,
+            "start_time":null
+        },
+        {
+            "filename":null,
+            "start_time":null
+        }
+    ],
 
     "telemetry": [
         {
