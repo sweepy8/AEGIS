@@ -1069,10 +1069,10 @@ function pointCloudPlot(plot_name) {
     var data = [points];
     var layout = {
         margin: { l: 0, r: 0, b: 0, t: 0 },
-        scene:{
+        scene: {
             aspectratio: { x: 1, y: 1, z: 1 },
             camera: {
-                eye: {x: 2, y: 2, z: 1},    // Camera position
+                eye: {x: 1, y: 1, z: 0.5},    // Camera position
                 center: {x: 0, y: 0, z: 0}, // Point the camera looks at
                 up: {x: 0, y: 0, z: 1}      // Up direction
             }

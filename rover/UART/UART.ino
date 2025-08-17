@@ -18,26 +18,40 @@
 
 #include <stdio.h>
 
+#include "Adafruit_SHTC3.h"
+Adafruit_SHTC3 Temp_Sensor = Adafruit_SHTC3();
+
+#include "Adafruit_LTR329_LTR303.h"
+Adafruit_LTR329 Light_Sensor = Adafruit_LTR329();
+
+
 // GENERAL DEFINITIONS --------------------------------------------------------------------------------------
 
 #define SPEED_OF_SOUND_MPS 343.0    //331 + 0.69 * Temp (Celsius)
 
 #define UART_ATTACHED        1
 #define MOTORS_ATTACHED      1
-#define ULTRASONICS_ATTACHED 0
+#define SENSORS_ATTACHED     1
+#define ULTRASONICS_ATTACHED 1
 
 #define UGV_BAUDRATE 115200
 
-#define COMMAND_THRESHOLD_US   50000
-#define SAMPLE_THRESHOLD_US    500000
-#define TELEMETRY_THRESHOLD_US 1000000
+#define ENCODER_PULSE_WINDOW_MS 80
+
+#define COMMAND_THRESHOLD_US        50000
+#define SAMPLE_THRESHOLD_US         500000
+#define SENSOR_SAMPLE_THRESHOLD_US  500000    // > light sensor integrate time
+#define TELEMETRY_THRESHOLD_US      1000000
 
 uint32_t last_command_time_us = 0;
 uint32_t last_move_time_us = 0;
 uint32_t last_sample_time_us = 0;
+uint32_t last_sensor_sample_time_us = 0;
 uint32_t last_talk_time_us = 0;
 uint32_t last_flush_time_us = 0;
 bool ugv_is_moving = false;
+
+bool skip_first_telemetry = true;
 
 // MOTOR FLAGS & DATA ---------------------------------------------------------------------------------------
  
@@ -98,6 +112,12 @@ uint8_t ULTRASONIC_TRIG_PINS[NUM_ULTRASONICS] = {47, 49, 45};
 uint8_t ULTRASONIC_ECHO_PINS[NUM_ULTRASONICS] = {52, 53, 51};
 
 volatile double ultrasonic_distances_cm[NUM_ULTRASONICS] = {0, 0, 0};
+
+// SENSOR FLAGS & DATA --------------------------------------------------------------------------------------
+
+sensors_event_t humidity, temp;               // For Adafruit SHTC3 library
+uint16_t visible_plus_ir, infrared, visible;  // For Adafruit LTR-329 libary
+
 
 // UART RECIEVER & MOVEMENT FUNCTIONS -----------------------------------------------------------------------
 
@@ -174,12 +194,18 @@ void move_rover(String dir, uint8_t rpm)
 }
 
 // Stops rover via a call to the move_rover function.
-void stop(void) { move_rover("stop", 0); }
+void stop(void)
+{
+  move_rover("stop", 0);
+}
 
 // Maps rpm input to PWM value between 0 and 255, then writes that value to the pin input
-void set_rpm(int pin, uint8_t rpm) { analogWrite(pin, map(rpm, MIN_RPM, MAX_RPM, MIN_PW, MAX_PW)); }
+void set_rpm(int pin, uint8_t rpm)
+{
+  analogWrite(pin, map(rpm, MIN_RPM, MAX_RPM, MIN_PW, MAX_PW));
+}
 
-// ULTRASONIC SENSOR FUNCTIONS ------------------------------------------------------------------------------
+// ULTRASONIC FUNCTIONS -------------------------------------------------------------------------------------
 
 // Pulses the ultrasonic trigger pins.
 void sample_ultrasonics(uint32_t curr_time_us) 
@@ -204,9 +230,8 @@ void sample_ultrasonics(uint32_t curr_time_us)
   }
 }
 
-// INTERRUPT HANDLERS ------------------------------------------------------------------------------
 
-#define ENCODER_PULSE_WINDOW_MS 80
+// INTERRUPT HANDLERS ---------------------------------------------------------------------------------------
 
 // PCINT0 Interrupt Service Handler (PB0-7) (PCINT0-7)
 // Handles Ultrasonic Echo Pin Interrupts (PB0-2) and Motor Encoder Interrupts (PB4-7)
@@ -249,7 +274,7 @@ ISR (PCINT0_vect)
     if ((enc_a_level == LOW) && (enc_a_states[i] == HIGH))
     {
       enc_a_states[i] = LOW;
-      enc_b_states[i] = digitalRead(PCINT0_ENC_B_PINS[i]);
+      // enc_b_states[i] = digitalRead(PCINT0_ENC_B_PINS[i]);
     }
   }
 
@@ -313,7 +338,7 @@ ISR (PCINT1_vect)
     if ((enc_a_level == LOW) && (enc_a_states[i] == HIGH))
     {
       enc_a_states[i] = LOW;
-      enc_b_states[i] = digitalRead(PCINT1_ENC_B_PINS[i]);
+      // enc_b_states[i] = digitalRead(PCINT1_ENC_B_PINS[i]);
     }
   }
 }
@@ -321,73 +346,69 @@ ISR (PCINT1_vect)
 // UART TELEMETRY FUNCTIONS ---------------------------------------------------------------------------------
 
 // Generates and transmits telemetry data to the Raspberry Pi.
+// Please end each section with a pipe '|' for clarity.
 void talk_to_rpi() 
 {
-  String telemetry_string = "|";
+  // Prepend current time in seconds to serial output
+  // Uh oh. 1 extra second gained every XXX mins, check on this later
+  String telemetry_string = String(double(millis()) / 1000, 3) + "||";
 
   // Add RPM values to telemetry string
-  for (int i = 0; i < 6; i++)
+  if (MOTORS_ATTACHED)
   {
-    telemetry_string += MOTOR_NAMES[i];
-    telemetry_string += "=";
-
-    char rpm_str[3];
-    snprintf(rpm_str, 3, "%d", actual_rpms[i]);
-    
-    telemetry_string += rpm_str;
-    telemetry_string += "RPM";
-    if (enc_directions[i] == 1) 
+    for (int i = 0; i < 6; i++)
     {
-      telemetry_string += "CW";
+      telemetry_string += MOTOR_NAMES[i] + '=';
+      String rpm_str = String(actual_rpms[i], 0);
+      rpm_str.remove(0,1);
+      telemetry_string += rpm_str;
+      telemetry_string += (enc_directions[i] == 1) ? "CW" : "CCW";
+      if (i != 5) { telemetry_string += ','; }
     }
-    else 
-    {
-      telemetry_string += "CCW";
-    }
-
-    telemetry_string += "|";
+    telemetry_string += '|';
   }
 
   // Add ultrasonic distances to telemetry string
-  for (int i = 0; i < NUM_ULTRASONICS; i++) 
+  if (ULTRASONICS_ATTACHED) 
   {
-    telemetry_string += "US";
-    telemetry_string += i + 1;
-    telemetry_string += "=";
-
-    char buf[5];
-    dtostrf(ultrasonic_distances_cm[i], 5, 1, buf);
-    telemetry_string += String(buf);
-    telemetry_string += "cm";
-    telemetry_string += "|";
+    for (int i = 0; i < NUM_ULTRASONICS; i++) 
+    {
+      telemetry_string += "US" + (i + 1) + '=';
+      telemetry_string += String(ultrasonic_distances_cm[i], 1);
+      telemetry_string += "cm";
+      if (i != NUM_ULTRASONICS - 1) { telemetry_string += ','; }
+    }
+    telemetry_string += '|';
+  }
+  
+  // Add sensor data to telemetry string
+  if (SENSORS_ATTACHED)
+  {
+    telemetry_string += "T=" + String(temp.temperature, 1) + "C,";
+    telemetry_string += "H=" + String(humidity.relative_humidity, 2) + "%,";
+    telemetry_string += "L_V=" + String(visible_plus_ir - infrared) + "L,";
+    telemetry_string += "L_I=" + String(infrared) + "L|";
   }
 
-  // Prepend current time in seconds to serial output
-  // Uh oh. 1 extra second gained every 20 mins, check on this later
-  Serial1.print(double(millis()) / 1000);
-  Serial1.println(telemetry_string);
+  Serial.println(telemetry_string);
 
   last_talk_time_us = micros();
 }
 
-// MAIN SETUP AND LOOP FUNCTIONS ----------------------------------------------------------------------------
+// MAIN SETUP AND LOOP --------------------------------------------------------------------------------------
 
 void setup() {
 
-  // CONFIGURE MOTOR DRIVER PWM CONTROL PINS 
+  // CONFIGURE MOTOR DRIVER PWM AND MOTOR ENCODER PINS
   if (MOTORS_ATTACHED)
-  { 
-    for (int i = 0; i < 4; i++) 
-    {
-      pinMode(DRIVER_PINS[i], OUTPUT); 
-    } 
-  }
-
-  // CONFIGURE MOTOR ENCODER PINS
-  if (MOTORS_ATTACHED && UART_ATTACHED)
   {
     for (int i = 0; i < 6; i++)
     {
+      if (i < 4)
+      {
+        pinMode(DRIVER_PINS[i], OUTPUT);
+      }
+
       pinMode(ENCODER_A_PINS[i], INPUT);
       pinMode(ENCODER_B_PINS[i], INPUT);
     }
@@ -421,6 +442,17 @@ void setup() {
     PCMSK0 |= 0x07;
   }
 
+  // CONFIGURE I2C SENSORS
+  if (SENSORS_ATTACHED)
+  {
+    while (!Temp_Sensor.begin());
+    while (!Light_Sensor.begin());
+
+    Light_Sensor.setGain(LTR3XX_GAIN_1);
+    Light_Sensor.setIntegrationTime(LTR3XX_INTEGTIME_400);
+    Light_Sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
+  }
+
   // CONFIGURE ARDUINO IDE AND RASPBERRY PI SERIAL PORTS
   if (UART_ATTACHED)
   {
@@ -433,14 +465,25 @@ void setup() {
 
 }
 
+
 void loop() {
 
   uint32_t curr_time_us = micros();   // Should probably revise this, rolls over every 70 minutes
 
-  // OPERATE FEEDBACK LOOP ON ENCODERS
-  if (MOTORS_ATTACHED && UART_ATTACHED)
+  // TRANSMIT TELEMETRY TO RASPBERRY PI
+  if (UART_ATTACHED)
   {
-    if (curr_time_us - last_flush_time_us > 80000)
+    if (curr_time_us - last_talk_time_us > TELEMETRY_THRESHOLD_US)
+    {
+      if (skip_first_telemetry) { skip_first_telemetry = 0; }
+      else { talk_to_rpi(); }
+    }
+  }
+
+  // OPERATE FEEDBACK LOOP ON ENCODERS
+  if (MOTORS_ATTACHED)
+  {
+    if (curr_time_us - last_flush_time_us > (ENCODER_PULSE_WINDOW_MS * 1000))
     {
       for (int i = 0; i < 6; i++) 
       {
@@ -453,7 +496,7 @@ void loop() {
   }
 
   // PERFORM RASPBERRY PI COMMAND
-  if (MOTORS_ATTACHED && UART_ATTACHED)
+  if (UART_ATTACHED)
   {
     if (curr_time_us - last_command_time_us > COMMAND_THRESHOLD_US) 
     {
@@ -467,7 +510,7 @@ void loop() {
     }
   }
 
-  // SAMPLE ULTRASONICS
+  // SAMPLE ULTRASONIC SENSORS
   if (ULTRASONICS_ATTACHED)
   { 
     if (curr_time_us - last_sample_time_us > SAMPLE_THRESHOLD_US) 
@@ -476,12 +519,18 @@ void loop() {
     }
   }
 
-  // TRANSMIT TELEMETRY TO RASPBERRY PI
-  if (UART_ATTACHED)
+  // SAMPLE TEMPERATURE, HUMIDITY, AND LIGHT SENSORS
+  if (SENSORS_ATTACHED)
   {
-    if (curr_time_us - last_talk_time_us > TELEMETRY_THRESHOLD_US)
+    if (curr_time_us - last_sensor_sample_time_us > SENSOR_SAMPLE_THRESHOLD_US)
     {
-      talk_to_rpi();
+      Temp_Sensor.getEvent(&humidity, &temp);
+
+      if (Light_Sensor.newDataAvailable()) {
+        Light_Sensor.readBothChannels(visible_plus_ir, infrared);
+      }
+
+      last_sensor_sample_time_us = micros();
     }
   }
 

@@ -131,6 +131,8 @@ def control_UGV(serial_conn : Serial) -> None:
             # START + Y: take lidar scan
             if (controller.input_states['BTN_START'] and
             controller.input_states['BTN_Y']):
+                
+                scanner.set_rings_per_cloud(800)
                 cloud: list[list[float]] = scanner.capture_cloud()
                 scanner.save_scan(cloud)
 
