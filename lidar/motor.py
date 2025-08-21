@@ -174,7 +174,7 @@ class Motor:
             self.step.off()
             sleep(step_delay/2)
 
-        if direction == "CW":
+        if direction == "CCW":
             self.curr_angle += degrees
         else:
             self.curr_angle -= degrees

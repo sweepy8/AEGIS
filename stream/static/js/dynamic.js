@@ -2,11 +2,13 @@
 // Created: 7/30/2025
 
 // Adding a new plot or video instructions
-// Step 1: Add a function that either creates a Plotly plot or video tag, examples of both in the plot section.
-// Step 2: Add the selected option call for that new plot in the plotFunction() and add its function call, examples in plotFunction().
-//              Doing this will add a call to make the plot when its option is selected.
+// Step 1: Add a function that either creates a Plotly plot or video tag, 
+//   examples of both in the plot section.
+// Step 2: Add the selected option call for that new plot in the plotFunction() 
+//   and add its function call, examples in plotFunction().
+//   Doing this will add a call to make the plot when its option is selected.
 // Step 3: Add the option to select in the plotTypeOptions() function.
-//              Doing this will add the option as a possible plot to make in each plot header.
+//   Doing this will add the option as a possible plot to make in each plot header.
 
 async function fetchTrips() {
     /**

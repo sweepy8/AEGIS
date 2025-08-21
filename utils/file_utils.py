@@ -2,9 +2,24 @@
 # Created 6/26/2025
 
 from datetime import datetime
+import os
+import json
 
-def make_file(filename: str):
-    pass
+TRIPS_FOLDER = "./stream/static/trips"
+
+def make_folder(path: str, name: str) -> str:
+    '''
+    Don't include the trailing slash in path or leading slash in name
+    '''
+    dest = f"{path}/{name}"
+    if not os.path.exists(path=dest):
+        os.mkdir(dest)
+        return dest
+
+    raise ValueError(f"Path already exists to '{dest}'!")
+
+def get_current_timestamp() -> str:
+    return datetime.now().strftime("%2Y%m%d_%H%M%S")
 
 def get_timestamped_filename(save_path: str, prefix: str, ext: str) -> str:
     """
@@ -19,8 +34,8 @@ def get_timestamped_filename(save_path: str, prefix: str, ext: str) -> str:
     if (prefix.find('.') != -1 or prefix.find('/') != -1):
         raise ValueError("Filename prefix must not include periods or slashes.")
 
-    timestamp = datetime.now().strftime("%2Y%m%d_%H%M%S")
-    filename = f"{save_path}/{prefix}_{timestamp}{ext}"
+    timestamp: str = datetime.now().strftime("%2Y%m%d_%H%M%S")
+    filename: str = f"{save_path}/{prefix}_{timestamp}{ext}"
     return filename
 
 def write_pcd_file_header(filename: str, pts: int | None = None, header: list[str] | None = None) -> None:
@@ -61,7 +76,7 @@ def write_pcd_file_header(filename: str, pts: int | None = None, header: list[st
         ]
     
     with open(filename, "a") as file:
-        file.writelines(header)
+        file.writelines(header) # type: ignore
 
 def write_points_to_file(filename: str, points: list[list[float]]) -> None:
     '''
@@ -75,3 +90,79 @@ def write_points_to_file(filename: str, points: list[list[float]]) -> None:
     with open(filename, 'a') as file:
         for point in points:
             file.write(f"{' '.join([str(val) for val in point])}\n")
+
+def make_telemetry_JSON(filepath = '') -> str:
+
+    timestamp: str = get_current_timestamp()
+
+    if not os.path.exists(filepath):
+        filepath = f"{TRIPS_FOLDER}/{timestamp}"
+
+    filename: str = f"{filepath}/tel_{timestamp}.json"
+
+    # If the file exists, don't make another one, just go home
+    if os.path.exists(path=filename):
+        raise FileExistsError(f"[ERROR] file_utils.py: JSON file already exists at '{filename}'!")
+    
+    # If trip folder does not exist, make that too
+    #folder_name = make_folder(TRIPS_FOLDER, timestamp)
+    #print(f"[RUNTIME] file_utils.py: Created trip folder at {folder_name}.")
+
+    telemetry = {
+        "timestamp": timestamp,
+        "duration_s": 0,
+        "traits": {
+            "battery_cap_mah": 6000,
+            "models": {
+                "lidar": "STL27L",
+                "lidar_motor": "NEMA17 Stepper Motor",
+                "motors": "Yellowjacket 5203",
+                "ultrasonics": "HC-SR04",
+                "camera": "Raspberry Pi Camera Module 3",
+                "rpi": "Raspberry Pi 5 8GB",
+                "arduino": "Arduino Mega 2560 Rev3",
+                "battery": "Zeee 14.8V Lipo Battery (4S, 60C)"
+            }
+        },
+        "videos": [],
+        "scans": [],
+        "telemetry": []
+    }
+
+    # Make JSON file
+    with open(file=filename, mode='w') as tel_json:
+        json.dump(obj=telemetry, fp=tel_json, indent=4)
+    
+    print(f"[RUNTIME] file_utils.py: Created trip JSON at {filename}.")
+    return filename
+
+def update_telemetry_JSON(filepath = 'badwords', filename = 'badwords', **kwargs) -> str:
+    '''
+    
+    bump_duration_s (float): How much time to add to the duration counter
+    '''
+
+    if not os.path.exists(filepath):
+        print("file_utils.py: NO!")
+
+    if not os.path.isfile(path=filename):
+        filename = make_telemetry_JSON(filepath)
+
+    with open(filename) as tel_f:
+        telemetry = json.load(tel_f)
+    
+    for key, value in kwargs.items():
+        if key == "duration":
+            telemetry["duration_s"] = value
+        if key == "video":
+            telemetry["videos"].append(value)
+        if key == "scan":
+            telemetry["scans"].append(value)
+        if key == "telemetry":
+            telemetry["telemetry"].append(value)
+
+    # Export the dict to the json file
+    with open(filename, 'w') as f:
+        json.dump(telemetry, f, indent=4)
+
+    return filename

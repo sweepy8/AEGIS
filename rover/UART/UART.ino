@@ -15,6 +15,7 @@
 
 //  TODO: MAKE STUFF CONST
 //        SPLIT INTO MULTIPLE INO FILES OR HEADERS AND SOURCES
+// Adding the libraries for the sensors added about 40ms of delay per second. This is why you write it yourself.
 
 #include <stdio.h>
 
@@ -31,8 +32,8 @@ Adafruit_LTR329 Light_Sensor = Adafruit_LTR329();
 
 #define UART_ATTACHED        1
 #define MOTORS_ATTACHED      1
-#define SENSORS_ATTACHED     1
-#define ULTRASONICS_ATTACHED 1
+#define SENSORS_ATTACHED     0
+#define ULTRASONICS_ATTACHED 0
 
 #define UGV_BAUDRATE 115200
 
@@ -107,6 +108,8 @@ float actual_rpms[6]                 = {0, 0, 0, 0, 0, 0};
 #define NUM_ULTRASONICS 3
 #define SAFE_DISTANCE_CM -100
 #define PULSE_DURATION_US 10
+
+String ULTRASONIC_NAMES[5] = {"USLI", "USLF", "USCT", "USRT", "USRR"};
 
 uint8_t ULTRASONIC_TRIG_PINS[NUM_ULTRASONICS] = {47, 49, 45};
 uint8_t ULTRASONIC_ECHO_PINS[NUM_ULTRASONICS] = {52, 53, 51};
@@ -351,21 +354,32 @@ void talk_to_rpi()
 {
   // Prepend current time in seconds to serial output
   // Uh oh. 1 extra second gained every XXX mins, check on this later
-  String telemetry_string = String(double(millis()) / 1000, 3) + "||";
+  String telemetry_string = "TIME=" + String(double(millis()) / 1000, 3) + "|";
 
   // Add RPM values to telemetry string
   if (MOTORS_ATTACHED)
   {
     for (int i = 0; i < 6; i++)
     {
-      telemetry_string += MOTOR_NAMES[i] + '=';
+      telemetry_string += MOTOR_NAMES[i] + "V=0|"; // TODO: add meter data
+
+
+      telemetry_string += MOTOR_NAMES[i] + "A=0|"; // TODO: add meter data
+
+
+      telemetry_string += MOTOR_NAMES[i] + "R=";
       String rpm_str = String(actual_rpms[i], 0);
       rpm_str.remove(0,1);
       telemetry_string += rpm_str;
-      telemetry_string += (enc_directions[i] == 1) ? "CW" : "CCW";
-      if (i != 5) { telemetry_string += ','; }
+      // MULT BY -1 if RVS!    telemetry_string += (enc_directions[i] == 1) ? "CW" : "CCW";
+
+      telemetry_string += '|'; 
     }
-    telemetry_string += '|';
+  }
+  else
+  {
+    telemetry_string += "LFV=0|LFA=0|LFR=0|LMV=0|LMA=0|LMR=0|LRV=0|LRA=0|LRR=0|\
+                         RFV=0|RFA=0|RFR=0|RMV=0|RMA=0|RMR=0|RRV=0|RRA=0|RRR=0|";
   }
 
   // Add ultrasonic distances to telemetry string
@@ -373,24 +387,35 @@ void talk_to_rpi()
   {
     for (int i = 0; i < NUM_ULTRASONICS; i++) 
     {
-      telemetry_string += "US" + (i + 1) + '=';
+      telemetry_string += ULTRASONIC_NAMES[i] + '=';
       telemetry_string += String(ultrasonic_distances_cm[i], 1);
-      telemetry_string += "cm";
-      if (i != NUM_ULTRASONICS - 1) { telemetry_string += ','; }
+      telemetry_string += "|";
     }
-    telemetry_string += '|';
   }
+  else
+  {
+    telemetry_string += "USLI=0|USLF=0|USCT=0|USRT=0|USRR=0|";
+  }
+
+  // IMU STUFF
+  telemetry_string += "GR=0|GP=0|GY=0|AX=0|AY=0|AZ=0|";
+
   
   // Add sensor data to telemetry string
   if (SENSORS_ATTACHED)
   {
-    telemetry_string += "T=" + String(temp.temperature, 1) + "C,";
-    telemetry_string += "H=" + String(humidity.relative_humidity, 2) + "%,";
-    telemetry_string += "L_V=" + String(visible_plus_ir - infrared) + "L,";
-    telemetry_string += "L_I=" + String(infrared) + "L|";
+    telemetry_string += "TEMP=" + String(temp.temperature, 1) + "|";
+    telemetry_string += "RHUM=" + String(humidity.relative_humidity, 2) + "|";
+    telemetry_string += "LVIS=" + String(visible_plus_ir - infrared) + "|";
+    telemetry_string += "LINF=" + String(infrared) + "|";
+  }
+  else
+  {
+    telemetry_string += "TEMP=0|RHUM=0|LVIS=0|LINF=0|";
   }
 
   Serial.println(telemetry_string);
+  Serial1.println(telemetry_string);
 
   last_talk_time_us = micros();
 }
@@ -468,15 +493,26 @@ void setup() {
 
 void loop() {
 
-  uint32_t curr_time_us = micros();   // Should probably revise this, rolls over every 70 minutes
+  uint32_t curr_time_us = micros();   // Should be made into 64 bit uint
 
-  // TRANSMIT TELEMETRY TO RASPBERRY PI
+  // TRANSMIT TELEMETRY TO RASPBERRY PI, PERFORM RASPBERRY PI COMMAND
   if (UART_ATTACHED)
   {
     if (curr_time_us - last_talk_time_us > TELEMETRY_THRESHOLD_US)
     {
       if (skip_first_telemetry) { skip_first_telemetry = 0; }
       else { talk_to_rpi(); }
+    }
+
+    if (curr_time_us - last_command_time_us > COMMAND_THRESHOLD_US) 
+    {
+      do_rpi_command();
+    }
+    else if (ugv_is_moving && curr_time_us - last_move_time_us > (3 * COMMAND_THRESHOLD_US))
+    {
+      stop();
+      ugv_is_moving = false;
+      last_move_time_us = curr_time_us;
     }
   }
 
@@ -492,21 +528,6 @@ void loop() {
         enc_pulse_counts[i] = 0;
       }
       last_flush_time_us = micros();
-    }
-  }
-
-  // PERFORM RASPBERRY PI COMMAND
-  if (UART_ATTACHED)
-  {
-    if (curr_time_us - last_command_time_us > COMMAND_THRESHOLD_US) 
-    {
-      do_rpi_command();
-    }
-    else if (ugv_is_moving && curr_time_us - last_move_time_us > (3 * COMMAND_THRESHOLD_US))
-    {
-      stop();
-      ugv_is_moving = false;
-      last_move_time_us = curr_time_us;
     }
   }
 

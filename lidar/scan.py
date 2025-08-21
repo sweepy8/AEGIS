@@ -5,6 +5,7 @@ motor.
 '''
 
 import time                     # time()
+import random                   # seed(), sample()
 
 from lidar import lidar
 from lidar import motor
@@ -17,9 +18,9 @@ class Scanner():
     The AEGIS 3D LiDAR scanner class.
     
     This class combines the STL27L LiDAR scanner and NEMA17 stepper motor as a 
-    single 360 degree, 3D scanner with configurable scan resolution. It 
-    provides methods that configure the resolution of scans, and take, print, 
-    and save scans.
+    single 360 degree, 3D scanner with configurable angular resolution. It 
+    provides methods that configure the resolution of, capture, print, and save 
+    point cloud scans.
 
     Attributes:
         lidar (Lidar): An object of the Lidar class which enables STL27L sensor
@@ -35,21 +36,27 @@ class Scanner():
 
     def __init__(self) -> None:
         """
+        Initializes a scanner object by combining an instance of the Lidar class
+        and an instance of the Motor class. Configures the number of rings per
+        cloud (400 by default) and related values.
         """
         self.lidar: lidar.Lidar = lidar.Lidar()
         self.motor: motor.Motor = motor.Motor(res_name="sixteenth", start_angle=0, speed=1)
-        self.rings_per_cloud: int = 200
+        self.rings_per_cloud: int = 400
         self.steps_per_ring: int = int(100 * self.motor.ms_res_denom / self.rings_per_cloud)
         self.resolution: float = 180 / self.rings_per_cloud
     
     def set_rings_per_cloud(self, num_rings: int) -> None:
         '''
+        Configures the angular resolution of the scanner by adjusting the number
+        of rings taken per scan.
         
-        Note that values not divisible by 100 or values which call for 
-        one-step-at-a-time motion below full resolution have not been tested.
-        The actual vs. expected motor.curr_angle error might be too large to get
-        good scans when turning less than 4 or 8 steps per ring at sixteenth-step 
-        resolution, for example.
+        Args:
+            num_rings (int): The number of rings per scan. 180 degrees divided
+                by this value gives the angular distance between rings.
+        Raises:
+            ValueError: If the selected resolution is too high for the currently
+                selected stepper motor microstep resolution.
         '''
 
         if (num_rings > self.motor.ms_res_denom * 100):
@@ -63,19 +70,27 @@ class Scanner():
 
     def capture_cloud(self) -> list[list[float]]:
         """
-        Takes a 3D scan of the environment.
+        Takes a 3D scan of the environment. This function is the powerhouse of 
+        the cell.\n
+        Performs the following steps:
+            1. Sets direction of stepper motor to counterclockwise.
+            2. Captures a ring's worth of points, extends a cloud array with the 
+               points, and turns the motor a specified amount.
+            3. Repeats step 2 until the motor angle is at least 180 degrees.
+            4. Reverses direction of stepper motor and resets to starting 
+               position.
+            5. Prints information about size and duration of scan.
+            6. Returns the captured cloud.
 
         Returns:
             cloud (list[list[float]]): A 3D point cloud array.
-            num_points (int): The number of points in the cloud.
-            duration_s (float): The time in seconds it took to complete the scan.
         """
 
         print("[RUNTIME] scan.py: Beginning cloud capture...")
 
         start_time_s: float = time.time()
 
-        self.motor.set_dir("CW")
+        self.motor.set_dir("CCW")
 
         cloud: list[list[float]] = []
 
@@ -84,12 +99,12 @@ class Scanner():
 
             ring: list[list[float]] = self.lidar.capture_ring(motor_angle=self.motor.curr_angle)
             cloud.extend(ring)
-            self.motor.turn("CW", self.steps_per_ring)
+            self.motor.turn("CCW", self.steps_per_ring)
 
             self.lidar.close_serial()
 
-        self.motor.set_dir("CCW")
-        self.motor.turn("CCW", self.motor.ms_res_denom * 100)
+        self.motor.set_dir("CW")
+        self.motor.turn("CW", self.motor.ms_res_denom * 100)
 
         num_points: int = len(cloud)
 
@@ -102,7 +117,7 @@ class Scanner():
 
     def print_scan(self, cloud: list[list[float]], cartesian: bool = True) -> None:
         """
-            Should this even exist? Probably not.
+            Should this even exist? Probably not. Don't use this.
         """
 
         print("[RUNTIME] scan.py: Printing cloud data...")
@@ -112,14 +127,51 @@ class Scanner():
 
         print("[RUNTIME] scan.py: Cloud data finished printing!")
 
-    def save_scan(self, cloud: list[list[float]], cartesian: bool = True, filename: str | None = None) -> str:
-        """
+    def trim_scan(self, cloud: list[list[float]], nonfat_pct: float = 0.2) -> list[list[float]]:
+        '''
+        Downsamples a cloud to reduce resolution, file size, and load times.
+
+        Args:
+            cloud (list[list[float]]): A cloud of points to be trimmed.
+            nonfat_pct (float): A percentage of points to retain (non-fat).
+        Returns:
+            out (list[list[float]]): The trimmed point cloud.
+        '''
+        random.seed()
+
+        num_pts_untrimmed = len(cloud)
+        num_pts_trimmed = int(num_pts_untrimmed * nonfat_pct)
+        nonfat_cloud: list[list[float]] = random.sample(cloud, num_pts_trimmed)
+
+        print(f"[RUNTIME] UART.py: Cloud trimmed to {nonfat_pct * 100}%, "
+              f"removed {num_pts_untrimmed - num_pts_untrimmed} points.")
         
+        return nonfat_cloud
+
+    def save_scan(self,  
+                  cloud: list[list[float]], 
+                  cartesian: bool = True, 
+                  filepath: str = '.') -> str:
+        """
+        Saves the cloud to a timestamped text file. Converts the points from 
+        spherical (rho, theta, phi) representation to cartesian (x, y, z) 
+        representation by default, but can be disabled to reduce scan time.
+
+        Args:
+            cloud (list[list[float]]): A cloud of points to be saved.
+            cartesian (bool): Whether or not to perform coordinate transform.
+                Defaults to True.
+            filepath (str | None): Where to save the file. Defaults to the 
+                current directory ('.').
+
+        Returns:
+            filename (str): The name and path of the saved .txt file. For
+                example, './path/to/cloud_19690420_080085.txt'.
         """
 
-        if filename is None:
-            filename = file_utils.get_timestamped_filename(
-                save_path='.', prefix='cloud', ext='.txt')
+        filename = file_utils.get_timestamped_filename(
+            save_path=filepath,
+            prefix='cloud', ext='.txt')
             
         print(f"[RUNTIME] scan.py: Saving cloud to {filename}...")
         

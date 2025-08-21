@@ -7,6 +7,9 @@
 # Ignore drafting document
 planning.txt
 
+# Ignore .vscode folder (used for config JSONs)
+/.vscode/
+
 # Ignore VSCodeCounter if it is installed
 /.VSCodeCounter/
 
