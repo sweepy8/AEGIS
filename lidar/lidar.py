@@ -240,11 +240,11 @@ def test_ring_capture(save: bool = False, verbose: bool = True) -> tuple[float, 
     '''
     L1 = Lidar()
     if verbose: 
-        print("[INIT] lidar.py: Instantiated LiDAR object!")
+        print("[INI] lidar.py: Instantiated LiDAR object!")
 
     L1.open_serial()
     if verbose: 
-        print("[INIT] lidar.py: Opened serial connection!")
+        print("[INI] lidar.py: Opened serial connection!")
 
     start_time_s: float = time.time()
 
@@ -256,14 +256,14 @@ def test_ring_capture(save: bool = False, verbose: bool = True) -> tuple[float, 
     cartesian_points: list[list[float]] = math_utils.pol_to_cart_array(polar_points)
 
     if verbose:
-        print(f"[RUNTIME] lidar.py: Point capture took {round(duration_s, 4)} seconds...") 
-        print(f"[RUNTIME] lidar.py: Count: {len(polar_points)}")
-        print("[RUNTIME] lidar.py: Points converted to Cartesian coordinates!")
+        print(f"[RUN] lidar.py: Point capture took {round(duration_s, 4)} seconds...") 
+        print(f"[RUN] lidar.py: Count: {len(polar_points)}")
+        print("[RUN] lidar.py: Points converted to Cartesian coordinates!")
 
     if save:
         test_file: str = file_utils.get_timestamped_filename(save_path='.', prefix='test', ext='.txt')
         file_utils.write_points_to_file(filename=test_file, points=cartesian_points)
         if verbose:
-            print(f"[RUNTIME] lidar.py: Points written to {test_file}!")
+            print(f"[RUN] lidar.py: Points written to {test_file}!")
 
     return duration_s, len(cartesian_points)

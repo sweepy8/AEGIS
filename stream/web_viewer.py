@@ -14,7 +14,7 @@ from time import sleep
 app = Flask(__name__) # Creates Flask app instance
 
 # Sets absolute directory path because python is stupid
-btn_folder = os.path.join(app.static_folder, 'trips')
+btn_folder = os.path.join(app.static_folder, 'trips')   #type: ignore
 # Directory to be monitored for buttons
 
 # app routes for each html page

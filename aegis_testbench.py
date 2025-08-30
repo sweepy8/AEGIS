@@ -28,7 +28,8 @@
 from lidar import scan
 
 print("\nTESTING 3D SCANNER (SAVES FILE)")
-scan.test_scan(save=True, verbose=False)
+test_scanner = scan.Scanner()
+test_scanner.scan()
 
 
 '''COORDINATE TRANSFORM TEST'''
@@ -40,3 +41,9 @@ scan.test_scan(save=True, verbose=False)
 # cart_pt = math_utils.sph_to_cart(*sph_pt)
 
 # print(cart_pt)
+
+
+'''ADD:
+    Camera Test
+
+'''

@@ -17,50 +17,6 @@ from lidar import scan
 INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift
 
-def generate_command(op : str, **kwargs) -> list[int]:
-    '''
-    Generates instructions to be sent to the Arduino MEGA in accordance with a 
-    three-byte command structure. See documentation for more details.\n
-    This can probably be seriously reduced, maybe down to a single byte, but why
-    fix what isn't broken? See definition of 'technical debt' for more details.
-
-    Args:
-        op (str): The category of command to transmit. Currently either "TURN"
-            or "MOVE".
-        **kwargs: A series of key-value pairs that depend on the op selected.
-            Currently TURN uses 'turn_dir' = 0 or 1, and MOVE uses 'joy_pos' = 
-            [-1, 1].
-    Returns:
-        command (list[int]): A three-byte command to be sent to the Arduino.
-    '''
-
-    # See table in docs for 3-byte command structure
-    command = [-1, -1, -1]
-    
-    if op == "TURN":
-        command[0] = 2 * (2**6)	    #1000_0000, opcode 10
-        
-        for key, val in kwargs.items():
-            if key == "turn_dir" and val == "RIGHT":
-                command[0] += 1
-            elif key == "turn_dir" and val == "LEFT":
-                command[0] += 0    # This is only here for readability
-
-        command[1] = 255	# Speed of spin turn on shoulder buttons, [0,255]
-        command[2] = 1      # Duration of spin turn on shoulder buttons
-            
-    if op == "MOVE":
-        command[0] = 3 * (2**6)	    #1100_0000, opcode 11
-        
-        for key, val in kwargs.items():
-            if key == "joy_pos":
-                command[0] += (val < 0)	# Sets direction (bit 0) to sign of joystick pos
-                command[1] = int(abs(val) * 255)    # Speed, [0,255]
-
-        command[2] = 1
-    
-    return command
-
 def open_serial_connection() -> Serial:
     '''
     Configures and opens a serial connection on UART2 (ttyAMA2) (GPIO 4/5).
@@ -74,17 +30,14 @@ def open_serial_connection() -> Serial:
     s.baudrate = serial_utils.UGV_BAUDRATE
     s.bytesize = 8			# 8 bits per byte
     s.parity = 'N'			# No parity bit
-    s.stopbits = 0			# No stop bit per byte
+    s.stopbits = 1			# One stop bit per byte
     s.timeout = None		# Wait forever if necessary
     s.exclusive = True      # Restrict cross-module access
 
-    # Open configured serial connection
-    print(f"[INIT] UART.py: Opening UGV serial via {s.name}...")
+    # Open configured serial connection and allow time for connection to form
     s.open()
-
-    # Allow connection to form
     time.sleep(0.05)
-    print(f"[INIT] UART.py: UGV serial port opened.")
+    print(f"[INI] UART.py: UGV serial port opened at {s.name}.")
     return s
 
 def read_data(serial_conn : Serial) -> bytes | None:
@@ -138,7 +91,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> Non
                 dump_folder, filename, telemetry=tel_dict)
 
         except RuntimeError:
-            print("[ERROR] UART.py: INVALID ARDUINO TELEMETRY (BADLEN)\n")
+            print("[ERR] UART.py: INVALID ARDUINO TELEMETRY (BADLEN)\n")
    
 def process_telemetry(data: bytes) -> dict:
     '''
@@ -158,7 +111,7 @@ def process_telemetry(data: bytes) -> dict:
         t_str: str = data.decode('utf-8')
 
     except UnicodeDecodeError as e:
-        print("[ERROR] UART.py: UTF8 DECODE ERROR, SOLVE THIS!\n")
+        print("[ERR] UART.py: UTF8 DECODE ERROR, SOLVE THIS!\n")
         print(e)
         t_str: str = ''
 
@@ -365,51 +318,101 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
                 serial_conn.write(move_command)     #type: ignore
 
             # LEFT BUMPER: spin turn left
-            if (controller.input_states['BTN_TL']):
+            if (controller.input_states['BTN_TL'] and not controller.input_states['BTN_START']):
                 move_command = generate_command("TURN", turn_dir="LEFT")
                 serial_conn.write(move_command)     #type: ignore
 
             # RIGHT BUMPER: spin turn right
-            if (controller.input_states['BTN_TR']):
+            if (controller.input_states['BTN_TR'] and not controller.input_states['BTN_START']):
                 move_command = generate_command("TURN", turn_dir="RIGHT")
                 serial_conn.write(move_command)     #type: ignore
 
-            # START + A: start recording
-            if (controller.input_states['BTN_START'] and 
-            controller.input_states['BTN_A'] and not camera.UGV_Cam.recording):
-                video_filename = camera.UGV_Cam.my_start_recording()
-                print(f"UART.py: Recording video to '{video_filename}'...")
+            if camera.UGV_Cam is not None:
+                # START + A: start recording
+                if (controller.input_states['BTN_START'] and 
+                controller.input_states['BTN_A'] and not camera.UGV_Cam.recording):
+                    video_filename = camera.UGV_Cam.my_start_recording()
+                    print(f"UART.py: Recording video to '{video_filename}'...")
 
-            # START + B: stop recording
-            if (controller.input_states['BTN_START'] and 
-            controller.input_states['BTN_B'] and camera.UGV_Cam.recording):
-                camera.UGV_Cam.my_stop_recording()
-                print(f"UART.py: Recording saved to '{video_filename}'.")   #type: ignore
+                # START + B: stop recording
+                if (controller.input_states['BTN_START'] and 
+                controller.input_states['BTN_B'] and camera.UGV_Cam.recording):
+                    camera.UGV_Cam.my_stop_recording()
+                    print(f"UART.py: Recording saved to '{video_filename}'.") #type: ignore
+            else:
+                if ((controller.input_states['BTN_START'] and controller.input_states['BTN_A']) or 
+                (controller.input_states['BTN_START'] and controller.input_states['BTN_B'])):
+                    print("[RUN] UART.py: No camera connected!")
 
             # START + Y: take LiDAR scan
             if (controller.input_states['BTN_START'] and
             controller.input_states['BTN_Y']):
-                
-                cloud: list[list[float]] = scanner.capture_cloud()
-                scanner.save_scan(cloud, filepath=dump_folder)
+                scanner.scan(filepath=dump_folder)
 
             # START + RIGHT BUMPER: increase scan resolution
             if (controller.input_states['BTN_START'] and
             controller.input_states['BTN_TR']):
                 if (scanner.rings_per_cloud < 1600):
-                    scanner.set_rings_per_cloud(scanner.rings_per_cloud * 2)
-                    print(f"[RUNTIME] UART.py: Increased scan resolution to {scanner.rings_per_cloud} rings.")
+                    scanner.set_rings_per_cloud(
+                        num_rings=scanner.rings_per_cloud * 2)
+                    print(f"[RUN] UART.py: Increased scan resolution to "
+                          f"{scanner.rings_per_cloud} rings.")
                 
             # START + LEFT BUMPER: decrease scan resolution
             if (controller.input_states['BTN_START'] and
             controller.input_states['BTN_TL']):
                 if (scanner.rings_per_cloud > 50):
-                    scanner.set_rings_per_cloud(int(scanner.rings_per_cloud / 2))
-                    print(f"[RUNTIME] UART.py: Decreased scan resolution to {scanner.rings_per_cloud} rings.")
-
+                    scanner.set_rings_per_cloud(
+                        num_rings=int(scanner.rings_per_cloud / 2))
+                    print(f"[RUN] UART.py: Decreased scan resolution to "
+                          f"{scanner.rings_per_cloud} rings.")
 
             time_since_last_command: float = current_time
     
+def generate_command(op : str, **kwargs) -> list[int]:
+    '''
+    Generates instructions to be sent to the Arduino MEGA in accordance with a 
+    three-byte command structure. See documentation for more details.\n
+    This can probably be seriously reduced, maybe down to a single byte, but why
+    fix what isn't broken? See definition of 'technical debt' for more details.
+
+    Args:
+        op (str): The category of command to transmit. Currently either "TURN"
+            or "MOVE".
+        **kwargs: A series of key-value pairs that depend on the op selected.
+            Currently TURN uses 'turn_dir' = 0 or 1, and MOVE uses 'joy_pos' = 
+            [-1, 1].
+    Returns:
+        command (list[int]): A three-byte command to be sent to the Arduino.
+    '''
+
+    # See table in docs for 3-byte command structure
+    command: list[int] = [-1, -1, -1]
+    
+    if op == "TURN":
+        command[0] = 2 * (2**6)	    #1000_0000, opcode 10
+        
+        for key, val in kwargs.items():
+            if key == "turn_dir" and val == "RIGHT":
+                command[0] += 1
+            elif key == "turn_dir" and val == "LEFT":
+                command[0] += 0    # This is only here for readability
+
+        command[1] = 255	# Speed of spin turn on shoulder buttons, [0,255]
+        command[2] = 1      # Duration of spin turn on shoulder buttons
+            
+    if op == "MOVE":
+        command[0] = 3 * (2**6)	    #1100_0000, opcode 11
+        
+        for key, val in kwargs.items():
+            if key == "joy_pos":
+                command[0] += (val < 0)	# Sets direction (bit 0) to sign of joystick pos
+                command[1] = int(abs(val) * 255)    # Speed, [0,255]
+
+        command[2] = 1
+    
+    return command
+
 def run_comms() -> None:
     '''
     Establishes bidirectional UART communication between the Arduino and
@@ -421,7 +424,7 @@ def run_comms() -> None:
     trip_start_timestamp: str = file_utils.get_current_timestamp()
     trip_folder: str = file_utils.make_folder(
         file_utils.TRIPS_FOLDER, trip_start_timestamp)
-    print(f"[INIT] UART.py: Created trip folder at {trip_folder}.")
+    print(f"[INI] UART.py: Created trip folder at {trip_folder}.")
 
     serial_conn: Serial = open_serial_connection()
     
@@ -435,6 +438,3 @@ def run_comms() -> None:
 
     controller_thread.join()
     telemetry_thread.join()
-
-if __name__ == "__main__":
-    run_comms()

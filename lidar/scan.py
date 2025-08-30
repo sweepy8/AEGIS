@@ -86,7 +86,7 @@ class Scanner():
             cloud (list[list[float]]): A 3D point cloud array.
         """
 
-        print("[RUNTIME] scan.py: Beginning cloud capture...")
+        print("[RUN] scan.py: Beginning cloud capture...")
 
         start_time_s: float = time.time()
 
@@ -111,7 +111,7 @@ class Scanner():
         duration_s: float = time.time() - start_time_s
         duration_s = round(duration_s, 2)
 
-        print(f"[RUNTIME] scan.py: Cloud captured in {duration_s} seconds ({num_points} points).")
+        print(f"[RUN] scan.py: Cloud captured in {duration_s} seconds ({num_points} points).")
 
         return cloud
 
@@ -120,16 +120,15 @@ class Scanner():
             Should this even exist? Probably not. Don't use this.
         """
 
-        print("[RUNTIME] scan.py: Printing cloud data...")
-
+        print("[RUN] scan.py: Printing cloud data...")
         for index, point in enumerate(math_utils.sph_to_cart_array(cloud) if cartesian else cloud):
             print(f"\t{index}: " + f"{' '.join([str(val) for val in point])}\n")
+        print("[RUN] scan.py: Cloud data finished printing!")
 
-        print("[RUNTIME] scan.py: Cloud data finished printing!")
-
-    def trim_scan(self, cloud: list[list[float]], nonfat_pct: float = 0.2) -> list[list[float]]:
+    def trim_cloud(self, cloud: list[list[float]], nonfat_pct: float = 0.2) -> list[list[float]]:
         '''
-        Downsamples a cloud to reduce resolution, file size, and load times.
+        Downsamples a cloud (non-destructively) to reduce resolution, file size, 
+        and load times. Uses python random library to uniformly downsample.
 
         Args:
             cloud (list[list[float]]): A cloud of points to be trimmed.
@@ -137,62 +136,120 @@ class Scanner():
         Returns:
             out (list[list[float]]): The trimmed point cloud.
         '''
-        random.seed()
 
+        start_time_s: float = time.time()
+
+        random.seed()
         num_pts_untrimmed = len(cloud)
         num_pts_trimmed = int(num_pts_untrimmed * nonfat_pct)
         nonfat_cloud: list[list[float]] = random.sample(cloud, num_pts_trimmed)
 
-        print(f"[RUNTIME] UART.py: Cloud trimmed to {nonfat_pct * 100}%, "
-              f"removed {num_pts_untrimmed - num_pts_untrimmed} points.")
-        
-        return nonfat_cloud
+        duration_s: float = time.time() - start_time_s
+        duration_s = round(duration_s, 2)
 
-    def save_scan(self,  
-                  cloud: list[list[float]], 
-                  cartesian: bool = True, 
+        print(f"[RUN] UART.py: Cloud trimmed to {nonfat_pct * 100}%, "
+              f"removed {num_pts_untrimmed - num_pts_untrimmed} points in "
+              f"{duration_s} seconds.")
+
+        return nonfat_cloud
+    
+    def convert_cloud(self, cloud: list[list[float]]) -> list[list[float]]:
+        """
+        Converts a point cloud from spherical (default) coordinates to cartesian
+        (X,Y,Z) coordinates.
+
+        Args: 
+            cloud (list[list[float]]): A cloud of points to be converted.
+        Returns:
+            cartesian_cloud (list[list[float]]): The converted cloud.
+        """
+
+        start_time_s = time.time()
+        print("[RUN] scan.py: Converting scan to Cartesian coordinates...")
+        cartesian_cloud: list[list[float]] = math_utils.sph_to_cart_array(cloud)
+
+        duration_s: float = time.time() - start_time_s
+        duration_s = round(duration_s, 2)
+
+        print(f"[RUN] scan.py: Converted scan in {duration_s} seconds.")
+        
+        return cartesian_cloud
+
+    def save_cloud(self,  
+                  cloud: list[list[float]],
                   filepath: str = '.') -> str:
         """
-        Saves the cloud to a timestamped text file. Converts the points from 
-        spherical (rho, theta, phi) representation to cartesian (x, y, z) 
-        representation by default, but can be disabled to reduce scan time.
+        Saves the cloud to a timestamped text file.
 
         Args:
             cloud (list[list[float]]): A cloud of points to be saved.
-            cartesian (bool): Whether or not to perform coordinate transform.
-                Defaults to True.
             filepath (str | None): Where to save the file. Defaults to the 
                 current directory ('.').
-
         Returns:
             filename (str): The name and path of the saved .txt file. For
                 example, './path/to/cloud_19690420_080085.txt'.
         """
 
+        start_time_s: float = time.time()
         filename = file_utils.get_timestamped_filename(
             save_path=filepath,
             prefix='cloud', ext='.txt')
             
-        print(f"[RUNTIME] scan.py: Saving cloud to {filename}...")
-        
-        file_utils.write_points_to_file(
-            filename = filename,
-            points = math_utils.sph_to_cart_array(cloud) if cartesian else cloud
-        )
+        print(f"[RUN] scan.py: Saving cloud to {filename}...")
+        file_utils.write_points_to_file( filename=filename, points=cloud)
 
-        print(f"[RUNTIME] scan.py: Cloud saved to {filename}.")
+        duration_s: float = time.time() - start_time_s
+        duration_s = round(duration_s, 2)
+
+        print(f"[RUN] scan.py: Cloud saved in {duration_s} seconds.")
 
         return filename
+    
+    def scan(self,
+             trim=False,
+             nonfat_pct=0.2,
+             convert=True,
+             save=True,
+             filepath='.') -> str | None:
+        """
+        Captures, trims, converts, and saves a cloud. Arguments are optional.
+
+        Args:
+            trim (bool): Whether or not to trim the scan.
+            nonfat_pct (float): How much of the scan to keep as a percentage of 
+                points.
+            convert (bool): Whether or not to convert the scan's coordinates to
+                Cartesian.
+            save (bool): Whether or not to save the scan to the Raspberry Pi.
+        Returns:
+            filename (str | None): The name and path of the saved .txt file. For
+                example, './path/to/cloud_19690420_080085.txt'. Saves to root by
+                default. Returns None if not saved.
+        """
+
+        start_time_s = time.time()
+        cloud: list[list[float]] = self.capture_cloud()
+        if trim and nonfat_pct:
+            cloud = self.trim_cloud(cloud, nonfat_pct)
+        if convert:
+            cloud = self.convert_cloud(cloud)
+        if save:
+            filename: str = self.save_cloud(cloud=cloud, filepath=filepath)
+
+            duration_s: float = time.time() - start_time_s
+            duration_s = round(duration_s, 2)
+
+            print(f"[RUN] scan.py: Scan completed in {duration_s} seconds.")
+            return filename
+        
+        duration_s: float = time.time() - start_time_s
+        duration_s = round(duration_s, 2)
+
+        print(f"[RUN] scan.py: Scan completed in {duration_s} seconds.")
+        return None
 
 
-def test_scan(save: bool, verbose: bool) -> None:
+def test_scan() -> None:
     test_scanner = Scanner()
     test_scanner.set_rings_per_cloud(num_rings=200)
-
-    test_cloud: list[list[float]] = test_scanner.capture_cloud()
-
-    if save:
-        test_file: str = test_scanner.save_scan(cloud=test_cloud)
-
-    if verbose:
-        test_scanner.print_scan(cloud=test_cloud)
+    test_scanner.scan()

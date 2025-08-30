@@ -102,11 +102,11 @@ def make_telemetry_JSON(filepath = '') -> str:
 
     # If the file exists, don't make another one, just go home
     if os.path.exists(path=filename):
-        raise FileExistsError(f"[ERROR] file_utils.py: JSON file already exists at '{filename}'!")
+        raise FileExistsError(f"[ERR] file_utils.py: JSON file already exists at '{filename}'!")
     
     # If trip folder does not exist, make that too
     #folder_name = make_folder(TRIPS_FOLDER, timestamp)
-    #print(f"[RUNTIME] file_utils.py: Created trip folder at {folder_name}.")
+    #print(f"[RUN] file_utils.py: Created trip folder at {folder_name}.")
 
     telemetry = {
         "timestamp": timestamp,
@@ -133,7 +133,7 @@ def make_telemetry_JSON(filepath = '') -> str:
     with open(file=filename, mode='w') as tel_json:
         json.dump(obj=telemetry, fp=tel_json, indent=4)
     
-    print(f"[RUNTIME] file_utils.py: Created trip JSON at {filename}.")
+    print(f"[RUN] file_utils.py: Created trip JSON at {filename}.")
     return filename
 
 def update_telemetry_JSON(filepath = 'badwords', filename = 'badwords', **kwargs) -> str:

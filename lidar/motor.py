@@ -95,7 +95,7 @@ class Motor:
 
         if res is None:
             raise ValueError(
-                f"[ERROR] motor.py: Invalid resolution! ('{res_name}')"
+                f"[ERR] motor.py: Invalid resolution! ('{res_name}')"
             )
         
         self.ms_res = res_name
@@ -114,7 +114,7 @@ class Motor:
 
         if speed <= 0 or speed > 4.5:
             raise ValueError(
-                f"[ERROR] motor.py: Invalid speed (0, 4.5]! ({speed})")
+                f"[ERR] motor.py: Invalid speed (0, 4.5]! ({speed})")
         
         self.speed = speed
 
@@ -132,7 +132,7 @@ class Motor:
         if   dir == "CW":  self.dir.on()
         elif dir == "CCW": self.dir.off()
         else: raise ValueError(
-            f"[ERROR] motor.py: Invalid direction! ('{dir})")
+            f"[ERR] motor.py: Invalid direction! ('{dir})")
 
     def set_start_angle(self, angle: float) -> None:
         """
@@ -195,7 +195,7 @@ def test_motor() -> None:
         speed=1.0
     )
 
-    print(f"[INIT] motor.py: Created motor ({M1.ms_res}-step, {M1.speed}Hz)...")
+    print(f"[INI] motor.py: Created motor ({M1.ms_res}-step, {M1.speed}Hz)...")
 
     while True:
         dir_in: str = input("Enter direction (0 for CW, anything else for CCW):")

@@ -3,6 +3,8 @@
 
 # Ignore large-file data
 /data/
+/stream/static/trips/*
+!/stream/static/August_8th/
 
 # Ignore drafting document
 planning.txt
