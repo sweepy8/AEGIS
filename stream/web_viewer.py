@@ -49,7 +49,7 @@ def get_trips():
 def scan_files():
     trip = request.args.get('trip', '')  # Get trip name from query
     abs_path = os.path.abspath(os.path.join(btn_folder, trip))
-
+                
     # Only .txt files
     text_files = [os.path.splitext(f)[0] for f in os.listdir(abs_path)
               if f.endswith('.txt') and os.path.isfile(os.path.join(abs_path, f))]

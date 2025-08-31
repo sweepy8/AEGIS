@@ -103,10 +103,6 @@ def make_telemetry_JSON(filepath = '') -> str:
     # If the file exists, don't make another one, just go home
     if os.path.exists(path=filename):
         raise FileExistsError(f"[ERR] file_utils.py: JSON file already exists at '{filename}'!")
-    
-    # If trip folder does not exist, make that too
-    #folder_name = make_folder(TRIPS_FOLDER, timestamp)
-    #print(f"[RUN] file_utils.py: Created trip folder at {folder_name}.")
 
     telemetry = {
         "timestamp": timestamp,
@@ -138,8 +134,6 @@ def make_telemetry_JSON(filepath = '') -> str:
 
 def update_telemetry_JSON(filepath = 'badwords', filename = 'badwords', **kwargs) -> str:
     '''
-    
-    bump_duration_s (float): How much time to add to the duration counter
     '''
 
     if not os.path.exists(filepath):
@@ -152,14 +146,13 @@ def update_telemetry_JSON(filepath = 'badwords', filename = 'badwords', **kwargs
         telemetry = json.load(tel_f)
     
     for key, value in kwargs.items():
-        if key == "duration":
-            telemetry["duration_s"] = value
         if key == "video":
             telemetry["videos"].append(value)
         if key == "scan":
             telemetry["scans"].append(value)
         if key == "telemetry":
             telemetry["telemetry"].append(value)
+            telemetry["duration_s"] += 1
 
     # Export the dict to the json file
     with open(filename, 'w') as f:

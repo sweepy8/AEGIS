@@ -214,20 +214,19 @@ def process_telemetry(data: bytes) -> dict:
         "arduino": {
             "uptime_s": ard_up_s
         },
-        # "lidar": {  # Modified from scan.py
-        #     "connected": False,
-        #     "scanning": False,
-        #     "scan_pct": 0,
-        #     "saving_file": False,
-        #     "fixed_mode": False,
-        #     "motor_pos_deg": 0
-        # },
-        # "camera": { # Modified from camera.py
-        #     "connected": False,
-        #     "recording": False,
-        #     "streaming": False,
-        #     "last_file": None
-        # },
+        "lidar": {  # Modified from scan.py
+            "connected": False,
+            "scanning": False,
+            "scan_pct": 0,
+            "saving_file": False,
+            "motor_pos_deg": 0
+        },
+        "camera": { # Modified from camera.py
+            "connected": False,
+            "recording": False,
+            "streaming": False,
+            "last_file": None
+        },
         "motors": {
             "front_left": {
                 "voltage_v": mot_lf_v, "current_a": mot_lf_a, "rpm": mot_lf_r
