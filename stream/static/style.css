@@ -204,6 +204,15 @@ background-position: center center;
 }
 
 /* Select Tag Styles */
+
+#trip_select option[value="choose"],
+#plot_1_type option[value="choose"],
+#plot_2_type option[value="choose"],
+#plot_3_type option[value="choose"] {
+  display: none;
+}
+
+
 .gradient_select {
   appearance: none;
   background: linear-gradient(90deg, #D72638, #E2454F); /* single-color gradient */
@@ -217,6 +226,9 @@ background-position: center center;
   min-width: 100px;
   box-shadow: 2px 2px 4px hsl(354, 70%, 50%, 0.5);
 }
+.gradient_select option {
+  background: #D72638;
+}
 .gradient_select:hover {
   background: #F46036;
 }
@@ -226,41 +238,13 @@ background-position: center center;
 }
 
 /* Plot 1 Section */
-.plot1_header div {
-  margin-left: 20px;
-}
-.plot1 button {
-  position: absolute;
-  left: 0;
-  top: 0;
-  padding: 0;
-  background-color:transparent;
-  border: none;
-}
-.plot1 button:hover {
-  color:#D72638;
-}
-
-/* Plot 2 Section */
-.plot2_header div {
-  margin-left: 20px;
-}
-.plot2 button {
-  position: absolute;
-  left: 0;
-  top: 0;
-  padding: 0;
-  background-color:transparent;
-  border: none;
-}
-.plot2 button:hover {
-  color:#D72638;
-}
-
-/* Plot 3 Section */
+.plot1_header div,
+.plot2_header div,
 .plot3_header div {
   margin-left: 20px;
 }
+.plot1 button,
+.plot2 button,
 .plot3 button {
   position: absolute;
   left: 0;
@@ -269,10 +253,11 @@ background-position: center center;
   background-color:transparent;
   border: none;
 }
+.plot1 button:hover,
+.plot2 button:hover,
 .plot3 button:hover {
-  color:#D72638;
+  color:#28D9C7;      /* This is because I inverted the icons lol */
 }
-
 
 /* The actual timeline (the vertical ruler) */
 .timeline {

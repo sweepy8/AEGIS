@@ -1,23 +1,18 @@
-# Unified web view program
+# Unified web viewer backend
 # AEGIS Senior Design, Created on 6/9/25
 
-from flask import Flask, Response, render_template, send_file, jsonify, request
+from flask import Flask, render_template, jsonify, request
 import os # os allows directory navigation
-# from ugv.camera import UGV_Cam
-# from utils.stream_utils import create_visualizer_fig
-
-from time import sleep
-# from multiprocessing import Process
 
 # ROUTES ----------------------------------------------------------------------
 
 app = Flask(__name__) # Creates Flask app instance
 
-# Sets absolute directory path because python is stupid
-btn_folder = os.path.join(app.static_folder, 'trips')   #type: ignore
 # Directory to be monitored for buttons
+# Sets absolute directory path because python is stupid
+btn_folder = os.path.join(app.static_folder, 'trips')       #type: ignore
 
-# app routes for each html page
+# Routes for each of the HTML pages
 @app.route('/') # inside '' is the link for href to link page
 def main_page():
     return render_template('home.html') # Loads home html page
@@ -31,42 +26,56 @@ def admin_page():
 def about_page():
     return render_template('about.html') # Loads about html page
 
-@app.route('/trips')
-def get_trips():
+# Routes for backend file retrieval, should not be accessed as webpages
+@app.route('/getTripFolders')
+def get_trip_folders():
+    """
+    Retrieves all trip folders and sends them to frontend as JSON object.
+    """
     try:
-        # gets list of all files and folders in btn_folder path
-        entries = os.listdir(btn_folder)
-
-        # removes files from array and leaves on folders
-        folders = [f for f in entries if os.path.isdir(os.path.join(btn_folder, f))]
-        # path.isdir returns folders only, not files
-        return jsonify(folders) # convertes list to JSON and returns
-    
+        all = os.listdir(btn_folder)
+        folders = [f for f in all if os.path.isdir(os.path.join(btn_folder, f))]
+        return jsonify(folders)
     except Exception as e:
         return jsonify({"error": str(e)}), 500 
     
-@app.route('/scanFiles')
-def scan_files():
-    trip = request.args.get('trip', '')  # Get trip name from query
+@app.route('/getVideoFiles')
+def get_video_files():
+    """
+    Retrieves all video files and sends them to the frontend as JSON object.
+    """
+    trip = request.args.get('trip','')
     abs_path = os.path.abspath(os.path.join(btn_folder, trip))
-                
-    # Only .txt files
-    text_files = [os.path.splitext(f)[0] for f in os.listdir(abs_path)
-              if f.endswith('.txt') and os.path.isfile(os.path.join(abs_path, f))]
 
-    return jsonify(text_files)
+    video_files = [f for f in os.listdir(abs_path)
+        if os.path.isfile(os.path.join(abs_path, f)) and f.endswith('.mp4')]
+    
+    return jsonify(video_files)
 
-# Python Functions ----------------------------------------------------------
+@app.route('/getScanFiles')
+def get_scan_files():
+    """
+    Retrieves all scan files and sends them to frontend as JSON object.
+    """
+    trip = request.args.get('trip', '')  # Get trip name from fetch query
+    abs_path = os.path.abspath(os.path.join(btn_folder, trip))
+    
+    scan_files = [f for f in os.listdir(abs_path)
+        if os.path.isfile(os.path.join(abs_path, f)) and f.endswith('.txt')]
 
-# def run_stream() -> None:
-#     # Runs the website and its functions at the bellow ip address
-#     app.run(
-#         host='10.40.119.174',
-#         port=5000,
-#         use_reloader=False
-#     )
+    return jsonify(scan_files)
+
+@app.route('/getTelemetryFile')
+def get_telemetry_file():
+    trip = request.args.get('trip', '')
+    abs_path = os.path.abspath(os.path.join(btn_folder, trip))
+
+    tel_files = [f for f in os.listdir(abs_path)
+        if os.path.isfile(os.path.join(abs_path, f)) and f.endswith('.json')]
+
+    return jsonify(tel_files)   # Should always be exactly one JSON file
+
 
 if __name__ == "__main__":
-    # run_stream() # Start Server
     # os.makedirs(btn_folder, exist_ok=True)
     app.run(debug=True)

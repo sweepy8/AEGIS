@@ -37,7 +37,7 @@
             <div class="trip">
                 <div style="margin-left: 20px">
                     <select class="gradient_select" id="trip_select">
-                        <option>Choose Trip</option>
+                        <option value="choose">Choose a Trip</option>
                     </select>
                 </div>
                 <div style="height:100%; margin-left: 25%">
@@ -53,7 +53,7 @@
                 </div>
                 <div>
                     <select class="gradient_select" id="plot_1_type">
-                        <option>Choose Data Type</option>
+                        <option value="choose">Choose Data Type</option>
                         <option>Video</option>
                         <option>LiDAR</option>
                         <option>Graph</option>
@@ -65,9 +65,6 @@
                 </div>
             </div>
             <div class="plot1" id="plot1">
-                <button onclick="toggleFullScreen('plot1')" style="position: absolute;left: 0;top: 10px;margin:10px;"> 
-                    <i class="fa-regular fa-square-plus fa-2xl"></i>
-                </button>
             </div>
             <div class="plot2_header">
                 <div>
@@ -75,7 +72,7 @@
                 </div>
                 <div>
                     <select class="gradient_select" id="plot_2_type">
-                        <option>Choose Data Type</option>
+                        <option value="choose">Choose Data Type</option>
                         <option>Video</option>
                         <option>LiDAR</option>
                         <option>Graph</option>
@@ -87,9 +84,6 @@
                 </div>
             </div>
             <div class="plot2" id="plot2">
-                <button onclick="toggleFullScreen('plot2')" style="position: absolute;left: 0;top: 10px;margin:10px;">
-                    <i class="fa-regular fa-square-plus fa-2xl"></i>
-                </button>
             </div>
             <div class="plot3_header">
                 <div>
@@ -97,7 +91,7 @@
                 </div>
                 <div>
                     <select class="gradient_select" id="plot_3_type">
-                        <option>Choose Data Type</option>
+                        <option value="choose">Choose Data Type</option>
                         <option>Video</option>
                         <option>LiDAR</option>
                         <option>Graph</option>
@@ -109,12 +103,9 @@
                 </div>
             </div>
             <div class="plot3" id="plot3">
-                <button onclick="toggleFullScreen('plot3')" style="position: absolute;left: 0;top: 10px;margin:10px;">
-                    <i class="fa-regular fa-square-plus fa-2xl"></i>
-                </button>
             </div>
         </div>
         
-        <script src="{{ url_for('static', filename='../static/js/dynamic_refactor.js') }}"></script>
+        <script src="{{ url_for('static', filename='../static/js/dynamic.js') }}"></script>
     </body>
 </html>

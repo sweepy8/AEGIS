@@ -1,274 +1,188 @@
-// Telemetry Viewer Data/Visual
+// Trips Page Tools
 // Created: 7/30/2025
+// Updated: 8/30/2025
 
-// Adding a new plot or video instructions
-// Step 1: Add a function that either creates a Plotly plot or video tag, 
-//   examples of both in the plot section.
-// Step 2: Add the selected option call for that new plot in the plotFunction() 
-//   and add its function call, examples in plotFunction().
-//   Doing this will add a call to make the plot when its option is selected.
-// Step 3: Add the option to select in the plotTypeOptions() function.
-//   Doing this will add the option as a possible plot to make in each plot header.
+/**
+ * TODO:
+ *      CSS changes
+ *      Fetch videos!
+ *      Change rpi available storage to a percentage so it fits
+ *      Add option to change colormap?
+ *      Why does the comms lab need a z compression of 3x???
+ */
 
-async function fetchTrips() {
+const TRIPS_FOLDER = '/static/trips';
+
+let tripName = '';
+let telemetry = '';
+let scanNames = '';
+let videoNames = '';
+
+const telPlotLabels = {
+    ".rpi.uptime_s":                    "Raspberry Pi Uptime [s]",
+    ".rpi.cpu_util_pct":                "Raspberry Pi CPU Utilization [%]",
+    ".rpi.mem_util_pct":                "Raspberry Pi Memory Utilization [%]",
+    ".rpi.storage_available_mb":        "Raspberry Pi Available Storage",
+    ".rpi.temp_c":                      "Raspberry Pi Temperature [C]",
+    ".rpi.vdd_core_a":                  "Raspberry Pi Core Current [A]",
+    ".rpi.vdd_core_v":                  "Raspberry Pi Core Voltage [V]",
+
+    ".arduino.uptime_s":                "Arduino Uptime [s]",
+
+    ".lidar.connected":                 "LiDAR Connected",
+    ".lidar.scanning":                  "LiDAR Scanning",
+    ".lidar.scan_pct":                  "LiDAR Scan Percentage [%]",
+    ".lidar.saving_file":               "LiDAR Saving File",
+    ".lidar.motor_pos_deg":             "LiDAR Motor Position [deg]",
+
+    ".camera.connected":                "Camera Connected",
+    ".camera.recording":                "Camera Recording",
+    ".camera.streaming":                "Camera Streaming",
+    ".camera.last_file":                "Last Camera File",
+
+    ".motors.front_left.voltage_v":     "Front Left Motor Voltage [V]",
+    ".motors.front_left.current_a":     "Front Left Motor Current [A]",
+    ".motors.front_left.rpm":           "Front Left Motor Speed [RPM]",
+    ".motors.mid_left.voltage_v":       "Mid Left Motor Voltage [V]",
+    ".motors.mid_left.current_a":       "Mid Left Motor Current [A]",
+    ".motors.mid_left.rpm":             "Mid Left Motor Speed [RPM]",
+    ".motors.rear_left.voltage_v":      "Rear Left Motor Voltage [V]",
+    ".motors.rear_left.current_a":      "Rear Left Motor Current [A]",
+    ".motors.rear_left.rpm":            "Rear Left Motor Speed [RPM]",
+    ".motors.front_right.voltage_v":    "Front Right Motor Voltage [V]",
+    ".motors.front_right.current_a":    "Front Right Motor Current [A]",
+    ".motors.front_right.rpm":          "Front Right Motor Speed [RPM]",
+    ".motors.mid_right.voltage_v":      "Mid Right Motor Voltage [V]",
+    ".motors.mid_right.current_a":      "Mid Right Motor Current [A]",
+    ".motors.mid_right.rpm":            "Mid Right Motor Speed [RPM]",
+    ".motors.rear_right.voltage_v":     "Rear Right Motor Voltage [V]",
+    ".motors.rear_right.current_a":     "Rear Right Motor Current [A]",
+    ".motors.rear_right.rpm":           "Rear Right Motor Speed [RPM]",
+
+    ".ultrasonics.lidar_cm":            "LiDAR Ultrasonic Distance [cm]",
+    ".ultrasonics.left_cm":             "Left Ultrasonic Distance [cm]",
+    ".ultrasonics.center_cm":           "Center Ultrasonic Distance [cm]",
+    ".ultrasonics.right_cm":            "Right Ultrasonic Distance [cm]",
+    ".ultrasonics.rear_cm":             "Rear Ultrasonic Distance [cm]",
+
+    ".ugv.battery.capacity_pct":        "UGV Battery Remaining [%]",
+    ".ugv.battery.voltage_v":           "UGV Battery Voltage [V]",
+    ".ugv.battery.current_a":           "UGV Battery Current [A]",
+    ".ugv.headlights":                  "Headlights",
+    ".ugv.ambient_temp_c":              "Ambient Temperature [C]",
+    ".ugv.relative_hum_pct":            "Earth Relative Humidity [%]",
+    ".ugv.ambient_light_l":             "Ambient Visible Light [lm]",
+    ".ugv.ambient_infrared_l":          "Ambient Infrared Light [lm]"
+};
+
+// Map of submenu plot and all traces that it will show. To make a new option,
+// just add a title with an array containing all traces
+const telPlotMaps = {
+    "Raspberry Pi Util + Temp": [
+        //".rpi.uptime_s",
+        ".rpi.cpu_util_pct",
+        ".rpi.mem_util_pct",
+        ".rpi.storage_available_mb",
+        ".rpi.temp_c",
+        ".rpi.vdd_core_a",
+        ".rpi.vdd_core_v",
+    ],
+    "Ultrasonic Sensor Distances": [
+        ".ultrasonics.lidar_cm",
+        ".ultrasonics.left_cm",
+        ".ultrasonics.center_cm",
+        ".ultrasonics.right_cm",
+        ".ultrasonics.rear_cm",
+    ],
+    // "LiDAR Scan Information": [
+    //     ".lidar.connected",
+    //     ".lidar.scanning",
+    //     ".lidar.scan_pct",
+    //     ".lidar.saving_file",
+    //     ".lidar.motor_pos_deg",
+    // ],
+    // "Camera Information": [
+    //     ".camera.connected",
+    //     ".camera.recording",
+    //     ".camera.streaming",
+    // ],
+    "Motor Voltages": [
+        ".motors.front_left.voltage_v",
+        ".motors.mid_left.voltage_v",
+        ".motors.rear_left.voltage_v",
+        ".motors.front_right.voltage_v",
+        ".motors.mid_right.voltage_v",
+        ".motors.rear_right.voltage_v",
+    ],
+    "Motor Currents": [
+        ".motors.front_left.current_a",
+        ".motors.mid_left.current_a",
+        ".motors.rear_left.current_a",
+        ".motors.front_right.current_a",
+        ".motors.mid_right.current_a",
+        ".motors.rear_right.current_a",
+    ],
+    "Motor Speeds": [
+        ".motors.front_left.rpm",
+        ".motors.mid_left.rpm",
+        ".motors.rear_left.rpm",
+        ".motors.front_right.rpm",
+        ".motors.mid_right.rpm",
+        ".motors.rear_right.rpm",
+    ],
+    "Battery Information": [
+        ".ugv.battery.capacity_pct",
+        ".ugv.battery.voltage_v",
+        ".ugv.battery.current_a",
+    ],
+    "Ambient Temp + ERH": [
+        ".ugv.ambient_temp_c",
+        ".ugv.relative_hum_pct",
+    ],
+    "Ambient Light + Headlights": [
+        ".ugv.headlights",
+        ".ugv.ambient_light_l",
+        ".ugv.ambient_infrared_l",
+    ]
+}
+
+async function getTrips() {
     /**
-     * Pulls all Trip folder directories to be added as selections
+     * Pulls all trip folder directories and adds them to trip selector
      * 
-     * @throws Potential Errors: Failed to retrieve folders for Trips, failed to retrieve select tag to put trip selections in, error adding trips to selection.
+     * @throws Potential Errors: Failed to retrieve folders for Trips.
      */
 
-
-    const response = await fetch('/trips'); // fetchs data from python as json
+    // Flask route to retrieve JSON object containing all trip folder paths
+    const response = await fetch('/getTripFolders');
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const folders = await response.json();
 
-    const folders = await response.json(); // data from json return
+    folders.sort((a, b) => {
+        return a.length !== b.length ? a.length - b.length : a.localeCompare(b);
+    });
 
-    // Sort trip folders by length first then by alphabet
-    // if done just alphabetically Trip_19 would go between Trip_1 and Trip_2
-    // folders.sort((a, b) => {
-    //     if (a.length !== b.length) {
-    //         return a.length - b.length;
-    //     }
-    //     return a.localeCompare(b);
-    // });
-    // console.log('Fetched trips: ', folders);
-
-    // gets the list by referencing its id in html
-    const list_trips = document.getElementById('trip_select');
-    if (!list_trips) {
-        console.error('trip_select <select> not found');
-        return;
-    }
-
-    // creates new list with updates trips
-    if(Array.isArray(folders)) {
-        folders.forEach(trip => {
-            const option = document.createElement('option'); // creates option element
-            option.textContent = trip;
-            list_trips.appendChild(option); // adds option element to select tag
+    // Populates trip selector with found trips
+    const tripSelector = document.getElementById('trip_select');
+    if (Array.isArray(folders)) {
+        folders.forEach(tripName => {
+            const option = document.createElement('option');
+            option.textContent = tripName;
+            tripSelector.appendChild(option);
         });
     } else {
-        list_trips.innerHTML = `<option>Error loading trips</option>`; // error message
+        tripSelector.innerHTML = '<option> Error Loading Trips </option>';
     }
-
-    // Set default plot images
-    // selectPlot1("--Please choose a plot--");
-    // selectPlot2("--Please choose a plot--");
-    // selectPlot3("--Please choose a plot--");
 }
 
-var telemetry = '';
-var trip = '';
-var scanNames = '';
-async function fetchTelemetry(trip_name) {
-    /**
-     * Attemps to retrieve JSON file containing a trips telemetry data
-     * 
-     * @param {string} trip_name - Name of the trip
-     * @returns Global telemetry data and LiDAR points
-     * @throws Potential Errors: JSON file fetch failure console log, error fetching json and lidar points console error.
-     */
-
-    telemetry = '';
-    trip = trip_name;
+async function getVideoNames(tripFolder) {
     try {
-        const response = await fetch(`/static/trips/${trip_name}/sample_telemetry.json`);
-        if (!response.ok) {
-            console.log('Failed to load telemetry');
-        }
-        telemetry = await response.json();
-        console.log(telemetry);
-    } catch (error) {
-        console.error('Fetch error:', error);
-    }
-
-    scanNames = await getScanNames(trip_name);
-}
-
-// Plot Selection and call Section
-function plotTypeOptions(type, select_filler) {
-    /**
-     * Creates plot div selections once a type is selected.
-     * 
-     * @param {string} type - Type or category of plots for selection.
-     * @param {node} select_filler - Node or element that is the selection tag where options will be added.
-     */
-
-    if (type == "Camera"){
-        const video = document.createElement("option");
-        video.textContent = "Video";
-        select_filler.appendChild(video);
-    }
-    if (type == "LiDAR"){
-        console.log(scanNames);
-        if(Array.isArray(scanNames)) {
-        scanNames.forEach(item => {
-            const lidarPC = document.createElement("option");
-            lidarPC.textContent = item;
-            select_filler.appendChild(lidarPC);
-        });
+        const response = await fetch(`/getVideoFiles?trip=${encodeURIComponent(tripFolder)}`);
+        const videoNames = await response.json();
+        if (Array.isArray(videoNames)) {
+            return videoNames;
         } else {
-            select_filler.innerHTML = `<option>Error loading Point Clouds</option>`;
-        }
-    }
-    if (type == "Plots"){
-        const m_pos = document.createElement("option");
-        m_pos.textContent = "Motor Position";
-        select_filler.appendChild(m_pos);
-        const scan_pct = document.createElement("option");
-        scan_pct.textContent = "Scan Percentage";
-        select_filler.appendChild(scan_pct);
-        const tf_l = document.createElement("option");
-        tf_l.textContent = "LiDAR True/False";
-        select_filler.appendChild(tf_l);
-        const tf_c = document.createElement("option");
-        tf_c.textContent = "Camera True/False";
-        select_filler.appendChild(tf_c);
-        const motor_v = document.createElement("option");
-        motor_v.textContent = "Motor Voltage";
-        select_filler.appendChild(motor_v);
-        const motor_a = document.createElement("option");
-        motor_a.textContent = "Motor Current";
-        select_filler.appendChild(motor_a);
-        const motor_rpm = document.createElement("option");
-        motor_rpm.textContent = "Motor RPM";
-        select_filler.appendChild(motor_rpm);
-        const rpi_util = document.createElement("option");
-        rpi_util.textContent = "Raspberry Pi Util";
-        select_filler.appendChild(rpi_util);
-        const rpi_temp = document.createElement("option");
-        rpi_temp.textContent = "Raspberry Pi Temp";
-        select_filler.appendChild(rpi_temp);
-        const rpi_uptime = document.createElement("option");
-        rpi_uptime.textContent = "Raspberry Uptime";
-        select_filler.appendChild(rpi_uptime);
-        const us_distance = document.createElement("option");
-        us_distance.textContent = "Ultrasonic Distances";
-        select_filler.appendChild(us_distance);
-        const imu_angles = document.createElement("option");
-        imu_angles.textContent = "IMU Angles";
-        select_filler.appendChild(imu_angles);
-        const imu_accel = document.createElement("option");
-        imu_accel.textContent = "IMU Acceleration";
-        select_filler.appendChild(imu_accel);
-        const bat_cap = document.createElement("option");
-        bat_cap.textContent = "Battery Capacity";
-        select_filler.appendChild(bat_cap);
-        const bat_va = document.createElement("option");
-        bat_va.textContent = "Battery V/A";
-        select_filler.appendChild(bat_va);
-        const amb_temp = document.createElement("option");
-        amb_temp.textContent = "Ambient Temp";
-        select_filler.appendChild(amb_temp);
-        const amb_light = document.createElement("option");
-        amb_light.textContent = "Ambient Light";
-        select_filler.appendChild(amb_light);
-        const hdlghts = document.createElement("option");
-        hdlghts.textContent = "Headlights";
-        select_filler.appendChild(hdlghts);
-    }
-}
-function purgePlot(plot_name) {
-    /**
-     * Removes all plots or elements that might be in a plot div.
-     * 
-     * @param {string} plot_name - Div Id that refers to one of the 3 plot locations.
-     */
-
-    const plot = document.getElementById(plot_name);
-    if(plot){
-            const video_img = document.getElementById(`video_${plot_name}`);
-        // Removes video or image if one is there
-        if(video_img){
-            plot.removeChild(video_img);
-        }
-        // Removes plot if one is there
-        Plotly.purge(plot);
-        plot.style.backgroundImage = "url('../static/images/CSUN_logo.png')";
-        plot.style.backgroundSize = "contain";
-        plot.style.backgroundRepeat = "no-repeat";
-        plot.style.backgroundPosition = "center center";
-    }
-}
-function plotFunction(plot_type, plot_name) {
-    /**
-     * Plots a function in one of the 3 plot divs.
-     * 
-     * @param {string} plot_type - Selected plot or video to be displayed in the plot div.
-     * @param {string} plot_name - Id of the div that will display the selected plot.
-     */
-
-    if(plot_type == "Motor Voltage") {
-        motorPlotV(plot_name);
-    }
-    if(plot_type == "Motor Current") {
-        motorPlotA(plot_name);
-    }
-    if(plot_type == "Motor RPM") {
-        motorPlotRPM(plot_name);
-    }
-    if(plot_type == "Raspberry Pi Util") {
-        rpiUtilPlot(plot_name);
-    }
-    if(plot_type == "Raspberry Pi Temp") {
-        rpiTempPlot(plot_name);
-    }
-    if(plot_type == "Raspberry Uptime") {
-        rpiUptimePlot(plot_name);
-    }
-    if(plot_type == "Ultrasonic Distances") {
-        usDistancePlot(plot_name);
-    }
-    if(plot_type == "IMU Angles") {
-        imuRPYPlot(plot_name);
-    }
-    if(plot_type == "IMU Acceleration") {
-        imuXYZPlot(plot_name);
-    }
-    if(plot_type == "Battery Capacity") {
-        batCapPlot(plot_name);
-    }
-    if(plot_type == "Battery V/A") {
-        batVAPlot(plot_name);
-    }
-    if(plot_type == "Ambient Temp") {
-        ambTempPlot(plot_name);
-    }
-    if(plot_type == "Ambient Light") {
-        ambLightPlot(plot_name);
-    }
-    if(plot_type == "Headlights") {
-        headlightsPlot(plot_name);
-    }
-    if(plot_type == "Video") {
-        videoPlot(plot_name);
-    }
-    if(plot_type == "Camera True/False") {
-        cameraTFPlot(plot_name);
-    }
-    if(plot_type == "Point Cloud") {
-        pointCloudPlot(plot_name);
-    }
-    if(plot_type == "Motor Position") {
-        lidarMPosPlot(plot_name);
-    }
-    if(plot_type == "Scan Percentage") {
-        lidarScanPlot(plot_name);
-    }
-    if(plot_type == "LiDAR True/False") {
-        lidarTFPlot(plot_name);
-    }
-}
-
-async function getScanNames(trip_name){
-    try {
-        const response = await fetch(`/scanFiles?trip=${encodeURIComponent(trip_name)}`);
-        const data = await response.json();
-        if (Array.isArray(data)) {
-            // console.log(data);
-            return data; // This is the returned array of scan file names
-        } else {
-            console.error("Error from server:", data.error);
+            console.error("Error from server:", videoNames.error);
             return [];
         }
     } catch (err) {
@@ -277,1164 +191,386 @@ async function getScanNames(trip_name){
     }
 }
 
-// Plot Function Section
-function motorPlotV(plot_name) {
-    /**
-     * Creates a Plotly plot containing all motor voltages.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("motorPlotV()");
-    const time = [];
-    const left_front_v = []; const right_front_v = [];
-    const left_middle_v = []; const right_middle_v = [];
-    const left_rear_v = []; const right_rear_v = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        left_front_v[i] = JSON.stringify(telemetry.telemetry[i].motors.front_left.voltage_v);
-        left_middle_v[i] = JSON.stringify(telemetry.telemetry[i].motors.mid_left.voltage_v);
-        left_rear_v[i] = JSON.stringify(telemetry.telemetry[i].motors.rear_left.voltage_v);
-
-        right_front_v[i] = JSON.stringify(telemetry.telemetry[i].motors.front_right.voltage_v);
-        right_middle_v[i] = JSON.stringify(telemetry.telemetry[i].motors.mid_right.voltage_v);
-        right_rear_v[i] = JSON.stringify(telemetry.telemetry[i].motors.rear_right.voltage_v);
-    }
-
-    // Plot using plotly
-    var lf_v = {
-        x: time,
-        y: left_front_v,
-        type: 'scatter',
-        name: 'LFront_V',
-    }
-    var lm_v = {
-        x: time,
-        y: left_middle_v,
-        type: 'scatter',
-        name: 'LMiddle_V',
-    }
-    var lr_v = {
-        x: time,
-        y: left_rear_v,
-        type: 'scatter',
-        name: 'LRear_V',
-    }
-    var rf_v = {
-        x: time,
-        y: right_front_v,
-        type: 'scatter',
-        name: 'RFront_V'
-    }
-    var rm_v = {
-        x: time,
-        y: right_middle_v,
-        type: 'scatter',
-        name: 'RMiddle_V',
-    }
-    var rr_v = {
-        x: time,
-        y: right_rear_v,
-        type: 'scatter',
-        name: 'RRear_V',
-    }
-
-    var plot_trace = [lf_v, lm_v, lr_v, rf_v, rm_v, rr_v];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 20,
-            r: 0,
-        },
-    }
-    Plotly.newPlot(plot_name, plot_trace, layout);
-}
-function motorPlotA(plot_name) {
-    /**
-     * Creates a Plotly plot containing all motor currents.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("motorPlotA()");
-    const time = [];
-    const left_front_a = []; const right_front_a = [];
-    const left_middle_a = []; const right_middle_a = [];
-    const left_rear_a = []; const right_rear_a = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        left_front_a[i] = JSON.stringify(telemetry.telemetry[i].motors.front_left.current_a);
-        left_middle_a[i] = JSON.stringify(telemetry.telemetry[i].motors.mid_left.current_a);
-        left_rear_a[i] = JSON.stringify(telemetry.telemetry[i].motors.rear_left.current_a);
-
-        right_front_a[i] = JSON.stringify(telemetry.telemetry[i].motors.front_right.current_a);
-        right_middle_a[i] = JSON.stringify(telemetry.telemetry[i].motors.mid_right.current_a);
-        right_rear_a[i] = JSON.stringify(telemetry.telemetry[i].motors.rear_right.current_a);
-    }
-
-    // Plot using plotly
-    var lf_a = {
-        x: time,
-        y: left_front_a,
-        type: 'scatter',
-        name: 'LFront_A',
-    }
-    var lm_a = {
-        x: time,
-        y: left_middle_a,
-        type: 'scatter',
-        name: 'LMiddle_A',
-    }
-    var lr_a = {
-        x: time,
-        y: left_rear_a,
-        type: 'scatter',
-        name: 'LRear_A',
-    }
-    var rf_a = {
-        x: time,
-        y: right_front_a,
-        type: 'scatter',
-        name: 'RFront_A',
-    }
-    var rm_a = {
-        x: time,
-        y: right_middle_a,
-        type: 'scatter',
-        name: 'RMiddle_A',
-    }
-    var rr_a = {
-        x: time,
-        y: right_rear_a,
-        type: 'scatter',
-        name: 'RRear_A',
-    }
-
-    var plot = [lf_a, lm_a, lr_a, rf_a, rm_a, rr_a];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 20,
-            r: 0,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function motorPlotRPM(plot_name) {
-    /**
-     * Creates a Plotly plot containing all motor rpms.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("motorPlotRPM()");
-    const time = [];
-    const left_front_rpm = []; const right_front_rpm = [];
-    const left_middle_rpm = []; const right_middle_rpm = [];
-    const left_rear_rpm = []; const right_rear_rpm = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        left_front_rpm[i] = JSON.stringify(telemetry.telemetry[i].motors.front_left.rpm);
-        left_middle_rpm[i] = JSON.stringify(telemetry.telemetry[i].motors.mid_left.rpm);
-        left_rear_rpm[i] = JSON.stringify(telemetry.telemetry[i].motors.rear_left.rpm);
-
-        right_front_rpm[i] = JSON.stringify(telemetry.telemetry[i].motors.front_right.rpm);
-        right_middle_rpm[i] = JSON.stringify(telemetry.telemetry[i].motors.mid_right.rpm);
-        right_rear_rpm[i] = JSON.stringify(telemetry.telemetry[i].motors.rear_right.rpm);
-    }
-
-    // Plot using plotly
-    var lf_rpm = {
-        x: time,
-        y: left_front_rpm,
-        type: 'scatter',
-        name: 'LFront_RPM',
-    }
-    var rf_rpm = {
-        x: time,
-        y: right_front_rpm,
-        type: 'scatter',
-        name: 'RFront_RPM',
-    }
-    var lm_rpm = {
-        x: time,
-        y: left_middle_rpm,
-        type: 'scatter',
-        name: 'LMiddle_RPM',
-    }
-    var rm_rpm = {
-        x: time,
-        y: right_middle_rpm,
-        type: 'scatter',
-        name: 'RMiddle_RPM',
-    }
-    var lr_rpm = {
-        x: time,
-        y: left_rear_rpm,
-        type: 'scatter',
-        name: 'LRear_RPM',
-    }
-    var rr_rpm = {
-        x: time,
-        y: right_rear_rpm,
-        type: 'scatter',
-        name: 'RRear_RPM',
-    }
-
-    var plot = [lf_rpm, rf_rpm, lm_rpm, rm_rpm, lr_rpm, rr_rpm];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function rpiUtilPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing Raspberry Pi 5 cpu and memory utilization percentage.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("rpiUtilPlot()");
-    const time = [];
-    const rpi_mem = []; 
-    const rpi_cpu = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        rpi_mem[i] = JSON.stringify(telemetry.telemetry[i].rpi.mem_util_pct);
-        rpi_cpu[i] = JSON.stringify(telemetry.telemetry[i].rpi.cpu_util_pct);
-    }
-
-    // Plot using plotly
-    var mem = {
-        x: time,
-        y: rpi_mem,
-        type: 'scatter',
-        name: 'Memory Util %',
-    }
-    var cpu = {
-        x: time,
-        y: rpi_cpu,
-        type: 'scatter',
-        name: 'CPU Util %',
-    }
-
-    var plot = [mem, cpu];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function rpiTempPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing Raspberry Pi 5 temperature
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("rpiTempPlot()");
-    const time = [];
-    const rpi_temp = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        rpi_temp[i] = JSON.stringify(telemetry.telemetry[i].rpi.temp_c);
-    }
-
-    // Plot using plotly
-    var temp = {
-        x: time,
-        y: rpi_temp,
-        type: 'scatter',
-        name: 'Temp C',
-    }
-
-    var plot = [temp];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function rpiUptimePlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing Raspberry Pi uptime.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("rpiUptimePlot()");
-    const time = [];
-    const uptime_sec = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        uptime_sec[i] = JSON.stringify(telemetry.telemetry[i].rpi.uptime_s);
-    }
-
-    // Plot using plotly
-    var seconds = {
-        x: time,
-        y: uptime_sec,
-        type: 'scatter',
-        name: 'Uptime seconds',
-    }
-
-    var plot = [seconds];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function usDistancePlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing all ultrasonic distances.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("usDistancePlot()");
-    const time = [];
-    const lidar_us = []; const rear_us = [];
-    const left_us = []; const center_us = [];
-    const right_us = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        lidar_us[i] = JSON.stringify(telemetry.telemetry[i].ultrasonics.lidar_cm);
-        rear_us[i] = JSON.stringify(telemetry.telemetry[i].ultrasonics.rear_cm);
-        left_us[i] = JSON.stringify(telemetry.telemetry[i].ultrasonics.left_cm);
-        center_us[i] = JSON.stringify(telemetry.telemetry[i].ultrasonics.center_cm);
-        right_us[i] = JSON.stringify(telemetry.telemetry[i].ultrasonics.right_cm);
-    }
-
-    // Plot using plotly
-    var lidar = {
-        x: time,
-        y: lidar_us,
-        type: 'scatter',
-        name: 'LiDAR US',
-    }
-    var rear = {
-        x: time,
-        y: rear_us,
-        type: 'scatter',
-        name: 'Rear US',
-    }
-    var left = {
-        x: time,
-        y: left_us,
-        type: 'scatter',
-        name: 'Front Left US',
-    }
-    var center = {
-        x: time,
-        y: center_us,
-        type: 'scatter',
-        name: 'Front Center US',
-    }
-    var right = {
-        x: time,
-        y: right_us,
-        type: 'scatter',
-        name: 'Front Right US',
-    }
-
-    var plot = [lidar, rear, left, center, right];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function imuRPYPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing all IMU roll, pitch, yaw.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("imuRPYPlot()");
-    const time = [];
-    const roll_imu = []; const pitch_imu = [];
-    const yaw_imu = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        roll_imu[i] = JSON.stringify(telemetry.telemetry[i].imu.roll_dps);
-        pitch_imu[i] = JSON.stringify(telemetry.telemetry[i].imu.pitch_dps);
-        yaw_imu[i] = JSON.stringify(telemetry.telemetry[i].imu.yaw_dps);
-    }
-
-    // Plot using plotly
-    var roll = {
-        x: time,
-        y: roll_imu,
-        type: 'scatter',
-        name: 'Roll IMU',
-    }
-    var pitch = {
-        x: time,
-        y: pitch_imu,
-        type: 'scatter',
-        name: 'Pitch IMU',
-    }
-    var yaw = {
-        x: time,
-        y: yaw_imu,
-        type: 'scatter',
-        name: 'Yaw IMU',
-    }
-
-    var plot = [roll, pitch, yaw];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function imuXYZPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing all IMU accelerations, X Y Z.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("imuXYZPlot()");
-    const time = [];
-    const accel_x = []; const accel_y = [];
-    const accel_z = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        accel_x[i] = JSON.stringify(telemetry.telemetry[i].imu.accel_x_mps2);
-        accel_y[i] = JSON.stringify(telemetry.telemetry[i].imu.accel_y_mps2);
-        accel_z[i] = JSON.stringify(telemetry.telemetry[i].imu.accel_z_mps2);
-    }
-
-    // Plot using plotly
-    var x = {
-        x: time,
-        y: accel_x,
-        type: 'scatter',
-        name: 'Acceleration X',
-    }
-    var y = {
-        x: time,
-        y: accel_y,
-        type: 'scatter',
-        name: 'Acceleration Y',
-    }
-    var z = {
-        x: time,
-        y: accel_z,
-        type: 'scatter',
-        name: 'Acceleration Z',
-    }
-
-    var plot = [x, y, z];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function batCapPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing battery life capacity as a percentage.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("batCapPlot()");
-    const time = [];
-    const bat_capacity = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        bat_capacity[i] = JSON.stringify(telemetry.telemetry[i].ugv.battery.capacity_pct);
-    }
-
-    // Plot using plotly
-    var cap = {
-        x: time,
-        y: bat_capacity,
-        type: 'scatter',
-        name: 'Capacity %',
-    }
-
-    var plot = [cap];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function batVAPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing battery voltage and current output.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("batVAPlot()");
-    const time = [];
-    const bat_voltage = []; 
-    const bat_amps = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        bat_voltage[i] = JSON.stringify(telemetry.telemetry[i].ugv.battery.voltage_v);
-        bat_amps[i] = JSON.stringify(telemetry.telemetry[i].ugv.battery.current_a);
-    }
-
-    // Plot using plotly
-    var bat_v = {
-        x: time,
-        y: bat_voltage,
-        type: 'scatter',
-        name: 'Voltage',
-    }
-    var bat_a = {
-        x: time,
-        y: bat_amps,
-        type: 'scatter',
-        name: 'Amps',
-    }
-
-    var plot = [bat_v, bat_a];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function ambTempPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing ambient temperature.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("ambTempPlot()");
-    const time = [];
-    const amb_temp = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        amb_temp[i] = JSON.stringify(telemetry.telemetry[i].ugv.ambient_temp_c);
-    }
-
-    // Plot using plotly
-    var temp = {
-        x: time,
-        y: amb_temp,
-        type: 'scatter',
-        name: 'Temp C',
-    }
-
-    var plot = [temp];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function ambLightPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing ambient light seen from the UGV.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("ambLightPlot()");
-    const time = [];
-    const amb_light = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        amb_light[i] = JSON.stringify(telemetry.telemetry[i].ugv.ambient_light_wpm2);
-    }
-
-    // Plot using plotly
-    var light = {
-        x: time,
-        y: amb_light,
-        type: 'scatter',
-        name: 'Light wpm^2',
-    }
-
-    var plot = [light];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function headlightsPlot(plot_name) {
-    /**
-     * Creates a Plotly plot showing if headlights are on or off.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("headlightsPlot()");
-    const time = [];
-    const headlights = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        headlights[i] = JSON.stringify(telemetry.telemetry[i].ugv.headlights);
-        if(headlights[i] == "true"){
-            headlights[i] = 1;
-        } else {
-            headlights[i] = 0;
-        }
-    }
-
-    // Plot using plotly
-    var hl = {
-        x: time,
-        y: headlights,
-        type: 'bar',
-        name: 'Bool',
-    }
-
-    var plot = [hl];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-        yaxis: {
-            showticklabels: false,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-async function videoPlot(plot_name) {
-    /**
-     * Creates a video element that is then appended to a div.
-     * 
-     * @param {string} plot_name - Id of the div to display the video.
-     */
-
-    console.log("videoPlot()");
-    let video_url = `../static/trips/${trip}/video_${trip}.mp4`;
-    const plot = document.getElementById(plot_name);
-
-    if ((await fetch(video_url)).ok) {
-        var video = document.createElement('video');
-        video.innerText = "Loading video...";
-        video.id = `video_${plot_name}`;
-        video.src = video_url;
-        video.type = "video/mp4";
-        video.autoplay = true;
-        video.playsInline = true;
-        video.style.height = '100%';
-        video.style.width = '100%';
-
-        plot.appendChild(video);
-    }
-    else {
-        var video = fragment.appendChild(document.createElement('img'));
-        video.id = `video_${plot_name}`;
-        video.src = "static/images/no_video.gif";
-
-        plot.appendChild(video);
-    }
-}
-function cameraTFPlot(plot_name) {
-    /**
-     * Creates a Plotly plot showing if camera is connected, recording or streaming.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("cameraTFPlot()");
-    const time = [];
-    const connected = []; const recording = [];
-    const streaming = [];
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        connected[i] = JSON.stringify(telemetry.telemetry[i].camera.connected);
-        recording[i] = JSON.stringify(telemetry.telemetry[i].camera.recording);
-        streaming[i] = JSON.stringify(telemetry.telemetry[i].camera.streaming);
-        if(connected[i] == "true"){
-            connected[i] = 1;
-        } else {
-            connected[i] = 0;
-        }
-        if(recording[i] == "true"){
-            recording[i] = 1;
-        } else {
-            recording[i] = 0;
-        }
-        if(streaming[i] == "true"){
-            streaming[i] = 1;
-        } else {
-            streaming[i] = 0;
-        }
-    }
-
-    // Plot using plotly
-    var con = {
-        x: time,
-        y: connected,
-        type: 'bar',
-        name: 'Connected',
-    }
-    var rec = {
-        x: time,
-        y: recording,
-        type: 'bar',
-        name: 'Scanning',
-    }
-    var stream = {
-        x: time,
-        y: streaming,
-        type: 'bar',
-        name: 'Streaming',
-    }
-
-    var plot = [con,rec,stream,];
-    var layout = {
-        barmode: 'group',
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-        yaxis: {
-            showticklabels: false,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-async function pointCloudPlot(plot_name, pc_name) {
-    /**
-     * Creates a Plotly plot containing the LiDAR point cloud or '3D scatter plot'.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly point cloud.
-     */
-
-    var ptsArr = '';
+async function getScanNames(tripFolder) {
     try {
-        ptsArr = await getPoints(`/static/trips/${trip}/${pc_name}.txt`);
+        const response = await fetch(`/getScanFiles?trip=${encodeURIComponent(tripFolder)}`);
+        const scanNames = await response.json();
+        if (Array.isArray(scanNames)) {
+            console.log(scanNames);
+            return scanNames;
+        } else {
+            console.error("Error from server:", scanNames.error);
+            return [];
+        }
+    } catch (err) {
+        console.error("Fetch error:", err);
+        return [];
+    }
+}
+
+async function getTelemetryJSON(tripFolder) {
+    /**
+     * Pulls telemetry data from JSON file inside current trip folder
+     * 
+     * @param {string} tripFolder - Name of the trip folder
+     * @returns Global telemetry data and LiDAR points
+     * @throws Potential Errors: JSON file fetch failure console log, 
+     *          error fetching json and lidar points console error.
+     */
+
+    try {
+        // Flask route to retrieve JSON object containing JSON files in folder
+        const fileResponse = await fetch(
+            `/getTelemetryFile?trip=${encodeURIComponent(tripFolder)}`);
+        if (!fileResponse.ok) {
+            console.warn('Failed to fetch telemetry!');
+            return {};
+        }
+        const telFile = (await fileResponse.json())[0];
+
+        // Get telemetry data
+        const dataResponse = await fetch(
+            `${TRIPS_FOLDER}/${tripFolder}/${telFile}`);
+        if (!dataResponse.ok) {
+            console.warn('Failed to load telemetry!');
+            return {};
+        }
+        telemetry = await dataResponse.json();
     } catch (error) {
-        console.error('Fetch error point cloud:', error);
+        console.error('Fetch error:', error);
+        return {};
     }
 
-    console.log("pointCloudPlot()");
-    var intensity = getDimFromPoints(ptsArr,3);
-    //console.log(ptsArr);
-    var points = {
-    x:getDimFromPoints(ptsArr, 0),
-    y:getDimFromPoints(ptsArr, 1),
-    z:getDimFromPoints(ptsArr, 2),
-    mode: 'markers',
-    marker: {
-        size: 1,
-        color: intensity,
-        colorscale: 'Jet',
-        showscale: true,
-    },
-    type: 'scatter3d',
-    hoverinfo: 'none',
+    return telemetry;
+}
+
+function populateSubmenu(category, submenuId, options) {
+    /**
+     * Populates plot submenu with options depending on plot category (Video, 
+     * LiDAR, Graph).
+     * 
+     * @param {string} category - Category of plots for selection.
+     * @param {node} submenu - Element to which options will be added.
+     */
+
+    // Flush submenu first
+    const submenu = document.getElementById(submenuId);
+    submenu.replaceChildren();
+
+    switch (category) {
+        case "Video":
+            if (Array.isArray(options) && options.length > 0) {
+                options.forEach(label => {
+                    submenu.appendChild(new Option(label));
+                });
+            } else submenu.appendChild(new Option("No Videos to Display"));
+            break;
+        case "LiDAR":
+            if (Array.isArray(options) && options.length > 0) {
+                options.forEach(label => {
+                    submenu.appendChild(new Option(label));
+                });
+            } else submenu.appendChild(new Option("No Scans to Display"));
+            break;
+        case "Graph":
+            if (Object.keys(telemetry).length > 0) {
+                Object.keys(telPlotMaps).forEach(label => {
+                    submenu.appendChild(new Option(label));
+                });
+            }
+            else submenu.appendChild(new Option("No Telemetry to Display"));
+            break;
+    }
+}
+
+function purgePlot(plotId) {
+    /**
+     * Removes all plots or elements that might be in a plot div.
+     * 
+     * @param {string} plotId - Div Id that refers to one of the 3 plot locations.
+     */
+
+    const plot = document.getElementById(plotId);
+
+    // Removes video or image if one is there
+    plot.replaceChildren();
+}
+
+function addFullscreenButton(plotId) {
+    const plot = document.getElementById(plotId);
+
+    const fullscreenButton = document.createElement("button");
+    fullscreenButton.style.position = "absolute";
+    fullscreenButton.style.left = "0";
+    fullscreenButton.style.top = "10px";
+    fullscreenButton.style.margin = "5px";
+
+    const icon = document.createElement("i");
+    icon.className = "fa-regular fa-square-plus fa-2xl";
+    icon.style.filter = "invert(100%)";
+
+    fullscreenButton.appendChild(icon);
+
+    fullscreenButton.addEventListener("click", () => {
+        plot.classList.toggle('fullscreen_div');
+        Plotly.relayout(plot, {autosize: true});
+    });
+
+    plot.append(fullscreenButton);
+}
+
+async function makeVideoPlot(plotId, videoName) {
+
+    if (!videoNames.includes(videoName)) return;
+
+    const plot = document.getElementById(plotId);
+
+    const video = document.createElement("video");
+    video.src = `${TRIPS_FOLDER}/${tripName}/${videoName}`;
+    video.controls = true;
+    video.muted = true;
+    video.autoplay = true;
+
+    video.style.width = "100%";
+    video.style.height = "100%";
+    video.style.objectFit = "contain";
+    video.style.background = "black";
+
+    plot.append(video);
+}
+
+async function makeScanPlot(plotId, scanName) {
+    const start = performance.now();
+
+    let scanData;
+    try {
+        const result = await fetch(`${TRIPS_FOLDER}/${tripName}/${scanName}`);
+        if (!result.ok) throw new Error(`Error from server: ${result.status}`);
+        scanData = await result.text();
+    } catch (err) {
+        console.error("Fetch error: ", err);
+        return;
+    }
+
+    const xVals = [], yVals = [], zVals = [], iVals = [];
+
+    let cloud = scanData.split('\n');
+
+    // Downsample large clouds
+    /**
+     *  250k (home PC, chrome): 1-1.5 s
+     *  500k (home PC, chrome): 2-2.5 s (some WebGL context lost issues)
+     *  500k (home PC, firefox): 3-4.5 s
+     * 
+     */
+    const targetSize = 250000;
+    if (cloud.length > targetSize) {
+        cloud = cloud.filter(() => Math.random() < targetSize/cloud.length);
+    }
+
+    for (let i = 0; i < cloud.length; i++) {
+        const pt = cloud[i];
+        if (!pt) continue;
+
+        const ptArr = pt.split(' ');
+
+        xVals.push(ptArr[0]);
+        yVals.push(ptArr[1]);
+        zVals.push(ptArr[2]);
+        iVals.push(ptArr[3]);
+    }
+
+    // Should provide optimization for WebGL --> Plotly
+    const x = new Float32Array(xVals);
+    const y = new Float32Array(yVals);
+    const z = new Float32Array(zVals);
+    const i = new Float32Array(iVals);
+
+    const trace = {
+        type: 'scatter3d',
+        mode: 'markers',
+        x, y, z,
+        marker: {
+            size: 1,
+            color: i,
+            colorscale: 'Jet',
+            showscale: false,
+        },
+        hoverinfo: 'none',
     };
 
-    var data = [points];
-    var layout = {
-        margin: { l: 0, r: 0, b: 0, t: 0 },
+    const layout = {
+        paper_bgcolor: "black",
+        margin: { l: 0, r: 0, t: 0, b: 0 },
         scene: {
-            aspectratio: { x: 1, y: 1, z: 1 },
-            camera: {
-                eye: {x: 1, y: 1, z: 0.5},    // Camera position
-                center: {x: 0, y: 0, z: 0}, // Point the camera looks at
-                up: {x: 0, y: 0, z: 1}      // Up direction
-            }
+        aspectratio: { x: 1, y: 1, z: 1},
+        camera: {
+            eye: { x: 1, y: 1, z: 0.5 },
+            center: { x: 0, y: 0, z: 0 },
+            up: { x: 0, y: 0, z: 1 }
         },
-        paper_bgcolor: 'black'};
-
-    Plotly.newPlot(plot_name, data, layout);
-}
-function lidarMPosPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing the LiDAR stepper motor position in degrees.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("lidarMPosPlot()");
-    const time = [];
-    const motor_pos = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        motor_pos[i] = JSON.stringify(telemetry.telemetry[i].lidar.motor_pos_deg);
-    }
-
-    // Plot using plotly
-    var mpos = {
-        x: time,
-        y: motor_pos,
-        type: 'scatter',
-        name: 'Position deg',
-    }
-
-    var plot = [mpos];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function lidarScanPlot(plot_name) {
-    /**
-     * Creates a Plotly plot containing the LiDAR scan percentage.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("lidarScanPlot()");
-    const time = [];
-    const scan_pct = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        scan_pct[i] = JSON.stringify(telemetry.telemetry[i].lidar.scan_pct);
-    }
-
-    // Plot using plotly
-    var scan = {
-        x: time,
-        y: scan_pct,
-        type: 'scatter',
-        name: 'Scan %',
-    }
-
-    var plot = [scan];
-    var layout = {
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-function lidarTFPlot(plot_name) {
-    /**
-     * Creates a Plotly plot showing if lidar is connected, scanning, saving file, or in fixed mode.
-     * 
-     * @param {string} plot_name - Id of the div to display the Plotly plot.
-     */
-
-    console.log("lidarTFPlot()");
-    const time = [];
-    const connected = []; const scanning = [];
-    const saved_file = []; const fixed_mode = []; 
-
-    for(let i = 0; i < telemetry.duration_s; i++) {
-        time[i] = i;
-        connected[i] = JSON.stringify(telemetry.telemetry[i].lidar.connected);
-        scanning[i] = JSON.stringify(telemetry.telemetry[i].lidar.scanning);
-        saved_file[i] = JSON.stringify(telemetry.telemetry[i].lidar.saving_file);
-        fixed_mode[i] = JSON.stringify(telemetry.telemetry[i].lidar.fixed_mode);
-        if(connected[i] == "true"){
-            connected[i] = 1;
-        } else {
-            connected[i] = 0;
+        xaxis: { visible: false },
+        yaxis: { visible: false },
+        zaxis: { visible: false }
         }
-        if(scanning[i] == "true"){
-            scanning[i] = 1;
-        } else {
-            scanning[i] = 0;
-        }
-        if(saved_file[i] == "true"){
-            saved_file[i] = 1;
-        } else {
-            saved_file[i] = 0;
-        }
-        if(fixed_mode[i] == "true"){
-            fixed_mode[i] = 1;
-        } else {
-            fixed_mode[i] = 0;
-        }
-    }
+    };
 
-    // Plot using plotly
-    var con = {
-        x: time,
-        y: connected,
-        type: 'bar',
-        name: 'Connected',
-    }
-    var scan = {
-        x: time,
-        y: scanning,
-        type: 'bar',
-        name: 'Scanning',
-    }
-    var file = {
-        x: time,
-        y: saved_file,
-        type: 'bar',
-        name: 'Saved File',
-    }
-    var fix = {
-        x: time,
-        y: fixed_mode,
-        type: 'bar',
-        name: 'Fixed Mode',
-    }
-
-
-    var plot = [con,scan,file,fix];
-    var layout = {
-        barmode: 'group',
-        margin: {
-            t: 20,
-            b: 20,
-            l: 35,
-            r: 20,
-        },
-        yaxis: {
-            showticklabels: false,
-        },
-    }
-    Plotly.newPlot(plot_name, plot, layout);
-}
-
-// LiDAR 3D Scatter Plot Functions
-async function getPoints(filename) {
-    /**
-     * Gets all the point cloud data points and separates them into organized x y z intensity columns.
-     * 
-     * @param {string} filename - filepath to the text file with all the point data.
-     * @returns {float32array} points All data points organized into columns of x y z intensity.
-     */
-
-    let points = [];
-
-    const response = await fetch(filename);
-    if (!response.ok) {
-        throw new Error(`Response status; ${response.status}`);
-    }
-    const data = await response.text() + '';
-    const lines = data.split('\n');
-
-    lines.forEach(line => {
-    if (!(line.match(".[A-Z]."))) {  // If string line doesn't have any letters
-        const dimStrs = line.split(' ');
-
-        let point = [];
-        for (let i = 0; i < 4; i++) {
-            point.push(parseFloat(dimStrs[i]));
-        }
-
-        points.push(point);
-    }
-    });
-
-    return points;
-}
-function getDimFromPoints(points, index) {
-    /**
-     * Creates a single array for one of the columns x y z intensity from getPoints.
-     * 
-     * @param {Float32Array} points - All of the point data for a point cloud .
-     * @param {int} index - Index for the column to extract.
-     * @returns {float32array} 1 dimensional float array containing one of the following: x y z intensity.
-     */
-
-    let dim = [];
-    points.forEach(point => {
-        dim.push(point[index]);
-    });
-
-    return dim;
-}
-
-// Toggle Fullscreen
-function toggleFullScreen1() {
-    /**
-     * Toggles the plot 1 div into a fullscreen div
-     */
-
-    const plot1 = document.getElementById('plot1');
-    plot1.classList.toggle('fullscreen_div');
-
-    Plotly.relayout(plot1, {autosize: true});
-}
-function toggleFullScreen2() {
-    /**
-     * Toggles the plot 2 div into a fullscreen div
-     */
-
-    const plot2 = document.getElementById('plot2');
-    plot2.classList.toggle('fullscreen_div');
-
-    Plotly.relayout(plot2, {autosize: true});
-}
-function toggleFullScreen3() {
-    /**
-     * Toggles the plot 3 div into a fullscreen div
-     */
-
-    const plot3 = document.getElementById('plot3');
-    plot3.classList.toggle('fullscreen_div');
-
-    Plotly.relayout(plot3, {autosize: true});
-}
-
-// Adds event listener for a change in selection option in the all select tags
-document.addEventListener("DOMContentLoaded", async function() {
-    const select_Trip = document.getElementById("trip_select");
-    select_Trip.addEventListener("change", async function() {
-        const trip = select_Trip.value;
-        console.log("Selected trip: " + trip);
-        // Set default plot images
-        purgePlot("plot1");
-        purgePlot("plot2");
-        purgePlot("plot3");
-
-        await fetchTelemetry(trip);
-    });
+    Plotly.newPlot(plotId, [trace], layout, {responsive: true});
     
-    // event listener for plot 1 type
-    const select_plot1_type = document.getElementById("plot_1_type");
-    select_plot1_type.addEventListener("change", function() {
-        var type = select_plot1_type.value;
-        console.log("Selected plot1 type: " + type);
-        const select_filler = document.getElementById("plot_select_1");
-        select_filler.innerHTML = '';
-        const choose = document.createElement("option")
-        choose.textContent = "--Please choose a plot--";
-        select_filler.appendChild(choose); 
-        purgePlot("plot1");
-        plotTypeOptions(type,select_filler);
-    });
-    // event listener for plot 1
-    const select_Plot1 = document.getElementById("plot_select_1");
-    select_Plot1.addEventListener("change", function() {
-        var plot = select_Plot1.value;
-        console.log("Selected plot1 plot: " + plot);
-        purgePlot("plot1");
-        if(select_plot1_type.value == "LiDAR"){
-            pointCloudPlot("plot1", plot);
-        }
-        else if (select_plot1_type.value == "Camera"){
-            // camera spot for mp4 select
-        } else {
-            plotFunction(plot, "plot1");
-        }
+    addFullscreenButton(plotId);
+
+    const end = performance.now();
+    const elapsed = Math.round(end-start);
+    console.log(`Displayed ${scanName} in ${elapsed} ms`);
+}
+
+/**
+ * Plots a function in one of the 3 plot divs. 
+ * 
+ * Gets all grouped traces associated with the plotLabel in the telPlotMaps 
+ * object and builds them, then generates Plotly plot for them.
+ * 
+ * @param {string} plotLabel - Label of plot to be displayed.
+ * @param {string} plotId - Id of the div that will display the plot.
+ */
+async function makeTelemetryPlot(plotId, plotLabel) {
+    // Validates JSON string as number
+    const toNum = val => {
+        if (val == null) return null;
+        const n = Number(val);      // Strings, undefined become NaN
+        return Number.isFinite(n) ? n : null;
+    };
+
+    // Fucking wizardry
+    const getAtPath = (obj, dotPath) =>
+        dotPath.replace(/^\./, '').split('.').reduce((o, k) => o[k], obj);
+
+    const traces = [];
+
+    // X [time] should be same for all traces, so just make it once
+    let x = Array.from({length: telemetry.telemetry.length}, (_, i) => i);
+
+    telPlotMaps[plotLabel].forEach(field => {
+        const y = telemetry.telemetry.map(row => toNum(getAtPath(row, field)));
+
+        let trace = {
+            x, y,
+            type: 'scatter', mode: 'lines', connectgaps: false,
+            name: telPlotLabels[field],
+        };
+
+        let traceName = telPlotLabels[field].split(" ");
+        let hoverLabel = null;
+        switch (plotLabel) {
+            case "Raspberry Pi Util + Temp":
+                hoverLabel = traceName.slice(2).join(" ");
+                hoverLabel += ": %{y} <extra></extra>";
+                trace.hovertemplate = hoverLabel;
+                break;
+            case "Ultrasonic Sensor Distances":
+                hoverLabel = traceName[0];
+                hoverLabel += ": %{y} cm <extra></extra>";
+                trace.hovertemplate = hoverLabel;
+                break;
+            case "Motor Voltages":
+            case "Motor Currents":
+            case "Motor Speeds":
+                hoverLabel = traceName.slice(0,2).join(" ");
+                hoverLabel += ": %{y} <extra></extra>";
+                trace.hovertemplate = hoverLabel;
+                break;
+
+        };
+
+        traces.push(trace);
     });
 
-    // event listener for plot 2 type
-    const select_plot2_type = document.getElementById("plot_2_type");
-    select_plot2_type.addEventListener("change", function() {
-        var type = select_plot2_type.value;
-        console.log("Selected plot2 type: " + type);
-        const select_filler = document.getElementById("plot_select_2");
-        select_filler.innerHTML = '';
-        const choose = document.createElement("option")
-        choose.textContent = "--Please choose a plot--";
-        select_filler.appendChild(choose);
-        purgePlot("plot2");
-        plotTypeOptions(type,select_filler);
-    });
-    // event listener for plot 2
-    const select_Plot2 = document.getElementById("plot_select_2");
-    select_Plot2.addEventListener("change", function() {
-        var plot = select_Plot2.value;
-        console.log("Selected plot2 plot: " + plot);
-        purgePlot("plot2");
-        plotFunction(plot, "plot2");
+    const layout = {
+        plot_bgcolor: 'black',
+        paper_bgcolor: 'black',
+        font: {color: 'white'},
+        margin: {t: 0, b: 20, l: 20, r: 0},
+        hovermode: "x unified",
+        hoverlabel: {bgcolor: 'black'},
+        xaxis: {title: "Time [s]"},
+        yaxis: {rangemode: 'tozero'},
+        legend: {
+            x: 0.5, y: -0.07, 
+            xanchor: 'center', orientation: 'h', 
+            font: {size: 10}
+        }
+    };
+
+    Plotly.newPlot(plotId, traces, layout, {responsive: true});
+
+    addFullscreenButton(plotId);
+}
+
+document.addEventListener("DOMContentLoaded", async function() {
+    
+    let plotTypeSelectors = [];
+    plotTypeSelectors.push(document.getElementById("plot_1_type"));
+    plotTypeSelectors.push(document.getElementById("plot_2_type"));
+    plotTypeSelectors.push(document.getElementById("plot_3_type"));
+
+    let plotDataSelectors = [];
+    plotDataSelectors.push(document.getElementById("plot_select_1"));
+    plotDataSelectors.push(document.getElementById("plot_select_2"));
+    plotDataSelectors.push(document.getElementById("plot_select_3"));
+
+    // Refresh plots and fetch telemetry and scans when user selects a trip
+    const tripSelector = document.getElementById("trip_select");
+    tripSelector.addEventListener("change", async function() {
+        purgePlot("plot1"); purgePlot("plot2"); purgePlot("plot3");
+
+        tripName = tripSelector.value;
+        videoNames = await getVideoNames(tripSelector.value);
+        scanNames = await getScanNames(tripSelector.value);
+        telemetry = await getTelemetryJSON(tripSelector.value);
+
+        plotTypeSelectors[0].dispatchEvent(new Event("change"));
+        plotTypeSelectors[1].dispatchEvent(new Event("change"));
+        plotTypeSelectors[2].dispatchEvent(new Event("change"));
+
     });
 
-    // event listener for plot 3 type
-    const select_plot3_type = document.getElementById("plot_3_type");
-    select_plot3_type.addEventListener("change", function() {
-        var type = select_plot3_type.value;
-        console.log("Selected plot3 type: " + type);
-        const select_filler = document.getElementById("plot_select_3");
-        select_filler.innerHTML = '';
-        const choose = document.createElement("option")
-        choose.textContent = "--Please choose a plot--";
-        select_filler.appendChild(choose);
-        purgePlot("plot3");
-        plotTypeOptions(type,select_filler);
-    });
-    // event listener for plot 3
-    const select_Plot3 = document.getElementById("plot_select_3");
-    select_Plot3.addEventListener("change", function() {
-        var plot = select_Plot3.value;
-        console.log("Selected plot3 plot: " + plot);
-        purgePlot("plot3");
-        plotFunction(plot, "plot3");
-    });
+    for (let i = 0; i < plotTypeSelectors.length; i++) {
+        let typeSelector = plotTypeSelectors[i];
+        let dataSelector = plotDataSelectors[i];
+
+        // When users select a new type of plot, clear plot and refresh submenu
+        typeSelector.addEventListener("change", function() {
+            const submenu = document.getElementById(`plot_select_${i+1}`);
+            purgePlot(`plot${i+1}`); submenu.replaceChildren();
+            
+            let choices;
+            if (typeSelector.value == "Video") choices = videoNames;
+            if (typeSelector.value == "LiDAR") choices = scanNames;
+            if (typeSelector.value == "Graph") choices = undefined;
+            populateSubmenu(typeSelector.value, `plot_select_${i+1}`, choices);
+
+            dataSelector.dispatchEvent(new Event("change"));
+        });
+
+        // When users select new data to plot, do what they tell you
+        dataSelector.addEventListener("change", function() {
+            purgePlot(`plot${i+1}`);
+            switch (typeSelector.value) {
+                case "LiDAR":
+                    if (dataSelector.value == "No Scans to Display") return;
+                    makeScanPlot(`plot${i+1}`, dataSelector.value);
+                    break;
+                case "Video":
+                    if (dataSelector.value == "No Videos to Display") return;
+                    makeVideoPlot(`plot${i+1}`, dataSelector.value);
+                    break;
+                case "Graph":
+                    if (dataSelector.value == "No Data to Display") return;
+                    makeTelemetryPlot(`plot${i+1}`, dataSelector.value);
+                    break;
+            }
+        });
+    }
 });
 
-fetchTrips(); // runs the fetchTrips on page load
+getTrips(); // runs on page load
