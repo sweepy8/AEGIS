@@ -5,9 +5,7 @@
 /**
  * TODO:
  *      CSS changes
- *      Fetch videos!
  *      Change rpi available storage to a percentage so it fits
- *      Add option to change colormap?
  *      Why does the comms lab need a z compression of 3x???
  */
 
