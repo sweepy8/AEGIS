@@ -1,22 +1,17 @@
 // Trips Page Tools
 // Created: 7/30/2025
-// Updated: 8/30/2025
 
-/**
- * TODO:
- *      CSS changes
- *      Change rpi available storage to a percentage so it fits
- *      Why does the comms lab need a z compression of 3x???
+/**     TODO:
+ *      - Camera live feed???
+ *      - Fix Telemetry from Raspberry Pi, including available storage
  */
 
-const TRIPS_FOLDER = '/static/trips';
+const tripsFolder = '/static/trips';
+const maxCloudSize = 250000;
+let tripName, tripTelemetry, scanNames, videoNames;
 
-let tripName = '';
-let telemetry = '';
-let scanNames = '';
-let videoNames = '';
-
-const telPlotLabels = {
+// Plotly labels for each trace
+const traceLabels = {
     ".rpi.uptime_s":                    "Raspberry Pi Uptime [s]",
     ".rpi.cpu_util_pct":                "Raspberry Pi CPU Utilization [%]",
     ".rpi.mem_util_pct":                "Raspberry Pi Memory Utilization [%]",
@@ -73,9 +68,9 @@ const telPlotLabels = {
     ".ugv.ambient_infrared_l":          "Ambient Infrared Light [lm]"
 };
 
-// Map of submenu plot and all traces that it will show. To make a new option,
-// just add a title with an array containing all traces
-const telPlotMaps = {
+// Map of telemetry plots and all traces that they will show. To make a new 
+// option, add a title with an array containing all traces you want to plot.
+const telPlotsMap = {
     "Raspberry Pi Util + Temp": [
         //".rpi.uptime_s",
         ".rpi.cpu_util_pct",
@@ -144,241 +139,178 @@ const telPlotMaps = {
     ]
 }
 
-async function getTrips() {
-    /**
-     * Pulls all trip folder directories and adds them to trip selector
-     * 
-     * @throws Potential Errors: Failed to retrieve folders for Trips.
-     */
+/**
+ * Gets file or folder information from the Flask server on the Raspberry Pi. 
+ * 
+ * @description If the category is 'Trips', gets the trip folders. If the 
+ * category is 'Graph', gets the telemetry object from JSON. If the category is 
+ * 'Video' or 'LiDAR', gets all filenames of found videos or scans respectively.
+ * 
+ * @param {string} tripFolder - The folder of the currently selected trip.
+ * @param {string} category - Menu type ("Trips", "Video", "LiDAR", or "Graph").
+ * @returns Either telemetry object, filenames string array, or null on error.
+ */
+async function queryFilenames(tripFolder, category) {
+    try {
+        // Flask route to retrieve JSON object containing files in folder
+        const fileResponse = await fetch( '/queryFilenames?' + 
+            `trip=${encodeURIComponent(tripFolder)}` +
+            `&cat=${encodeURIComponent(category)}`
+        );
+        if (!fileResponse.ok) {console.warn("Couldn't fetch files!"); return;}
+        const filenames = await fileResponse.json();
 
-    // Flask route to retrieve JSON object containing all trip folder paths
-    const response = await fetch('/getTripFolders');
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const folders = await response.json();
-
-    folders.sort((a, b) => {
-        return a.length !== b.length ? a.length - b.length : a.localeCompare(b);
-    });
-
-    // Populates trip selector with found trips
-    const tripSelector = document.getElementById('trip_select');
-    if (Array.isArray(folders)) {
-        folders.forEach(tripName => {
-            const option = document.createElement('option');
-            option.textContent = tripName;
-            tripSelector.appendChild(option);
+        // Sort by length, then alphabetically
+        filenames.sort((a, b) => {  
+            if (a.length !== b.length) {
+                return a.length - b.length;
+            } else return a.localeCompare(b);
         });
-    } else {
-        tripSelector.innerHTML = '<option> Error Loading Trips </option>';
-    }
-}
 
-async function getVideoNames(tripFolder) {
-    try {
-        const response = await fetch(`/getVideoFiles?trip=${encodeURIComponent(tripFolder)}`);
-        const videoNames = await response.json();
-        if (Array.isArray(videoNames)) {
-            return videoNames;
-        } else {
-            console.error("Error from server:", videoNames.error);
-            return [];
-        }
-    } catch (err) {
-        console.error("Fetch error:", err);
-        return [];
-    }
-}
+        // If you're querying for telemetry, just return the telemetry directly
+        if (category == "Graph") {
+            const path = `${tripsFolder}/${tripFolder}/${filenames[0]}`;
+            const telResponse = await fetch(path);
+            if (!telResponse.ok) {console.warn('No telemetry found!'); return;}
+            return await telResponse.json();   // Unpacks actual JSON object
+        } 
+        
+        return filenames;
 
-async function getScanNames(tripFolder) {
-    try {
-        const response = await fetch(`/getScanFiles?trip=${encodeURIComponent(tripFolder)}`);
-        const scanNames = await response.json();
-        if (Array.isArray(scanNames)) {
-            console.log(scanNames);
-            return scanNames;
-        } else {
-            console.error("Error from server:", scanNames.error);
-            return [];
-        }
-    } catch (err) {
-        console.error("Fetch error:", err);
-        return [];
-    }
-}
-
-async function getTelemetryJSON(tripFolder) {
-    /**
-     * Pulls telemetry data from JSON file inside current trip folder
-     * 
-     * @param {string} tripFolder - Name of the trip folder
-     * @returns Global telemetry data and LiDAR points
-     * @throws Potential Errors: JSON file fetch failure console log, 
-     *          error fetching json and lidar points console error.
-     */
-
-    try {
-        // Flask route to retrieve JSON object containing JSON files in folder
-        const fileResponse = await fetch(
-            `/getTelemetryFile?trip=${encodeURIComponent(tripFolder)}`);
-        if (!fileResponse.ok) {
-            console.warn('Failed to fetch telemetry!');
-            return {};
-        }
-        const telFile = (await fileResponse.json())[0];
-
-        // Get telemetry data
-        const dataResponse = await fetch(
-            `${TRIPS_FOLDER}/${tripFolder}/${telFile}`);
-        if (!dataResponse.ok) {
-            console.warn('Failed to load telemetry!');
-            return {};
-        }
-        telemetry = await dataResponse.json();
     } catch (error) {
-        console.error('Fetch error:', error);
-        return {};
+        console.warn('Data not fetched!');
+        return;
     }
-
-    return telemetry;
 }
 
-function populateSubmenu(category, submenuId, options) {
-    /**
-     * Populates plot submenu with options depending on plot category (Video, 
-     * LiDAR, Graph).
-     * 
-     * @param {string} category - Category of plots for selection.
-     * @param {node} submenu - Element to which options will be added.
-     */
-
-    // Flush submenu first
-    const submenu = document.getElementById(submenuId);
-    submenu.replaceChildren();
+/**
+ * Populates a selector menu with options depending on menu category.
+ * 
+ * @param {string} category - Menu type ("Trips", "Video", "LiDAR", or "Graph").
+ * @param {string} selectorId - ID of selector menu to populate.
+ * @param {string[]} options - List of options to provide the user.
+ * @returns {void}
+ */
+function populateSelector(category, selectorId, options) {
+    const selector = document.getElementById(selectorId);
+    selector.replaceChildren();     // Flush selector first
 
     switch (category) {
-        case "Video":
-            if (Array.isArray(options) && options.length > 0) {
-                options.forEach(label => {
-                    submenu.appendChild(new Option(label));
-                });
-            } else submenu.appendChild(new Option("No Videos to Display"));
-            break;
-        case "LiDAR":
-            if (Array.isArray(options) && options.length > 0) {
-                options.forEach(label => {
-                    submenu.appendChild(new Option(label));
-                });
-            } else submenu.appendChild(new Option("No Scans to Display"));
-            break;
-        case "Graph":
-            if (Object.keys(telemetry).length > 0) {
-                Object.keys(telPlotMaps).forEach(label => {
-                    submenu.appendChild(new Option(label));
-                });
-            }
-            else submenu.appendChild(new Option("No Telemetry to Display"));
-            break;
+    case "Trips":
+        // Populates trip selector with found trips
+        if (Array.isArray(options) && options.length > 0) {
+            options.forEach(tripName => {
+                selector.appendChild(new Option(tripName));
+            });
+        } else selector.appendChild(new Option("Error Loading Trips"));
+        break;
+    case "Video":
+        if (Array.isArray(options) && options.length > 0) {
+            options.forEach(label => {
+                selector.appendChild(new Option(label));
+            });
+        } else selector.appendChild(new Option("No Videos to Display"));
+        break;
+    case "LiDAR":
+        if (Array.isArray(options) && options.length > 0) {
+            options.forEach(label => {
+                selector.appendChild(new Option(label));
+            });
+        } else selector.appendChild(new Option("No Scans to Display"));
+        break;
+    case "Graph":
+        // Populates graph selector with premade plot options from telPlotsMap
+        if (tripTelemetry && Object.keys(tripTelemetry).length > 0) {
+            Object.keys(telPlotsMap).forEach(label => {
+                selector.appendChild(new Option(label));
+            });
+        } else selector.appendChild(new Option("No Telemetry to Display"));
+        break;
     }
 }
 
-function purgePlot(plotId) {
-    /**
-     * Removes all plots or elements that might be in a plot div.
-     * 
-     * @param {string} plotId - Div Id that refers to one of the 3 plot locations.
-     */
-
-    const plot = document.getElementById(plotId);
-
-    // Removes video or image if one is there
-    plot.replaceChildren();
-}
-
+/**
+ * Inserts a toggle button with listener to make a plot fullscreen when clicked.
+ * 
+ * @param {string} plotId - ID of the plot div that will recieve the button.
+ * @returns {void}
+ */
 function addFullscreenButton(plotId) {
-    const plot = document.getElementById(plotId);
-
-    const fullscreenButton = document.createElement("button");
-    fullscreenButton.style.position = "absolute";
-    fullscreenButton.style.left = "0";
-    fullscreenButton.style.top = "10px";
-    fullscreenButton.style.margin = "5px";
-
+    const btn = document.createElement("button");
+    btn.style.cssText = "position:absolute; left:0; top:10px; margin:5px;";
     const icon = document.createElement("i");
     icon.className = "fa-regular fa-square-plus fa-2xl";
     icon.style.filter = "invert(100%)";
+    btn.appendChild(icon);
 
-    fullscreenButton.appendChild(icon);
-
-    fullscreenButton.addEventListener("click", () => {
+    const plot = document.getElementById(plotId);
+    plot.append(btn);
+    btn.addEventListener("click", () => {
         plot.classList.toggle('fullscreen_div');
         Plotly.relayout(plot, {autosize: true});
     });
-
-    plot.append(fullscreenButton);
 }
 
+/**
+ * Creates and inserts a video into a plot.
+ * 
+ * @param {string} plotId - ID of the div that will display the video.
+ * @param {string} videoName - File name of the video to display.
+ * @returns {void}
+ */
 async function makeVideoPlot(plotId, videoName) {
-
     if (!videoNames.includes(videoName)) return;
 
-    const plot = document.getElementById(plotId);
+    const video = Object.assign(document.createElement("video"), {
+        src: `${tripsFolder}/${tripName}/${videoName}`,
+        controls: true, muted: true, autoplay: true,
+        style: {
+            width: "100%", height: "100%",
+            objectFit: "contain", background: "black"
+        }
+    });
 
-    const video = document.createElement("video");
-    video.src = `${TRIPS_FOLDER}/${tripName}/${videoName}`;
-    video.controls = true;
-    video.muted = true;
-    video.autoplay = true;
-
-    video.style.width = "100%";
-    video.style.height = "100%";
-    video.style.objectFit = "contain";
-    video.style.background = "black";
-
-    plot.append(video);
+    document.getElementById(plotId).append(video);
 }
 
+/**
+ * Creates and inserts a LiDAR scan into a plot.
+ * 
+ * @description Fetches, unzips, downsamples, and builds a cloud, then 
+ * configures visualizer parameters and generates a Plotly plot. Additionally 
+ * displays the time it took to do this in the web console in milliseconds.
+ * 
+ * @param {string} plotId - ID of the div that will display the scan.
+ * @param {string} scanName - File name of the scan to display.
+ * @returns {void}
+ */
 async function makeScanPlot(plotId, scanName) {
     const start = performance.now();
 
-    let scanData;
     try {
-        const result = await fetch(`${TRIPS_FOLDER}/${tripName}/${scanName}`);
+        const result = await fetch(`${tripsFolder}/${tripName}/${scanName}`);
         if (!result.ok) throw new Error(`Error from server: ${result.status}`);
-        scanData = await result.text();
-    } catch (err) {
-        console.error("Fetch error: ", err);
-        return;
+        var scanData = await result.text();
+    } catch (err) { console.error("Fetch error: ", err); return; }
+    let cloud = scanData.split('\n');
+
+    // Downsample large clouds to some target size (in number of points)
+    if (cloud.length > maxCloudSize) {
+        cloud = cloud.filter(() => Math.random() < maxCloudSize/cloud.length);
     }
 
     const xVals = [], yVals = [], zVals = [], iVals = [];
-
-    let cloud = scanData.split('\n');
-
-    // Downsample large clouds
-    /**
-     *  250k (home PC, chrome): 1-1.5 s
-     *  500k (home PC, chrome): 2-2.5 s (some WebGL context lost issues)
-     *  500k (home PC, firefox): 3-4.5 s
-     * 
-     */
-    const targetSize = 250000;
-    if (cloud.length > targetSize) {
-        cloud = cloud.filter(() => Math.random() < targetSize/cloud.length);
-    }
-
     for (let i = 0; i < cloud.length; i++) {
         const pt = cloud[i];
         if (!pt) continue;
-
         const ptArr = pt.split(' ');
-
         xVals.push(ptArr[0]);
         yVals.push(ptArr[1]);
         zVals.push(ptArr[2]);
         iVals.push(ptArr[3]);
     }
 
-    // Should provide optimization for WebGL --> Plotly
+    // Using Float32Arrays should provide optimization for WebGL --> Plotly
     const x = new Float32Array(xVals);
     const y = new Float32Array(yVals);
     const z = new Float32Array(zVals);
@@ -388,12 +320,7 @@ async function makeScanPlot(plotId, scanName) {
         type: 'scatter3d',
         mode: 'markers',
         x, y, z,
-        marker: {
-            size: 1,
-            color: i,
-            colorscale: 'Jet',
-            showscale: false,
-        },
+        marker: { size: 1, color: i, colorscale: 'Jet', showscale: false },
         hoverinfo: 'none',
     };
 
@@ -401,20 +328,19 @@ async function makeScanPlot(plotId, scanName) {
         paper_bgcolor: "black",
         margin: { l: 0, r: 0, t: 0, b: 0 },
         scene: {
-        aspectratio: { x: 1, y: 1, z: 1},
-        camera: {
-            eye: { x: 1, y: 1, z: 0.5 },
-            center: { x: 0, y: 0, z: 0 },
-            up: { x: 0, y: 0, z: 1 }
-        },
-        xaxis: { visible: false },
-        yaxis: { visible: false },
-        zaxis: { visible: false }
+            aspectratio: { x: 1, y: 1, z: 0.4},
+            camera: {
+                //eye: { x: 1, y: 1, z: 0.5 },
+                center: { x: 0, y: 0, z: 0 },
+                up: { x: 0, y: 0, z: 1 }
+            },
+            xaxis: {visible:false},
+            yaxis: {visible:false},
+            zaxis: {visible:false}
         }
     };
 
     Plotly.newPlot(plotId, [trace], layout, {responsive: true});
-    
     addFullscreenButton(plotId);
 
     const end = performance.now();
@@ -423,63 +349,64 @@ async function makeScanPlot(plotId, scanName) {
 }
 
 /**
- * Plots a function in one of the 3 plot divs. 
+ * Creates and inserts a telemetry graph into a plot. 
  * 
- * Gets all grouped traces associated with the plotLabel in the telPlotMaps 
- * object and builds them, then generates Plotly plot for them.
+ * @description Gets all grouped traces associated with the plot name in the 
+ * telPlotsMap object and builds them, then generates Plotly plot for them.
  * 
- * @param {string} plotLabel - Label of plot to be displayed.
- * @param {string} plotId - Id of the div that will display the plot.
+ * @param {string} plotId - ID of the div that will display the plot.
+ * @param {string} telPlotName - Name of the plot from the telPlotsMap
+ * @returns {void}
  */
-async function makeTelemetryPlot(plotId, plotLabel) {
-    // Validates JSON string as number
+async function makeTelemetryPlot(plotId, telPlotName) {
+    if (!tripTelemetry) return;
+
+    // Helper function that validates JSON string as number
     const toNum = val => {
         if (val == null) return null;
         const n = Number(val);      // Strings, undefined become NaN
         return Number.isFinite(n) ? n : null;
     };
 
-    // Fucking wizardry
+    // Helper function: fucking wizardry, don't ask me, ask GPT
     const getAtPath = (obj, dotPath) =>
         dotPath.replace(/^\./, '').split('.').reduce((o, k) => o[k], obj);
 
-    const traces = [];
-
     // X [time] should be same for all traces, so just make it once
-    let x = Array.from({length: telemetry.telemetry.length}, (_, i) => i);
-
-    telPlotMaps[plotLabel].forEach(field => {
-        const y = telemetry.telemetry.map(row => toNum(getAtPath(row, field)));
+    let x = Array.from({length: tripTelemetry.telemetry.length}, (_, i) => i);
+    
+    const traces = [];
+    telPlotsMap[telPlotName].forEach(field => {
+        // Builds array of values to plot from telemetry object
+        const y = tripTelemetry.telemetry.map(r => toNum(getAtPath(r, field)));
 
         let trace = {
             x, y,
             type: 'scatter', mode: 'lines', connectgaps: false,
-            name: telPlotLabels[field],
+            name: traceLabels[field],
         };
-
-        let traceName = telPlotLabels[field].split(" ");
+        // Fancy onHover formatting for specific telemetry graphs
+        let traceLabel = traceLabels[field].split(" ");
         let hoverLabel = null;
-        switch (plotLabel) {
-            case "Raspberry Pi Util + Temp":
-                hoverLabel = traceName.slice(2).join(" ");
-                hoverLabel += ": %{y} <extra></extra>";
-                trace.hovertemplate = hoverLabel;
-                break;
-            case "Ultrasonic Sensor Distances":
-                hoverLabel = traceName[0];
-                hoverLabel += ": %{y} cm <extra></extra>";
-                trace.hovertemplate = hoverLabel;
-                break;
-            case "Motor Voltages":
-            case "Motor Currents":
-            case "Motor Speeds":
-                hoverLabel = traceName.slice(0,2).join(" ");
-                hoverLabel += ": %{y} <extra></extra>";
-                trace.hovertemplate = hoverLabel;
-                break;
-
+        switch (telPlotName) {
+        case "Raspberry Pi Util + Temp":
+            hoverLabel = traceLabel.slice(2).join(" ");
+            hoverLabel += ": %{y} <extra></extra>";
+            trace.hovertemplate = hoverLabel;
+            break;
+        case "Ultrasonic Sensor Distances":
+            hoverLabel = traceLabel[0];
+            hoverLabel += ": %{y} cm <extra></extra>";
+            trace.hovertemplate = hoverLabel;
+            break;
+        case "Motor Voltages":
+        case "Motor Currents":
+        case "Motor Speeds":
+            hoverLabel = traceLabel.slice(0,2).join(" ");
+            hoverLabel += ": %{y} <extra></extra>";
+            trace.hovertemplate = hoverLabel;
+            break;
         };
-
         traces.push(trace);
     });
 
@@ -487,7 +414,7 @@ async function makeTelemetryPlot(plotId, plotLabel) {
         plot_bgcolor: 'black',
         paper_bgcolor: 'black',
         font: {color: 'white'},
-        margin: {t: 0, b: 20, l: 20, r: 0},
+        margin: {t: 20, b: 0, l: 40, r: 5},
         hovermode: "x unified",
         hoverlabel: {bgcolor: 'black'},
         xaxis: {title: "Time [s]"},
@@ -500,75 +427,74 @@ async function makeTelemetryPlot(plotId, plotLabel) {
     };
 
     Plotly.newPlot(plotId, traces, layout, {responsive: true});
-
     addFullscreenButton(plotId);
 }
 
 document.addEventListener("DOMContentLoaded", async function() {
-    
-    let plotTypeSelectors = [];
-    plotTypeSelectors.push(document.getElementById("plot_1_type"));
-    plotTypeSelectors.push(document.getElementById("plot_2_type"));
-    plotTypeSelectors.push(document.getElementById("plot_3_type"));
-
-    let plotDataSelectors = [];
-    plotDataSelectors.push(document.getElementById("plot_select_1"));
-    plotDataSelectors.push(document.getElementById("plot_select_2"));
-    plotDataSelectors.push(document.getElementById("plot_select_3"));
-
-    // Refresh plots and fetch telemetry and scans when user selects a trip
+    // Get trip folders, aggregate relevant HTML elements for each plot section
+    let tripNames = await queryFilenames('', "Trips");
     const tripSelector = document.getElementById("trip_select");
+    const plotTypeSelectors = [], plotDataSelectors = [];
+    for (let i = 0; i < 3; i++) {
+        plotTypeSelectors.push(document.getElementById(`plot${i+1}_type`));
+        plotDataSelectors.push(document.getElementById(`plot${i+1}_data`));
+    }
+
+    // Fetch data and refresh plots when user selects a trip
     tripSelector.addEventListener("change", async function() {
-        purgePlot("plot1"); purgePlot("plot2"); purgePlot("plot3");
+        // Gets new trip's relevant filenames
+        tripName =      tripSelector.value;
+        videoNames =    await queryFilenames(tripName, "Video");
+        scanNames =     await queryFilenames(tripName, "LiDAR");
+        tripTelemetry = await queryFilenames(tripName, "Graph");
 
-        tripName = tripSelector.value;
-        videoNames = await getVideoNames(tripSelector.value);
-        scanNames = await getScanNames(tripSelector.value);
-        telemetry = await getTelemetryJSON(tripSelector.value);
-
-        plotTypeSelectors[0].dispatchEvent(new Event("change"));
-        plotTypeSelectors[1].dispatchEvent(new Event("change"));
-        plotTypeSelectors[2].dispatchEvent(new Event("change"));
-
+        // Resets plots on trip change
+        for (let i = 0; i < 3; i++) {
+            plotTypeSelectors[i].dispatchEvent(new Event("change"));
+        }
     });
 
+    // Register listeners to each menu (typeSelector) and submenu (dataSelector)
     for (let i = 0; i < plotTypeSelectors.length; i++) {
-        let typeSelector = plotTypeSelectors[i];
-        let dataSelector = plotDataSelectors[i];
+        const typeSelector = plotTypeSelectors[i];
+        const dataSelector = plotDataSelectors[i];
 
-        // When users select a new type of plot, clear plot and refresh submenu
+        // When users select a new type of plot, clear plot and refresh selector
         typeSelector.addEventListener("change", function() {
-            const submenu = document.getElementById(`plot_select_${i+1}`);
-            purgePlot(`plot${i+1}`); submenu.replaceChildren();
+            const selector = document.getElementById(`plot${i+1}_data`);
+            document.getElementById(`plot${i+1}`).replaceChildren();
+            selector.replaceChildren();
             
             let choices;
             if (typeSelector.value == "Video") choices = videoNames;
             if (typeSelector.value == "LiDAR") choices = scanNames;
             if (typeSelector.value == "Graph") choices = undefined;
-            populateSubmenu(typeSelector.value, `plot_select_${i+1}`, choices);
+            populateSelector(typeSelector.value, `plot${i+1}_data`, choices);
 
             dataSelector.dispatchEvent(new Event("change"));
         });
 
-        // When users select new data to plot, do what they tell you
+        // When users select new data to plot, refresh plot with new data
         dataSelector.addEventListener("change", function() {
-            purgePlot(`plot${i+1}`);
+            document.getElementById(`plot${i+1}`).replaceChildren();
             switch (typeSelector.value) {
-                case "LiDAR":
-                    if (dataSelector.value == "No Scans to Display") return;
+            case "LiDAR":
+                if (dataSelector.value != "No Scans to Display") 
                     makeScanPlot(`plot${i+1}`, dataSelector.value);
-                    break;
-                case "Video":
-                    if (dataSelector.value == "No Videos to Display") return;
+                break;
+            case "Video":
+                if (dataSelector.value != "No Videos to Display")
                     makeVideoPlot(`plot${i+1}`, dataSelector.value);
-                    break;
-                case "Graph":
-                    if (dataSelector.value == "No Data to Display") return;
+                break;
+            case "Graph":
+                if (dataSelector.value != "No Data to Display")
                     makeTelemetryPlot(`plot${i+1}`, dataSelector.value);
-                    break;
+                break;
             }
         });
     }
+    
+    // Runs after DOMContentLoaded and loads in the first trip by default
+    populateSelector("Trips", "trip_select", tripNames);
+    tripSelector.dispatchEvent(new Event("change"));
 });
-
-getTrips(); // runs on page load

@@ -2,80 +2,60 @@
 # AEGIS Senior Design, Created on 6/9/25
 
 from flask import Flask, render_template, jsonify, request
-import os # os allows directory navigation
-
-# ROUTES ----------------------------------------------------------------------
+import os   # listdir(), endswith(), path.join(), path.isdir(), path.isfile()
+from os.path import join, isdir, isfile
 
 app = Flask(__name__) # Creates Flask app instance
 
-# Directory to be monitored for buttons
+# Directory to be monitored for new trip folders
 # Sets absolute directory path because python is stupid
-btn_folder = os.path.join(app.static_folder, 'trips')       #type: ignore
+trips_folder = join(app.static_folder, 'trips')
 
-# Routes for each of the HTML pages
-@app.route('/') # inside '' is the link for href to link page
-def main_page():
-    return render_template('home.html') # Loads home html page
+# ROUTES -----------------------------------------------------------------------
+
+@app.route('/')
+def render_home_page():
+    return render_template('home.html')
+
 @app.route('/telemetry')
-def telemetry_page():
-    return render_template('telemetry.html') # Loads telemetry html page
-@app.route('/admin')
-def admin_page():
-    return render_template('admin.html') # Loads admin html page
-@app.route('/about')
-def about_page():
-    return render_template('about.html') # Loads about html page
+def render_telemetry_page():
+    return render_template('telemetry.html')
 
-# Routes for backend file retrieval, should not be accessed as webpages
-@app.route('/getTripFolders')
-def get_trip_folders():
+@app.route('/admin')
+def render_admin_page():
+    return render_template('admin.html')
+
+@app.route('/about')
+def render_about_page():
+    return render_template('about.html')
+
+@app.route('/queryFilenames')
+def get_all_filenames():
     """
-    Retrieves all trip folders and sends them to frontend as JSON object.
-    """
-    try:
-        all = os.listdir(btn_folder)
-        folders = [f for f in all if os.path.isdir(os.path.join(btn_folder, f))]
-        return jsonify(folders)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500 
-    
-@app.route('/getVideoFiles')
-def get_video_files():
-    """
-    Retrieves all video files and sends them to the frontend as JSON object.
+    Retrieves all files belonging to a specific category (LiDAR txts, video 
+    MP4s, or telemetry JSONs) and sends them to the frontend as a JSON object.
+    Can also retrieve all trip folder names from trips folder.
     """
     trip = request.args.get('trip','')
-    abs_path = os.path.abspath(os.path.join(btn_folder, trip))
+    category = request.args.get('cat','')
 
-    video_files = [f for f in os.listdir(abs_path)
-        if os.path.isfile(os.path.join(abs_path, f)) and f.endswith('.mp4')]
-    
-    return jsonify(video_files)
+    try:
+        names = []
+        if category == 'Trips':
+            for f in os.listdir(trips_folder):
+                if isdir(join(trips_folder, f)):
+                    names.append(f)
+        else:
+            ext = {"Video":".mp4", "LiDAR":".txt", "Graph":".json"}[category]
+            for f in os.listdir(join(trips_folder, trip)):
+                if isfile(join(trips_folder, trip, f)) and f.endswith(ext):
+                    names.append(f)
 
-@app.route('/getScanFiles')
-def get_scan_files():
-    """
-    Retrieves all scan files and sends them to frontend as JSON object.
-    """
-    trip = request.args.get('trip', '')  # Get trip name from fetch query
-    abs_path = os.path.abspath(os.path.join(btn_folder, trip))
-    
-    scan_files = [f for f in os.listdir(abs_path)
-        if os.path.isfile(os.path.join(abs_path, f)) and f.endswith('.txt')]
-
-    return jsonify(scan_files)
-
-@app.route('/getTelemetryFile')
-def get_telemetry_file():
-    trip = request.args.get('trip', '')
-    abs_path = os.path.abspath(os.path.join(btn_folder, trip))
-
-    tel_files = [f for f in os.listdir(abs_path)
-        if os.path.isfile(os.path.join(abs_path, f)) and f.endswith('.json')]
-
-    return jsonify(tel_files)   # Should always be exactly one JSON file
+        return jsonify(names)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
-    # os.makedirs(btn_folder, exist_ok=True)
+    # os.makedirs(trips_folder, exist_ok=True)
     app.run(debug=True)
