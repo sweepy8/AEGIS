@@ -9,7 +9,7 @@ app = Flask(__name__) # Creates Flask app instance
 
 # Directory to be monitored for new trip folders
 # Sets absolute directory path because python is stupid
-trips_folder = join(app.static_folder, 'trips')
+trips_folder = join(app.static_folder, 'trips')     # type: ignore
 
 # ROUTES -----------------------------------------------------------------------
 
@@ -58,4 +58,7 @@ def get_all_filenames():
 
 if __name__ == "__main__":
     # os.makedirs(trips_folder, exist_ok=True)
-    app.run(debug=True)
+    app.run(
+        host="10.40.78.112",
+        port=5000,
+        debug=True)

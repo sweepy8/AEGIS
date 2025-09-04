@@ -1,14 +1,11 @@
 // Trips Page Tools
 // Created: 7/30/2025
 
-/**     TODO:
- *      - Camera live feed???
- *      - Fix Telemetry from Raspberry Pi, including available storage
- */
-
 const tripsFolder = '/static/trips';
 const maxCloudSize = 250000;
 let tripName, tripTelemetry, scanNames, videoNames;
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", 
+                "Oct", "Nov", "Dec"];
 
 // Plotly labels for each trace
 const traceLabels = {
@@ -151,8 +148,7 @@ const telPlotsMap = {
  * @returns Either telemetry object, filenames string array, or null on error.
  */
 async function queryFilenames(tripFolder, category) {
-    try {
-        // Flask route to retrieve JSON object containing files in folder
+    try {   // Try to get object containing files in folder from Flask route
         const fileResponse = await fetch( '/queryFilenames?' + 
             `trip=${encodeURIComponent(tripFolder)}` +
             `&cat=${encodeURIComponent(category)}`
@@ -172,15 +168,31 @@ async function queryFilenames(tripFolder, category) {
             const path = `${tripsFolder}/${tripFolder}/${filenames[0]}`;
             const telResponse = await fetch(path);
             if (!telResponse.ok) {console.warn('No telemetry found!'); return;}
-            return await telResponse.json();   // Unpacks actual JSON object
+            let telStr = await telResponse.text();
+
+            try {   // Try to parse JSON as is
+                return JSON.parse(telStr);
+            } catch {
+                try {   // Try to clean malformed JSON
+                    // Usually due to file write interruption on R.Pi shutdown
+                    // Should eventually be cleaned at write time, but trickier
+                    while (telStr.length > 0) {
+                        let idx = telStr.lastIndexOf("}") + 1;  // where to trim to
+                        telStr = telStr.slice(0, idx) + "]}";   // trim and cap
+                        try {
+                            telData = JSON.parse(telStr);
+                        } catch {
+                            telStr = telStr.slice(0, -3);
+                        }
+                        return telData;
+                    }
+                } catch { throw new Error("Could not repair malformed JSON!"); }
+            }
         } 
-        
+
         return filenames;
 
-    } catch (error) {
-        console.warn('Data not fetched!');
-        return;
-    }
+    } catch (error) { console.warn('Data not fetched!' , error); return; }
 }
 
 /**
@@ -197,10 +209,19 @@ function populateSelector(category, selectorId, options) {
 
     switch (category) {
     case "Trips":
+        
         // Populates trip selector with found trips
         if (Array.isArray(options) && options.length > 0) {
             options.forEach(tripName => {
-                selector.appendChild(new Option(tripName));
+                const y = tripName.substring(0, 4);
+                const m = months[Number(tripName.substring(4,6))-1];
+                const d = tripName.substring(6,8);
+                const h = tripName.substring(9,11);
+                const min = tripName.substring(11,13);
+                const s = tripName.substring(13,15);
+                const tripLabel = (m+" "+d+", "+y+" "+h+":"+min+":"+s);
+
+                selector.appendChild(new Option(tripLabel, tripName));
             });
         } else selector.appendChild(new Option("Error Loading Trips"));
         break;
@@ -287,7 +308,7 @@ async function makeVideoPlot(plotId, videoName) {
 async function makeScanPlot(plotId, scanName) {
     const start = performance.now();
 
-    try {
+    try {   // Try to get scan from Flask backend
         const result = await fetch(`${tripsFolder}/${tripName}/${scanName}`);
         if (!result.ok) throw new Error(`Error from server: ${result.status}`);
         var scanData = await result.text();

@@ -5,7 +5,6 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import PyavOutput
 from time import sleep
-from cv2 import imencode
 
 import os
 os.environ["LIBCAMERA_LOG_LEVELS"] = "2"    # Prevents console print clutter
@@ -17,12 +16,15 @@ class Camera(Picamera2):
     An extension of the Picamera2 class that includes AEGIS-specific fields and
     methods. For info about Picamera2, visit 
     'datasheets.raspberrypi.com/camera/picamera2-manual.pdf'
+
+    Attributes:
+        config (dict): Holds video configuration information.
+        video_quality: The quality with which to encode the video stream.
+        connected (bool): Whether or not the camera is connected to the system.
+        recording (bool): Whether or not the camera is recording.
     """
 
     def __init__(self) -> None:
-        """
-        PLACEHOLDER, TO BE FILLED IN LATER ***
-        """
         super(Camera, self).__init__()
 
         self.config = self.create_video_configuration(
@@ -31,30 +33,17 @@ class Camera(Picamera2):
         )
 
         self.video_quality = Quality.VERY_HIGH
-        self.stream_quality = Quality.VERY_LOW
         self.encoder = H264Encoder(repeat=True)
         self.connected = True
         self.recording = False
-        self.streaming = False
-
-    def generate_frames(self):
-        """
-        PLACEHOLDER, TO BE FILLED IN LATER ***
-        ### This function taken from Shilleh on youtube.com/watch?v=NOAY1aaVPAw
-        ### To better understand, look into generator functions and iterators
-        """
-        while True:
-            frame = self.capture_array("lores")
-            success, buffer = imencode(ext='.jpg', img=frame)
-            frame = buffer.tobytes()
-            if (success):
-                yield (b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
 
     def my_start_recording(self) -> str | None:
         """
-        PLACEHOLDER, TO BE FILLED IN LATER ***
+        Wrapper around the picamera2 start method. Begins recording video to a
+        timestamped file.
+
+        Returns:
+            filename (str): The timestamped filename of the video being recorded.
         """
         if self.recording == False:
             filename: str = get_timestamped_filename(
@@ -89,6 +78,9 @@ class Camera(Picamera2):
 def record_test(seconds : int) -> None:
     """
     Simple test to record and save a video with a timestamped filename.
+
+    Args:
+        seconds (int): The number of seconds to record a test video for.
     """
     if (UGV_Cam is None):
         print("[ERR] camera.py: Can't run a camera test without a camera!")

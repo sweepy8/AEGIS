@@ -37,7 +37,9 @@ Adafruit_LTR329 Light_Sensor = Adafruit_LTR329();
 
 #define UGV_BAUDRATE 115200
 
-#define ENCODER_PULSE_WINDOW_MS 80
+#define ENC_PULSE_WINDOW_MS 160
+#define ENC_PULSES_PER_REV 753.2
+#define ENC_GEAR_RATIO 26.9
 
 #define COMMAND_THRESHOLD_US        50000
 #define SAMPLE_THRESHOLD_US         500000
@@ -99,8 +101,8 @@ uint8_t ENCODER_B_PINS[6] = {LEFT_FRONT_ENC_B,  LEFT_MID_ENC_B,  LEFT_REAR_ENC_B
                              RIGHT_FRONT_ENC_B, RIGHT_MID_ENC_B, RIGHT_REAR_ENC_B};
 
 volatile uint8_t target_rpm = 0;
-volatile uint8_t enc_pulse_counts[6] = {0, 0, 0, 0, 0, 0};
-volatile bool enc_directions[6]      = {0, 0, 0, 0, 0, 0};  // 0 for CCW, 1 for CW
+volatile uint16_t enc_pulse_counts[6] = {0, 0, 0, 0, 0, 0};
+volatile bool enc_directions[6]      =  {0, 0, 0, 0, 0, 0};  // 0 for CCW, 1 for CW
 float actual_rpms[6]                 = {0, 0, 0, 0, 0, 0};  
 
 // ULTRASONIC FLAGS & DATA ----------------------------------------------------------------------------------
@@ -111,10 +113,18 @@ float actual_rpms[6]                 = {0, 0, 0, 0, 0, 0};
 
 String ULTRASONIC_NAMES[5] = {"USLI", "USLF", "USCT", "USRT", "USRR"};
 
-uint8_t ULTRASONIC_TRIG_PINS[NUM_ULTRASONICS] = {47, 49, 45};
-uint8_t ULTRASONIC_ECHO_PINS[NUM_ULTRASONICS] = {52, 53, 51};
+uint8_t ULTRASONIC_TRIG_PINS[NUM_ULTRASONICS] = {
+  47,     // PL2 (T5)
+  49,     // PL0 (ICP4)
+  45      // PL4 (OC5B)
+};
+uint8_t ULTRASONIC_ECHO_PINS[NUM_ULTRASONICS] = {
+  52,     // PB1 (SCK/PCINT1)
+  53,     // PB0 (SS/PCINT0)
+  51      // PB2 (MOSI/PCINT2)
+};
 
-volatile double ultrasonic_distances_cm[NUM_ULTRASONICS] = {0, 0, 0};
+volatile float ultrasonic_distances_cm[NUM_ULTRASONICS] = {0, 0, 0};
 
 // SENSOR FLAGS & DATA --------------------------------------------------------------------------------------
 
@@ -123,6 +133,29 @@ uint16_t visible_plus_ir, infrared, visible;  // For Adafruit LTR-329 libary
 
 
 // UART RECIEVER & MOVEMENT FUNCTIONS -----------------------------------------------------------------------
+
+// Sets rpm of each motor driver input in accordance with predefined movement patterns.
+enum class Move : uint8_t { Stop, Forward, Reverse, LeftArc, RightArc, LeftSpin, RightSpin };
+
+void move_rover(Move dir, uint8_t rpm) {
+  switch (dir) {
+    case Move::Stop:      for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * stop_pattern[i]);       break;
+    case Move::Forward:   for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * forward_pattern[i]);    break;
+    case Move::Reverse:   for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * reverse_pattern[i]);    break;
+    case Move::LeftArc:   for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * left_arc_pattern[i]);   break;
+    case Move::RightArc:  for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * right_arc_pattern[i]);  break;
+    case Move::LeftSpin:  for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * left_spin_pattern[i]);  break;
+    case Move::RightSpin: for (int i=0;i<4;i++) set_rpm(DRIVER_PINS[i], rpm * right_spin_pattern[i]); break;
+  }
+}
+
+inline void stop() { move_rover(Move::Stop, 0); }
+
+// Maps rpm input to PWM value between 0 and 255, then writes that value to the pin input
+inline void set_rpm(int pin, uint8_t rpm)
+{
+  analogWrite(pin, map(rpm, MIN_RPM, MAX_RPM, MIN_PW, MAX_PW));
+}
 
 // Decodes 3-byte command from the Raspberry Pi serial connection and performs an associated operation.
 void do_rpi_command() 
@@ -135,13 +168,16 @@ void do_rpi_command()
 
   for (int idx = 0; idx < 3; idx++) { command[idx] = Serial1.read(); }
 
-  int opcode = (command[0] & 0xC0) / pow(2,6);  // gives opcode in range [0,3] from 2 MSBs
+  int opcode = (command[0] >> 6) & 0x03;  // gives opcode in [0,3] from 2 MSBs
+
+
+
 
   switch (opcode)
   {
     case 2: // TURN
     {
-      String dir = (command[0] & 0x01) ? "right spin" : "left spin";
+      Move dir = (command[0] & 0x01) ? Move::RightSpin : Move::LeftSpin;
       uint8_t  spd = map(command[1], MIN_PW, MAX_PW, MIN_RPM, MAX_RPM);
       //uint16_t dur = command[2] * MOVE_INCREMENT_MS;    // CURRENTLY UNUSED
 
@@ -159,16 +195,15 @@ void do_rpi_command()
     }
     case 3: // MOVE
     {
-      String   dir = (command[0] & 0x01) ? "reverse" : "forward";
+      Move dir = (command[0] & 0x01) ? Move::Reverse : Move::Forward;
       uint8_t  spd = map(command[1], MIN_PW, MAX_PW, MIN_RPM, MAX_RPM);
-      //uint16_t dur = command[2] * MOVE_INCREMENT_MS;    // CURRENTLY UNUSED
 
       // If all ultrasonics report safe forward movement
       // OR you're reversing OR no ultrasonics are connected
       if((ultrasonic_distances_cm[0] > SAFE_DISTANCE_CM &&
           ultrasonic_distances_cm[1] > SAFE_DISTANCE_CM &&
           ultrasonic_distances_cm[2] > SAFE_DISTANCE_CM)   ||
-          (dir == "reverse")   ||
+          (dir == Move::Reverse)   ||
           !(ULTRASONICS_ATTACHED))
       {
         move_rover(dir, spd);
@@ -183,30 +218,6 @@ void do_rpi_command()
   for (int i = 0; i < 3; i++) { command[i] = 0; }
 }
 
-// Sets rpm of each motor driver input in accordance with predefined movement patterns.
-void move_rover(String dir, uint8_t rpm)
-{
-  int i;
-  if      (dir == "stop")       { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * stop_pattern[i]);       } }
-  else if (dir == "forward")    { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * forward_pattern[i]);    } }
-  else if (dir == "reverse")    { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * reverse_pattern[i]);    } }
-  else if (dir == "left arc")   { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * left_arc_pattern[i]);   } }
-  else if (dir == "right arc")  { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * right_arc_pattern[i]);  } }
-  else if (dir == "left spin")  { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * left_spin_pattern[i]);  } }
-  else if (dir == "right spin") { for (i = 0; i < 4; i++) { set_rpm( DRIVER_PINS[i], rpm * right_spin_pattern[i]); } }
-}
-
-// Stops rover via a call to the move_rover function.
-void stop(void)
-{
-  move_rover("stop", 0);
-}
-
-// Maps rpm input to PWM value between 0 and 255, then writes that value to the pin input
-void set_rpm(int pin, uint8_t rpm)
-{
-  analogWrite(pin, map(rpm, MIN_RPM, MAX_RPM, MIN_PW, MAX_PW));
-}
 
 // ULTRASONIC FUNCTIONS -------------------------------------------------------------------------------------
 
@@ -261,23 +272,12 @@ ISR (PCINT0_vect)
       enc_pulse_counts[ENC_POSITIONS[i]] += 1;
       enc_a_states[i] = HIGH;
       enc_b_states[i] = digitalRead(PCINT0_ENC_B_PINS[i]);
-
-      if (enc_b_states[i] == LOW)
-      {
-        // Clockwise
-        enc_directions[ENC_POSITIONS[i]] = HIGH;
-      }
-      else
-      {
-        // Counterclockwise
-        enc_directions[ENC_POSITIONS[i]] = LOW;
-      }
+      enc_directions[ENC_POSITIONS[i]] = (!enc_b_states[i]) ? HIGH : LOW;
     }
-
+    
     if ((enc_a_level == LOW) && (enc_a_states[i] == HIGH))
     {
       enc_a_states[i] = LOW;
-      // enc_b_states[i] = digitalRead(PCINT0_ENC_B_PINS[i]);
     }
   }
 
@@ -300,7 +300,6 @@ ISR (PCINT0_vect)
 
       echo_states[i] = LOW;
     }
-
   }
 }
 
@@ -325,23 +324,12 @@ ISR (PCINT1_vect)
       enc_pulse_counts[ENC_POSITIONS[i]] += 1;
       enc_a_states[i] = HIGH;
       enc_b_states[i] = digitalRead(PCINT1_ENC_B_PINS[i]);
-
-      if (enc_b_states[i] == LOW)
-      {
-        // Clockwise
-        enc_directions[ENC_POSITIONS[i]] = HIGH;
-      }
-      else
-      {
-        // Counterclockwise
-        enc_directions[ENC_POSITIONS[i]] = LOW;
-      }
+      enc_directions[ENC_POSITIONS[i]] = (!enc_b_states[i]) ? HIGH : LOW;
     }
-
-    if ((enc_a_level == LOW) && (enc_a_states[i] == HIGH))
+    else if ((enc_a_level == LOW) && (enc_a_states[i] == HIGH))
     {
       enc_a_states[i] = LOW;
-      // enc_b_states[i] = digitalRead(PCINT1_ENC_B_PINS[i]);
+      enc_b_states[i] = digitalRead(PCINT1_ENC_B_PINS[i]);
     }
   }
 }
@@ -354,7 +342,8 @@ void talk_to_rpi()
 {
   // Prepend current time in seconds to serial output
   // Uh oh. 1 extra second gained every XXX mins, check on this later
-  String telemetry_string = "TIME=" + String(double(millis()) / 1000, 3) + "|";
+  String telemetry_string; telemetry_string.reserve(256);
+  telemetry_string = "TIME=" + String(float(millis()) / 1000, 3) + "|";
 
   // Add RPM values to telemetry string
   if (MOTORS_ATTACHED)
@@ -368,12 +357,9 @@ void talk_to_rpi()
 
 
       telemetry_string += MOTOR_NAMES[i] + "R=";
-      String rpm_str = String(actual_rpms[i], 0);
-      rpm_str.remove(0,1);
-      telemetry_string += rpm_str;
-      // MULT BY -1 if RVS!    telemetry_string += (enc_directions[i] == 1) ? "CW" : "CCW";
+      telemetry_string += String(actual_rpms[i], 0) + '|';
 
-      telemetry_string += '|'; 
+      //telemetry_string += "D=" + (enc_directions[i] == 1) ? "CW" : "CCW" + '|';
     }
   }
   else
@@ -422,8 +408,8 @@ void talk_to_rpi()
 
 // MAIN SETUP AND LOOP --------------------------------------------------------------------------------------
 
-void setup() {
-
+void setup() 
+{
   // CONFIGURE MOTOR DRIVER PWM AND MOTOR ENCODER PINS
   if (MOTORS_ATTACHED)
   {
@@ -434,8 +420,8 @@ void setup() {
         pinMode(DRIVER_PINS[i], OUTPUT);
       }
 
-      pinMode(ENCODER_A_PINS[i], INPUT);
-      pinMode(ENCODER_B_PINS[i], INPUT);
+      pinMode(ENCODER_A_PINS[i], INPUT_PULLUP);
+      pinMode(ENCODER_B_PINS[i], INPUT_PULLUP);
     }
 
     // Enable pin change interrupts on ports B and J via PC Interrupt Control Register
@@ -484,15 +470,14 @@ void setup() {
     Serial.begin(9600);
     Serial1.begin(UGV_BAUDRATE);
     Serial.println("\nOpening serial connection...");
-    while (!Serial || !Serial1) {;} // Wait until serial1 is ready
+    while (!Serial1) {;} // Wait until serial1 is ready
     Serial.println("Serial connection opened!");
   }
 
 }
 
-
-void loop() {
-
+void loop() 
+{
   uint32_t curr_time_us = micros();   // Should be made into 64 bit uint
 
   // TRANSMIT TELEMETRY TO RASPBERRY PI, PERFORM RASPBERRY PI COMMAND
@@ -519,12 +504,12 @@ void loop() {
   // OPERATE FEEDBACK LOOP ON ENCODERS
   if (MOTORS_ATTACHED)
   {
-    if (curr_time_us - last_flush_time_us > (ENCODER_PULSE_WINDOW_MS * 1000))
+    if (curr_time_us - last_flush_time_us > (ENC_PULSE_WINDOW_MS * 1000))
     {
       for (int i = 0; i < 6; i++) 
       {
         // pulses in window / pulses per revolution / length of window in ms * ms per minute
-        actual_rpms[i] = double(enc_pulse_counts[i]) / 753.2 / ENCODER_PULSE_WINDOW_MS * 60000;
+        actual_rpms[i] = float(enc_pulse_counts[i]) / ENC_PULSES_PER_REV / ENC_PULSE_WINDOW_MS * ENC_GEAR_RATIO * 60000;
         enc_pulse_counts[i] = 0;
       }
       last_flush_time_us = micros();
@@ -554,5 +539,4 @@ void loop() {
       last_sensor_sample_time_us = micros();
     }
   }
-
 }

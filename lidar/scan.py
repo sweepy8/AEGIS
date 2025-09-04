@@ -45,6 +45,11 @@ class Scanner():
         self.rings_per_cloud: int = 400
         self.steps_per_ring: int = int(100 * self.motor.ms_res_denom / self.rings_per_cloud)
         self.resolution: float = 180 / self.rings_per_cloud
+        self.is_scanning = False
+        self.scan_pct = 0.0
+        self.is_trimming = False
+        self.is_converting = False
+        self.is_saving = False
     
     def set_rings_per_cloud(self, num_rings: int) -> None:
         '''
@@ -86,9 +91,9 @@ class Scanner():
             cloud (list[list[float]]): A 3D point cloud array.
         """
 
-        print("[RUN] scan.py: Beginning cloud capture...")
-
         start_time_s: float = time.time()
+        self.is_scanning = True
+        print("[RUN] scan.py: Beginning cloud capture...")
 
         self.motor.set_dir("CCW")
 
@@ -113,17 +118,8 @@ class Scanner():
 
         print(f"[RUN] scan.py: Cloud captured in {duration_s} seconds ({num_points} points).")
 
+        self.is_scanning = False
         return cloud
-
-    def print_scan(self, cloud: list[list[float]], cartesian: bool = True) -> None:
-        """
-            Should this even exist? Probably not. Don't use this.
-        """
-
-        print("[RUN] scan.py: Printing cloud data...")
-        for index, point in enumerate(math_utils.sph_to_cart_array(cloud) if cartesian else cloud):
-            print(f"\t{index}: " + f"{' '.join([str(val) for val in point])}\n")
-        print("[RUN] scan.py: Cloud data finished printing!")
 
     def trim_cloud(self, cloud: list[list[float]], nonfat_pct: float = 0.2) -> list[list[float]]:
         '''
@@ -137,6 +133,7 @@ class Scanner():
             out (list[list[float]]): The trimmed point cloud.
         '''
 
+        self.is_trimming = True
         start_time_s: float = time.time()
 
         random.seed()
@@ -151,6 +148,7 @@ class Scanner():
               f"removed {num_pts_untrimmed - num_pts_untrimmed} points in "
               f"{duration_s} seconds.")
 
+        self.is_trimming = False
         return nonfat_cloud
     
     def convert_cloud(self, cloud: list[list[float]]) -> list[list[float]]:
@@ -164,6 +162,7 @@ class Scanner():
             cartesian_cloud (list[list[float]]): The converted cloud.
         """
 
+        self.is_converting = True
         start_time_s = time.time()
         print("[RUN] scan.py: Converting scan to Cartesian coordinates...")
         cartesian_cloud: list[list[float]] = math_utils.sph_to_cart_array(cloud)
@@ -173,6 +172,7 @@ class Scanner():
 
         print(f"[RUN] scan.py: Converted scan in {duration_s} seconds.")
         
+        self.is_converting = False
         return cartesian_cloud
 
     def save_cloud(self,  
@@ -190,6 +190,7 @@ class Scanner():
                 example, './path/to/cloud_19690420_080085.txt'.
         """
 
+        self.is_saving = True
         start_time_s: float = time.time()
         filename = file_utils.get_timestamped_filename(
             save_path=filepath,
@@ -203,6 +204,7 @@ class Scanner():
 
         print(f"[RUN] scan.py: Cloud saved in {duration_s} seconds.")
 
+        self.is_saving = False
         return filename
     
     def scan(self,

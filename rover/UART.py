@@ -17,6 +17,27 @@ from lidar import scan
 INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift
 
+scanner = scan.Scanner()
+
+def get_cpu_util() -> float:
+    if not hasattr(get_cpu_util, "last"):
+        get_cpu_util.last = 0.0               # type: ignore
+
+    non_idle = 0
+    # Get CPU utilization information
+    with open('/proc/stat') as f:
+        for line in f:
+            if line.startswith('cpu '):
+                parts = line.split()
+                user, nice, system, idle, iowait, irq, softirq, steal = map(float, parts[1:9])
+                idle_all  = idle + iowait
+                non_idle  = user + nice + system + irq + softirq + steal
+
+    curr_util = non_idle - get_cpu_util.last        # type: ignore
+    get_cpu_util.last = curr_util                                # type: ignore
+    return curr_util
+
+
 def open_serial_connection() -> Serial:
     '''
     Configures and opens a serial connection on UART2 (ttyAMA2) (GPIO 4/5).
@@ -88,7 +109,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> Non
             tel_dict = process_telemetry(ugv_data)
 
             filename: str = file_utils.update_telemetry_JSON(
-                dump_folder, filename, telemetry=tel_dict)
+                filepath=dump_folder, filename=filename, telemetry=tel_dict)
 
         except RuntimeError:
             print("[ERR] UART.py: INVALID ARDUINO TELEMETRY (BADLEN)\n")
@@ -170,19 +191,12 @@ def process_telemetry(data: bytes) -> dict:
     visible_light_l  = float(ard_vals[32].replace(val_prefixes[32], ''))
     infrared_light_l = float(ard_vals[33].replace(val_prefixes[33], ''))
 
-    batt_v = 0 #float(ard_vals[34].replace(val_prefixes[34], ''))
-    batt_a = 0 #float(ard_vals[35].replace(val_prefixes[35], ''))
-    batt_pct = 0                                                # TODO: COMPUTE 
+    batt_v = 0
+    batt_a = 0
+    batt_pct = 0    # TODO: COMPUTE 
 
     # POPULATE RASPBERRY PI TELEMETRY
-
-    # All of this is pretty messy. It directly pulls RPI values via shell 
-    # commands, so only worry about these if one of them breaks
-
-    cpu_util: list[str] = os.popen('top -bn1 | grep "%Cpu(s):"').read(
-        ).replace(',', ', ').split()
-    cpu_util_pct: float = 0 #100 - float(cpu_util[7])       TODO: FIX
-
+    cpu_util_pct: list[str] = get_cpu_util()    # type: ignore
     adc_vals: list[str] = os.popen('vcgencmd pmic_read_adc').read().split()
     fmt = lambda idx, pre, post: round(
         float(adc_vals[idx].replace(pre,'').replace(post,'')), 4)
@@ -192,7 +206,13 @@ def process_telemetry(data: bytes) -> dict:
     mem: list[str] = os.popen('free').read().split()[7:9]
     mem_util_pct: float = round(100*int(mem[1])/int(mem[0]), 2)
 
-    storage_avail_mb: str = os.popen('df -h /').read().split()[10]
+    storage_avail_str: str = os.popen('df -h /').read().split()[10]
+    if storage_avail_str.find('G') >= 0:
+        storage_avail_gb = float(storage_avail_str[:-1])
+    elif storage_avail_str.find('M') >= 0:
+        storage_avail_gb = float(storage_avail_str[:-1]) / 1000
+    else:
+        storage_avail_gb = 0.0
 
     uptime: str = os.popen("awk '{print $1}' /proc/uptime").read(
                             ).replace('\n', '')
@@ -203,29 +223,28 @@ def process_telemetry(data: bytes) -> dict:
 
     telemetry = {
         "rpi": {
-            "uptime_s": uptime_s,
-            "cpu_util_pct": cpu_util_pct,
-            "mem_util_pct": mem_util_pct,
-            "storage_avail_mb": storage_avail_mb,
-            "temp_c": soc_temp_c,
-            "vdd_core_a": vdd_core_a,
-            "vdd_core_v": vdd_core_v
+            "uptime_s":         uptime_s,
+            "cpu_util_pct":     cpu_util_pct,
+            "mem_util_pct":     mem_util_pct,
+            "storage_avail_gb": storage_avail_gb,
+            "temp_c":           soc_temp_c,
+            "vdd_core_a":       vdd_core_a,
+            "vdd_core_v":       vdd_core_v
         },
         "arduino": {
             "uptime_s": ard_up_s
         },
-        "lidar": {  # Modified from scan.py
-            "connected": False,
-            "scanning": False,
-            "scan_pct": 0,
-            "saving_file": False,
-            "motor_pos_deg": 0
+        "lidar": {
+            "scanning":      scanner.is_scanning,
+            "scan_pct":      scanner.scan_pct,
+            "trimming":      scanner.is_trimming,
+            "converting":    scanner.is_converting,
+            "saving":        scanner.is_saving,
+            "motor_pos_deg": scanner.motor.curr_angle
         },
-        "camera": { # Modified from camera.py
-            "connected": False,
-            "recording": False,
-            "streaming": False,
-            "last_file": None
+        "camera": {
+            "connected": camera.UGV_Cam.connected,
+            "recording": camera.UGV_Cam.recording,
         },
         "motors": {
             "front_left": {
@@ -275,7 +294,7 @@ def process_telemetry(data: bytes) -> dict:
             "ambient_infrared_l": infrared_light_l
         }
     }
-
+    
     return telemetry
 
 def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
@@ -291,8 +310,6 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
     xb_listener_thread = Thread(target=controller.listen, daemon=True)
     xb_listener_thread.start()
     time_since_last_command = time.time()
-
-    scanner = scan.Scanner()
 
     while True:
     
