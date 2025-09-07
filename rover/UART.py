@@ -29,8 +29,7 @@ def get_cpu_util() -> float:
     """
     with open(file='/proc/stat') as f:
         line: str | None = next((ln for ln in f if ln.startswith('cpu ')), None)
-    if not line:
-        return 0.0
+    if not line: return 0.0
 
     # Kernel Clock Ticks: user, nice, system, idle, iowait, irq, softirq, steal
     vals: list[float] = list(map(float, line.split()[1:9]))
@@ -39,25 +38,21 @@ def get_cpu_util() -> float:
 
     prev = getattr(get_cpu_util, "_prev", None)
     get_cpu_util._prev = (total, idle_all)                      #type: ignore
-    if not prev:
-        return 0.0
+    if not prev: return 0.0
 
     dt_total = total - prev[0]
-    if dt_total <= 0:
-        return 0.0
+    if dt_total <= 0: return 0.0
 
     util = (dt_total - (idle_all - prev[1])) / dt_total
-    util = round(util * 100, 2)
-    return util #max(0.0, min(1.0, util))
-
+    return round(util * 100, 2)
 
 def open_serial_connection() -> Serial:
-    '''
+    """
     Configures and opens a serial connection on UART2 (ttyAMA2) (GPIO 4/5).
 
     Returns:
         s (Serial): The configured and open serial port.
-    '''
+    """
     
     s = Serial()		    # Create serial connection
     s.port = '/dev/ttyAMA2'	# UART port on GPIO 4 and 5
@@ -75,7 +70,7 @@ def open_serial_connection() -> Serial:
     return s
 
 def read_data(serial_conn : Serial) -> bytes | None:
-    '''
+    """
     Reads in as many bytes as are available from the Arduino via the serial
     connection.
 
@@ -88,7 +83,7 @@ def read_data(serial_conn : Serial) -> bytes | None:
     Raises:
         RuntimeError: If the read_data function was called on a closed serial 
             port.
-    '''
+    """
 
     if serial_conn.is_open:
         if bytes_waiting := serial_conn.in_waiting > 0:
@@ -100,7 +95,7 @@ def read_data(serial_conn : Serial) -> bytes | None:
         raise RuntimeError("Attempted to read from closed serial port!")
     
 def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> None:
-    '''
+    """
     Captures telemetry data from the Arduino and writes it to the trip's 
     telemetry JSON file. If the data is malformed, skips the frame.
 
@@ -110,7 +105,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> Non
         start_time (str): The timestamp representing the start of the current 
             trip.
         dump_folder (str): The path to the telemetry JSON file's folder.
-    '''
+    """
 
     filename = f"tel_{start_time}.json"
 
@@ -128,7 +123,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> Non
             print("[ERR] UART.py: INVALID ARDUINO TELEMETRY (BADLEN)\n")
    
 def process_telemetry(data: bytes) -> dict:
-    '''
+    """
     Converts the bytestream from the Arduino into key-value pairs inside of a 
     telemetry dictionary.
 
@@ -139,7 +134,7 @@ def process_telemetry(data: bytes) -> dict:
     Raises:
         RuntimeError: If the Arduino's byte array does not contain the correct
             number of elements.
-    '''
+    """
 
     try:
         t_str: str = data.decode('utf-8')
@@ -311,7 +306,7 @@ def process_telemetry(data: bytes) -> dict:
     return telemetry
 
 def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
-    '''
+    """
     Enables the UGV to be piloted by a controller, such as an XBOX controller.
     Reads controller input states from a background listener thread. Includes 
     measures to prevent the overflowing of the Arduino command buffer.
@@ -319,58 +314,75 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
     Args:
         serial_conn (Serial): The serial connection between the Arduino and the
             Raspberry Pi.
-    '''
-    xb_listener_thread = Thread(target=controller.listen, daemon=True)
-    xb_listener_thread.start()
+    """
+    listener_thread = Thread(target=controller.listen, daemon=True)
+    listener_thread.start()
     time_since_last_command = time.time()
 
     while True:
-    
         current_time: float = time.time()
 
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
-
             # RIGHT TRIGGER: move forward
-            if (controller.input_states['BTN_RZ'] and
-            not controller.input_states['BTN_Z']):
-                move_command = generate_command(
-                    "MOVE", joy_pos=controller.input_states['BTN_RZ']
+            if (controller.input_states['BTN_RZ'] 
+            and not controller.input_states['BTN_Z'] 
+            and not controller.input_states['BTN_TR']):
+                serial_conn.write(
+                    generate_command(
+                        op = "MOVE", 
+                        spd = controller.input_states['BTN_RZ']
+                    )   # type: ignore
                 )
-                serial_conn.write(move_command)     #type: ignore
-
             # LEFT TRIGGER: move backward
-            if (controller.input_states['BTN_Z'] and 
-            not controller.input_states['BTN_RZ']):
-                move_command = generate_command(
-                    "MOVE", joy_pos=controller.input_states['BTN_Z'] * -1
+            if (controller.input_states['BTN_Z'] 
+            and not controller.input_states['BTN_RZ'] 
+            and not controller.input_states['BTN_TL']):
+                serial_conn.write(
+                    generate_command(
+                        op = "MOVE", 
+                        spd = controller.input_states['BTN_Z'] * -1
+                    )   # type: ignore
                 )
-                serial_conn.write(move_command)     #type: ignore
-
-            # LEFT BUMPER: spin turn left
-            if (controller.input_states['BTN_TL'] and not controller.input_states['BTN_START']):
-                move_command = generate_command("TURN", turn_dir="LEFT")
-                serial_conn.write(move_command)     #type: ignore
-
-            # RIGHT BUMPER: spin turn right
-            if (controller.input_states['BTN_TR'] and not controller.input_states['BTN_START']):
-                move_command = generate_command("TURN", turn_dir="RIGHT")
-                serial_conn.write(move_command)     #type: ignore
-
+            # LEFT BUMPER + RIGHT TRIGGER: spin turn left
+            if (controller.input_states['BTN_TL']
+            and controller.input_states['BTN_RZ']
+            and not controller.input_states['BTN_START']):
+                serial_conn.write(
+                    generate_command(
+                        op = "TURN", turn_dir = "LEFT",
+                        spd = controller.input_states['BTN_RZ']
+                    )   # type: ignore
+                )
+            # RIGHT BUMPER + RIGHT TRIGGER: spin turn right
+            if (controller.input_states['BTN_TR']
+            and controller.input_states['BTN_RZ']
+            and not controller.input_states['BTN_START']):
+                serial_conn.write(
+                    generate_command(
+                        op = "TURN", turn_dir = "RIGHT",
+                        spd = controller.input_states['BTN_RZ']
+                    )   # type: ignore
+                )
             if ugv_cam is not None:
                 # START + A: start recording
-                if (controller.input_states['BTN_START'] and 
-                controller.input_states['BTN_A'] and not ugv_cam.recording):
+                if (controller.input_states['BTN_START'] 
+                and controller.input_states['BTN_A'] 
+                and not ugv_cam.recording):
                     video_filename = ugv_cam.my_start_recording()
                     print(f"UART.py: Recording video to '{video_filename}'...")
 
                 # START + B: stop recording
-                if (controller.input_states['BTN_START'] and 
-                controller.input_states['BTN_B'] and ugv_cam.recording):
+                if (controller.input_states['BTN_START'] 
+                and controller.input_states['BTN_B'] 
+                and ugv_cam.recording):
                     ugv_cam.my_stop_recording()
-                    print(f"UART.py: Recording saved to '{video_filename}'.") #type: ignore
+                    print(f"UART.py: Recording saved to '{video_filename}'.")   # type: ignore
+
             else:
-                if ((controller.input_states['BTN_START'] and controller.input_states['BTN_A']) or 
-                (controller.input_states['BTN_START'] and controller.input_states['BTN_B'])):
+                if ((controller.input_states['BTN_START']
+                     and controller.input_states['BTN_A']) 
+                or  (controller.input_states['BTN_START']
+                     and controller.input_states['BTN_B'])):
                     print("[RUN] UART.py: No camera connected!")
 
             # START + Y: take LiDAR scan
@@ -398,57 +410,54 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
 
             time_since_last_command: float = current_time
     
-def generate_command(op : str, **kwargs) -> list[int]:
-    '''
+def generate_command(op : str, **kwargs) -> bytes | None:
+    """
     Generates instructions to be sent to the Arduino MEGA in accordance with a 
-    three-byte command structure. See documentation for more details.\n
-    This can probably be seriously reduced, maybe down to a single byte, but why
-    fix what isn't broken? See definition of 'technical debt' for more details.
+    simple one-byte command structure. MSB is op, second MSB is dir, the rest 
+    encode speed from 0 to 220.4 rpm with a resolution of about 3.5 rpm.
 
     Args:
         op (str): The category of command to transmit. Currently either "TURN"
             or "MOVE".
         **kwargs: A series of key-value pairs that depend on the op selected.
-            Currently TURN uses 'turn_dir' = 0 or 1, and MOVE uses 'joy_pos' = 
+            Currently TURN uses 'turn_dir' = 0 or 1, and both use 'spd' = 
             [-1, 1].
     Returns:
-        command (list[int]): A three-byte command to be sent to the Arduino.
-    '''
+        command (bytes): A one-byte command to be sent to the Arduino.
+    Raises:
+        OverflowError: If the command overflows the one byte container.
+    """
 
-    # See table in docs for 3-byte command structure
-    command: list[int] = [-1, -1, -1]
+    # MSB is op, second MSB is dir, the rest encode speed
+    command: int = 256  # Will raise OverflowError if not overwritten
     
-    if op == "TURN":
-        command[0] = 2 * (2**6)	    #1000_0000, opcode 10
-        
-        for key, val in kwargs.items():
-            if key == "turn_dir" and val == "RIGHT":
-                command[0] += 1
-            elif key == "turn_dir" and val == "LEFT":
-                command[0] += 0    # This is only here for readability
-
-        command[1] = 255	# Speed of spin turn on shoulder buttons, [0,255]
-        command[2] = 1      # Duration of spin turn on shoulder buttons
-            
     if op == "MOVE":
-        command[0] = 3 * (2**6)	    #1100_0000, opcode 11
-        
+        command = 0 << 7                        # 0000_0000
         for key, val in kwargs.items():
-            if key == "joy_pos":
-                command[0] += (val < 0)	# Sets direction (bit 0) to sign of joystick pos
-                command[1] = int(abs(val) * 255)    # Speed, [0,255]
+            if key == "spd":
+                command += (val < 0) << 6	    # Sets dir to bit seven
+                command += int(abs(val) * 63)   # Speed [0,63]
 
-        command[2] = 1
+    if op == "TURN":
+        command = 1 << 7	                    # 1000_0000
+        for key, val in kwargs.items():
+            if key == "spd":
+                command += int(abs(val) * 63)   # Speed [0,63]
+            if key == "turn_dir":
+                command += (val == "RIGHT") << 6
     
-    return command
+    try:
+        return command.to_bytes(1)
+    except OverflowError:
+        print("[ERR] UART.py: Invalid command generated!")
 
 def run_comms() -> None:
-    '''
+    """
     Establishes bidirectional UART communication between the Arduino and
     Raspberry Pi. Records the beginning of the trip, creates a trip folder,
     and spawns and joins two threads: one for the controls and one for the 
     telemetry retrieval.
-    '''
+    """
 
     trip_start_timestamp: str = file_utils.get_current_timestamp()
     trip_folder: str = file_utils.make_folder(
@@ -463,7 +472,7 @@ def run_comms() -> None:
         args=[serial_conn, trip_start_timestamp, trip_folder])
 
     controller_thread.start()
-    telemetry_thread.start()
-
     controller_thread.join()
+    
+    telemetry_thread.start()
     telemetry_thread.join()

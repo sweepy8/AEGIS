@@ -1,10 +1,16 @@
-// state.h
+/**
+ * state.h
+ * Created 9/6/2025
+ * 
+ * Initializes and stores state variables, e.g. timestamps and ISR-shared sets.
+ */
+
 #ifndef AEGIS_STATE_H
 #define AEGIS_STATE_H
 #include <Arduino.h>
 #include "config.h"
 
-// timestamps (updated from main thread)
+// Timestamps (updated from main thread)
 extern uint32_t last_command_time_us;
 extern uint32_t last_move_time_us;
 extern uint32_t last_ultra_sample_us;
@@ -17,10 +23,9 @@ extern bool skip_first_telemetry;
 
 // ISR-shared sets
 extern volatile uint16_t enc_pulse_counts[6];
-// encoder directions (byte is fine)
+// Encoder directions (byte is fine)
 extern volatile uint8_t  enc_directions[6];
-
-// ultrasonic distances (set in ISR helper)
+// Ultrasonic distances (set in ISR helper)
 extern volatile float ultrasonic_cm[num_ultrasonics];
 
 #endif

@@ -15,14 +15,16 @@ from multiprocessing import Process
 from rover import UART
 #from stream import web_viewer as site
 
-uart_p = Process(target=UART.run_comms, daemon=True)
-#site_p = Process(target=site.app.run, daemon=True)
+UART.run_comms()    # Test CPU Utilization
 
-print("[INI] aegis.py: Starting UART subprocess...")
-uart_p.start()
-#print("[INI] aegis.py: Starting website subprocess...")
-#site_p.start()
+# uart_p = Process(target=UART.run_comms, daemon=True)
+# #site_p = Process(target=site.app.run, daemon=True)
 
-print("[INI] aegis.py: Joining subprocesses...")
-uart_p.join()
-#site_p.join()
+# print("[INI] aegis.py: Starting UART subprocess...")
+# uart_p.start()
+# #print("[INI] aegis.py: Starting website subprocess...")
+# #site_p.start()
+
+# print("[INI] aegis.py: Joining subprocesses...")
+# uart_p.join()
+# #site_p.join()

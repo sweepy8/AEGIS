@@ -1,4 +1,10 @@
-// state.cpp
+/**
+ * state.cpp
+ * Created 9/6/2025
+ * 
+ * Initializes and stores state variables, e.g. timestamps and ISR-shared sets.
+ */
+
 #include "state.h"
 
 // Initialize times to zero

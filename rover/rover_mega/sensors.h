@@ -1,4 +1,11 @@
-// sensors.h
+/**
+ * sensors.h
+ * Created 9/6/2025
+ * 
+ * Provides functions to sample ultrasonic, light, and temp sensors, 
+ * and offload sampling calculations from ISRs. 
+ */
+
 #ifndef AEGIS_SENSORS_H
 #define AEGIS_SENSORS_H
 #include <Arduino.h>
