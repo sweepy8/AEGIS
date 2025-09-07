@@ -214,15 +214,18 @@ function populateSelector(category, selectorId, options) {
         // Populates trip selector with found trips
         if (Array.isArray(options) && options.length > 0) {
             options.forEach(tripName => {
-                const y = tripName.substring(0, 4);
-                const m = months[Number(tripName.substring(4,6))-1];
-                const d = tripName.substring(6,8);
-                const h = tripName.substring(9,11);
-                const min = tripName.substring(11,13);
-                const s = tripName.substring(13,15);
-                const tripLabel = (m+" "+d+", "+y+" "+h+":"+min+":"+s);
-
-                selector.appendChild(new Option(tripLabel, tripName));
+                // If trip name follows "YYYYMMDD_HHMMSS", clean it up
+                if (/\d{8}_\d{6}/.test(tripName)) {
+                    const y  = tripName.substring(0, 4);
+                    const mo = months[Number(tripName.substring(4,6))-1];
+                    const d  = tripName.substring(6,8);
+                    const h  = tripName.substring(9,11);
+                    const mi = tripName.substring(11,13);
+                    const s  = tripName.substring(13,15);
+                    const tripLabel = (mo+" "+d+", "+y+" "+h+":"+mi+":"+s);
+                    selector.appendChild(new Option(tripLabel, tripName));
+                // Otherwise just use it as is
+                } else selector.appendChild(new Option(tripName));
             });
         } else selector.appendChild(new Option("Error Loading Trips"));
         break;
