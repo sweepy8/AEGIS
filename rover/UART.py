@@ -11,31 +11,44 @@ import time
 from utils import serial_utils      # UGV_BAUDRATE
 from utils import file_utils        # make_telemetry_JSON(), update_telemetry_JSON(), TRIPS_FOLDER
 from rover import controller
-from rover import camera            # UGV_cam
+from rover import camera            # ugv_cam
 from lidar import scan
 
 INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift
 
 scanner = scan.Scanner()
+ugv_cam = camera.Camera()
 
 def get_cpu_util() -> float:
-    if not hasattr(get_cpu_util, "last"):
-        get_cpu_util.last = 0.0               # type: ignore
+    """
+    Helper function to capture last second of CPU utilization by comparing
+    jiffies. I swear, look it up.
+    Returns:
+        util (float): The CPU utilization percentage since the last call.
+    """
+    with open(file='/proc/stat') as f:
+        line: str | None = next((ln for ln in f if ln.startswith('cpu ')), None)
+    if not line:
+        return 0.0
 
-    non_idle = 0
-    # Get CPU utilization information
-    with open('/proc/stat') as f:
-        for line in f:
-            if line.startswith('cpu '):
-                parts = line.split()
-                user, nice, system, idle, iowait, irq, softirq, steal = map(float, parts[1:9])
-                idle_all  = idle + iowait
-                non_idle  = user + nice + system + irq + softirq + steal
+    # Kernel Clock Ticks: user, nice, system, idle, iowait, irq, softirq, steal
+    vals: list[float] = list(map(float, line.split()[1:9]))
+    idle_all: float = vals[3] + vals[4]
+    total: float = sum(vals)
 
-    curr_util = non_idle - get_cpu_util.last        # type: ignore
-    get_cpu_util.last = curr_util                                # type: ignore
-    return curr_util
+    prev = getattr(get_cpu_util, "_prev", None)
+    get_cpu_util._prev = (total, idle_all)                      #type: ignore
+    if not prev:
+        return 0.0
+
+    dt_total = total - prev[0]
+    if dt_total <= 0:
+        return 0.0
+
+    util = (dt_total - (idle_all - prev[1])) / dt_total
+    util = round(util * 100, 2)
+    return util #max(0.0, min(1.0, util))
 
 
 def open_serial_connection() -> Serial:
@@ -132,7 +145,7 @@ def process_telemetry(data: bytes) -> dict:
         t_str: str = data.decode('utf-8')
 
     except UnicodeDecodeError as e:
-        print("[ERR] UART.py: UTF8 DECODE ERROR, SOLVE THIS!\n")
+        print("[ERR] UART.py: UTF8 Decode Error\n")
         print(e)
         t_str: str = ''
 
@@ -243,8 +256,8 @@ def process_telemetry(data: bytes) -> dict:
             "motor_pos_deg": scanner.motor.curr_angle
         },
         "camera": {
-            "connected": camera.UGV_Cam.connected,
-            "recording": camera.UGV_Cam.recording,
+            "connected": ugv_cam.connected,
+            "recording": ugv_cam.recording,
         },
         "motors": {
             "front_left": {
@@ -343,17 +356,17 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
                 move_command = generate_command("TURN", turn_dir="RIGHT")
                 serial_conn.write(move_command)     #type: ignore
 
-            if camera.UGV_Cam is not None:
+            if ugv_cam is not None:
                 # START + A: start recording
                 if (controller.input_states['BTN_START'] and 
-                controller.input_states['BTN_A'] and not camera.UGV_Cam.recording):
-                    video_filename = camera.UGV_Cam.my_start_recording()
+                controller.input_states['BTN_A'] and not ugv_cam.recording):
+                    video_filename = ugv_cam.my_start_recording()
                     print(f"UART.py: Recording video to '{video_filename}'...")
 
                 # START + B: stop recording
                 if (controller.input_states['BTN_START'] and 
-                controller.input_states['BTN_B'] and camera.UGV_Cam.recording):
-                    camera.UGV_Cam.my_stop_recording()
+                controller.input_states['BTN_B'] and ugv_cam.recording):
+                    ugv_cam.my_stop_recording()
                     print(f"UART.py: Recording saved to '{video_filename}'.") #type: ignore
             else:
                 if ((controller.input_states['BTN_START'] and controller.input_states['BTN_A']) or 

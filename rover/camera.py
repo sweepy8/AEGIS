@@ -25,16 +25,19 @@ class Camera(Picamera2):
     """
 
     def __init__(self) -> None:
-        super(Camera, self).__init__()
-
-        self.config = self.create_video_configuration(
-            main=  {'format':'XRGB8888'},
-            lores= {'format':'RGB888'}
-        )
+        try:
+            super(Camera, self).__init__()
+            self.connected = True
+            self.config = self.create_video_configuration(
+                main=  {'format':'XRGB8888'},
+                lores= {'format':'RGB888'}
+            )
+        except:
+            print("[ERR] camera.py: No camera detected!")
+            self.connected = False
 
         self.video_quality = Quality.VERY_HIGH
         self.encoder = H264Encoder(repeat=True)
-        self.connected = True
         self.recording = False
 
     def my_start_recording(self) -> str | None:
@@ -82,6 +85,8 @@ def record_test(seconds : int) -> None:
     Args:
         seconds (int): The number of seconds to record a test video for.
     """
+
+    UGV_Cam = Camera()
     if (UGV_Cam is None):
         print("[ERR] camera.py: Can't run a camera test without a camera!")
         return
@@ -89,15 +94,3 @@ def record_test(seconds : int) -> None:
     UGV_Cam.my_start_recording()
     sleep(seconds)
     UGV_Cam.my_stop_recording()
-
-
-# Global UGV camera object to be shared between other modules.
-# Starts camera configured with 
-# Additional cameras could be instantiated here and shared similarly.
-try:
-    UGV_Cam = Camera()
-    UGV_Cam.start(config=UGV_Cam.config)
-    print("[INI] camera.py: UGV camera initialized successfully...")
-except IndexError:
-    print(f"[ERR] camera.py: Camera not connected!")
-    UGV_Cam = None
