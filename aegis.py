@@ -15,7 +15,7 @@ from multiprocessing import Process
 from rover import UART
 #from stream import web_viewer as site
 
-UART.run_comms()    # Test CPU Utilization
+UART.run_comms()
 
 # uart_p = Process(target=UART.run_comms, daemon=True)
 # #site_p = Process(target=site.app.run, daemon=True)

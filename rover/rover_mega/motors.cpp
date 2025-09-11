@@ -18,9 +18,9 @@ static const uint8_t rev_pattern[4]        = { 0,  1,  0,  1};
 static const uint8_t left_spin_pattern[4]  = { 0,  1,  1,  0};
 static const uint8_t right_spin_pattern[4] = { 1,  0,  0,  1};
 
-static float   rpm_sum[6] = {0,0,0,0,0,0};  // Encoder rpm accumulators
+static float rpm_inst[6] = {0,0,0,0,0,0};   // Latest instantaneous rpm
+static float rpm_sum[6] = {0,0,0,0,0,0};    // Encoder rpm accumulators
 static uint16_t rpm_count = 0;              // Ensures n=0 averages are skipped
-static float   rpm_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous rpm
 
 static inline void set_rpm_pwm(uint8_t pin, uint8_t rpm)
 {
@@ -62,7 +62,7 @@ void motors_move(move_dir dir, uint8_t rpm)
 
 void motors_stop() { motors_move(move_dir::stop, 0); }
 
-void motors_encoder_tick(uint32_t /*now_us*/)
+void motors_encoder_tick()
 {
   // Capture and clear encoder pulses (disable interrupts to avoid tearing)
   uint16_t counts[6];
@@ -74,13 +74,12 @@ void motors_encoder_tick(uint32_t /*now_us*/)
   }
   interrupts();
 
-  const float window_s = encoder_sample_period_us / 1000000;
+  const float window_s = 0.1f;
   for (int i = 0; i < 6; i++)
   {
     const float inst = float(counts[i]) 
                       / enc_pulses_per_rev 
                       / window_s 
-                      * enc_gear_ratio 
                       * 60;
     rpm_inst[i] = inst;
     rpm_sum[i] += inst;
@@ -104,7 +103,7 @@ void motors_handle_pcint0_encoders()
   static const uint8_t pos[4]    = { 0, 1, 2, 5};
   static const uint8_t a_pins[4] = {12,13,11,10};
   static const uint8_t b_pins[4] = {44,46,48,43};
-  static uint8_t a_state[4] =      { 0, 0, 0, 0};
+  static uint8_t a_state[4]      = { 0, 0, 0, 0};
 
   for (int i = 0; i < 4; i++) 
   {

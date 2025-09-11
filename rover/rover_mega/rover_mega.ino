@@ -61,7 +61,7 @@ void loop()
   if (motors_attached 
     && (now_us - last_encoder_sample_us) >= encoder_sample_period_us) 
   {
-    motors_encoder_tick(now_us);
+    motors_encoder_tick();
     last_encoder_sample_us = now_us;
   }
 

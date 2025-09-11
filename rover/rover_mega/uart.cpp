@@ -84,7 +84,7 @@ void uart_send_telemetry()
 {
   // Get and reset per-second averages
   float rpm_avg[6];         
-  motors_get_and_reset_rpm_avg(rpm_avg);
+  if (motors_attached) motors_get_and_reset_rpm_avg(rpm_avg);
   float us_avg[3] = {0, 0, 0}; 
   if (ultrasonics_attached) sensors_get_and_reset_ultra_avg(us_avg);
   sensor_avgs env{};
@@ -133,7 +133,7 @@ void uart_send_telemetry()
   }
   else { t_str += "TEMP=0|RHUM=0|LVIS=0|LINF=0|"; }
 
-  //Serial.println(t_str);        // Displays telemetry string over USB
+  //Serial.println(t_str);          // Displays telemetry string over USB
   Serial1.println(t_str);         // Sends telemetry string to Raspberry Pi
   last_talk_time_us = micros();
 }

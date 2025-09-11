@@ -7,7 +7,6 @@
  */
 
 #include <Arduino.h>
-#include <avr/interrupt.h>
 #include "config.h"
 #include "interrupts.h"
 

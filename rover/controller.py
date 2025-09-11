@@ -26,7 +26,7 @@ TRIG_NORMALIZER: float    =  1 / 1023
 
 # Believe it or not, same for XBOX and 8BitDo. Python is occasionally not awful
 INPUT_CODES: dict[int, str] = {
-    315: 'BTN_START',
+    315: 'BTN_START', 314: 'BTN_SELECT',
     304: 'BTN_A',  305: 'BTN_B', 307: 'BTN_X', 308: 'BTN_Y',
     310: 'BTN_TL', 311: 'BTN_TR', 
     2: 'BTN_Z',    3: 'ABS_RX',  4: 'ABS_RY',  5: 'BTN_RZ'
@@ -34,7 +34,8 @@ INPUT_CODES: dict[int, str] = {
 
 # To get controller state from another file, access 'input_states' directly.
 input_states: dict[str, int|float] = { 
-    'BTN_START': 0, 'BTN_A': 0, 'BTN_B': 0, 'BTN_X': 0, 'BTN_Y': 0,
+    'BTN_START': 0, 'BTN_SELECT': 0, 
+    'BTN_A': 0, 'BTN_B': 0, 'BTN_X': 0, 'BTN_Y': 0,
     'BTN_TL': 0.0, 'BTN_TR': 0.0,
     'BTN_Z': 0.0, 'ABS_RX': 0.0, 'ABS_RY': 0.0, 'BTN_RZ': 0.0
 }

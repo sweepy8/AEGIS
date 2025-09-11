@@ -17,6 +17,7 @@ from lidar import scan
 INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift
 
+tripping: bool = False
 scanner = scan.Scanner()
 ugv_cam = camera.Camera()
 
@@ -94,7 +95,7 @@ def read_data(serial_conn : Serial) -> bytes | None:
     else:
         raise RuntimeError("Attempted to read from closed serial port!")
     
-def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> None:
+def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str, controller_thread : Thread) -> None:
     """
     Captures telemetry data from the Arduino and writes it to the trip's 
     telemetry JSON file. If the data is malformed, skips the frame.
@@ -109,7 +110,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str) -> Non
 
     filename = f"tel_{start_time}.json"
 
-    while True:
+    while controller_thread.is_alive():
 
         ugv_data: bytes = serial_conn.read_until(expected=b'\n')
 
@@ -305,7 +306,7 @@ def process_telemetry(data: bytes) -> dict:
     
     return telemetry
 
-def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
+def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
     """
     Enables the UGV to be piloted by a controller, such as an XBOX controller.
     Reads controller input states from a background listener thread. Includes 
@@ -323,9 +324,11 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
         current_time: float = time.time()
 
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
+
             # RIGHT TRIGGER: move forward
             if (controller.input_states['BTN_RZ'] 
-            and not controller.input_states['BTN_Z'] 
+            and not controller.input_states['BTN_Z']
+            and not controller.input_states['BTN_TL']
             and not controller.input_states['BTN_TR']):
                 serial_conn.write(
                     generate_command(
@@ -336,7 +339,8 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
             # LEFT TRIGGER: move backward
             if (controller.input_states['BTN_Z'] 
             and not controller.input_states['BTN_RZ'] 
-            and not controller.input_states['BTN_TL']):
+            and not controller.input_states['BTN_TL']
+            and not controller.input_states['BTN_TR']):
                 serial_conn.write(
                     generate_command(
                         op = "MOVE", 
@@ -377,7 +381,6 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
                 and ugv_cam.recording):
                     ugv_cam.my_stop_recording()
                     print(f"UART.py: Recording saved to '{video_filename}'.")   # type: ignore
-
             else:
                 if ((controller.input_states['BTN_START']
                      and controller.input_states['BTN_A']) 
@@ -386,27 +389,34 @@ def control_UGV(serial_conn : Serial, dump_folder: str) -> None:
                     print("[RUN] UART.py: No camera connected!")
 
             # START + Y: take LiDAR scan
-            if (controller.input_states['BTN_START'] and
-            controller.input_states['BTN_Y']):
+            if (controller.input_states['BTN_START']
+            and controller.input_states['BTN_Y']):
                 scanner.scan(filepath=dump_folder)
 
             # START + RIGHT BUMPER: increase scan resolution
-            if (controller.input_states['BTN_START'] and
-            controller.input_states['BTN_TR']):
+            if (controller.input_states['BTN_START'] 
+            and controller.input_states['BTN_TR']):
                 if (scanner.rings_per_cloud < 1600):
                     scanner.set_rings_per_cloud(
                         num_rings=scanner.rings_per_cloud * 2)
                     print(f"[RUN] UART.py: Increased scan resolution to "
                           f"{scanner.rings_per_cloud} rings.")
-                
+                    
             # START + LEFT BUMPER: decrease scan resolution
-            if (controller.input_states['BTN_START'] and
-            controller.input_states['BTN_TL']):
+            if (controller.input_states['BTN_START']
+            and controller.input_states['BTN_TL']):
                 if (scanner.rings_per_cloud > 50):
                     scanner.set_rings_per_cloud(
                         num_rings=int(scanner.rings_per_cloud / 2))
                     print(f"[RUN] UART.py: Decreased scan resolution to "
                           f"{scanner.rings_per_cloud} rings.")
+                    
+            # START + SELECT: end trip
+            if (controller.input_states['BTN_START']
+            and controller.input_states['BTN_SELECT']
+            and tripping):
+                tripping = False
+                return
 
             time_since_last_command: float = current_time
     
@@ -458,7 +468,8 @@ def run_comms() -> None:
     and spawns and joins two threads: one for the controls and one for the 
     telemetry retrieval.
     """
-
+    
+    tripping = True
     trip_start_timestamp: str = file_utils.get_current_timestamp()
     trip_folder: str = file_utils.make_folder(
         file_utils.TRIPS_FOLDER, trip_start_timestamp)
@@ -467,12 +478,23 @@ def run_comms() -> None:
     serial_conn: Serial = open_serial_connection()
     
     controller_thread = Thread(target=control_UGV,
-        args=[serial_conn, trip_folder])
+                                args=[
+                                    serial_conn,
+                                    trip_folder,
+                                    tripping
+                                ],
+        daemon=True
+    )
     telemetry_thread = Thread(target=listen_to_UGV, 
-        args=[serial_conn, trip_start_timestamp, trip_folder])
+                                args=[
+                                    serial_conn, 
+                                    trip_start_timestamp, 
+                                    trip_folder, 
+                                    controller_thread
+                                ]
+    )
 
-    controller_thread.start()
-    controller_thread.join()
-    
+    controller_thread.start()   # Background thread, exit signals tel exit
+
     telemetry_thread.start()
     telemetry_thread.join()
