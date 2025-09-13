@@ -15,6 +15,13 @@
 static const char* motor_names[6]      = {"LF","LM","LR","RF","RM","RR"};
 static const char* ultrasonic_names[5] = {"USLI","USLF","USCT","USRT","USRR"};
 
+/*
+Captures, processes, and executes byte command from Raspberry Pi.
+Command structure: 
+  bit 7: 0 for MOVE, 1 for TURN
+  bit 6: [0 for FWD, 1 for REV] (MOVE), [0 for LEFT, 1 for RIGHT] (TURN)
+  bits 0-5: speed (0 to 220.4 rpm with a resolution of about 3.5 rpm)
+*/
 void uart_do_command() 
 {
   last_command_time_us = micros();
@@ -80,6 +87,9 @@ void uart_do_command()
   }
 }
 
+/*
+Builds and transmits telemetry string.
+*/
 void uart_send_telemetry() 
 {
   // Get and reset per-second averages

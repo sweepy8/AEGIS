@@ -23,9 +23,7 @@ extern bool skip_first_telemetry;
 
 // ISR-shared sets
 extern volatile uint16_t enc_pulse_counts[6];
-// Encoder directions (byte is fine)
 extern volatile uint8_t  enc_directions[6];
-// Ultrasonic distances (set in ISR helper)
 extern volatile float ultrasonic_cm[num_ultrasonics];
 
 #endif

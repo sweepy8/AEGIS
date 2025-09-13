@@ -45,12 +45,11 @@ void loop()
 {
   const uint64_t now_us = micros();
 
-  // Periodic Sampling
+  // Periodic sensor and encoder sampling
   if (ultrasonics_attached 
     && (now_us - last_ultra_sample_us) >= ultrasonic_sample_period_us) 
   {
-    sensors_ultrasonics_tick(now_us);
-    last_ultra_sample_us = now_us;
+    sensors_ultrasonics_tick(now_us); // updates last_ultra_sample_us internally
   }
   if (sensors_attached 
     && (now_us - last_env_sample_us) >= sensor_sample_period_us) 
@@ -65,14 +64,14 @@ void loop()
     last_encoder_sample_us = now_us;
   }
 
-  // Recieve Movement Command
+  // Movement command processing and execution
   if (uart_attached) 
   {
     if (now_us - last_command_time_us > command_threshold_us) 
     { 
       uart_do_command();
     } 
-    // This prevents jerking due to millisecond gap between commands
+    // This prevents jerking due to brief gap between commands
     else if (ugv_is_moving 
           && (now_us - last_move_time_us > (3 * command_threshold_us))) 
     {
@@ -82,7 +81,7 @@ void loop()
     }
   }
 
-  // Send Telemetry String
+  // Telemetry generation and transmission
   if (uart_attached 
     && (now_us - last_talk_time_us) >= telemetry_period_us) 
   {

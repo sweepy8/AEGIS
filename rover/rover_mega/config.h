@@ -9,7 +9,7 @@
 #define AEGIS_CONFIG_H
 #include <Arduino.h>
 
-// Feature Flags
+// Subsytem Flags
 constexpr bool uart_attached        = true;
 constexpr bool motors_attached      = true;
 constexpr bool sensors_attached     = false;    // SHTC3 + LTR-329

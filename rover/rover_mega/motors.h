@@ -16,10 +16,8 @@ void motors_setup();
 void motors_move(move_dir dir, uint8_t rpm);
 void motors_stop();
 
-// called from loop: turn encoder pulses into instantaneous rpm & accumulate
 void motors_encoder_tick();
 
-// return 1-second rpm averages (and reset accumulators)
 void motors_get_and_reset_rpm_avg(float out_avg_rpm[6]);
 
 void motors_handle_pcint0_encoders();
