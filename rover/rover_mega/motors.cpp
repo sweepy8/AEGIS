@@ -155,8 +155,8 @@ void motors_handle_pcint1_encoders()
 {
   // Encoders on PJ0, PJ1
   static const uint8_t pos[2]    = { 3, 4};
-  static const uint8_t a_pins[2] = {15,14};
-  static const uint8_t b_pins[2] = {41,39};
+  static const uint8_t a_pins[2] = {enc_a_pins[3], enc_a_pins[4]};
+  static const uint8_t b_pins[2] = {enc_b_pins[3], enc_b_pins[4]};
   static uint8_t a_state[2]      = { 0, 0};
 
   for (int i = 0; i < 2; i++) 
