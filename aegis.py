@@ -13,18 +13,18 @@
 from multiprocessing import Process
 
 from rover import UART
-#from stream import web_viewer as site
+from stream import web_viewer as site
 
-UART.run_comms()
+# UART.run_comms()
 
-# uart_p = Process(target=UART.run_comms, daemon=True)
-# #site_p = Process(target=site.app.run, daemon=True)
+uart_p = Process(target=UART.run_comms)
+site_p = Process(target=site.app.run)
 
-# print("[INI] aegis.py: Starting UART subprocess...")
-# uart_p.start()
-# #print("[INI] aegis.py: Starting website subprocess...")
-# #site_p.start()
+print("[INI] aegis.py: Starting UART subprocess...")
+uart_p.start()
+print("[INI] aegis.py: Starting website subprocess...")
+site_p.start()
 
-# print("[INI] aegis.py: Joining subprocesses...")
-# uart_p.join()
-# #site_p.join()
+print("[INI] aegis.py: Joining subprocesses...")
+uart_p.join()
+site_p.join()

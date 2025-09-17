@@ -320,7 +320,7 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
     listener_thread.start()
     time_since_last_command = time.time()
 
-    while True:
+    while tripping:
         current_time: float = time.time()
 
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
@@ -415,8 +415,8 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
             if (controller.input_states['BTN_START']
             and controller.input_states['BTN_SELECT']
             and tripping):
-                tripping = False
-                return
+                print("[RUN] UART.py: Trip terminated.")
+                tripping = False # Breaks out of control loop
 
             time_since_last_command: float = current_time
     
@@ -485,6 +485,8 @@ def run_comms() -> None:
                                 ],
         daemon=True
     )
+
+
     telemetry_thread = Thread(target=listen_to_UGV, 
                                 args=[
                                     serial_conn, 
