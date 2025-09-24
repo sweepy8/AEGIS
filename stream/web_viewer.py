@@ -21,10 +21,6 @@ def render_home_page():
 def render_telemetry_page():
     return render_template('telemetry.html')
 
-@app.route('/admin')
-def render_admin_page():
-    return render_template('admin.html')
-
 @app.route('/about')
 def render_about_page():
     return render_template('about.html')

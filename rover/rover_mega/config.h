@@ -13,7 +13,7 @@
 constexpr bool uart_attached        = true;
 constexpr bool motors_attached      = true;
 constexpr bool sensors_attached     = false;    // SHTC3 + LTR-329
-constexpr bool ultrasonics_attached = false;
+constexpr bool ultrasonics_attached = true;
 
 // Serial Parameters
 constexpr uint32_t mega_baudrate = 460800;     // Baud of serial

@@ -18,6 +18,8 @@ void motors_stop();
 
 void motors_encoder_tick();
 
+void get_pid_rpms(uint8_t target);
+
 void motors_get_and_reset_rpm_avg(float out_avg_rpm[6]);
 
 void motors_handle_pcint0_encoders();
