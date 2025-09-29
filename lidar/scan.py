@@ -11,6 +11,7 @@ from lidar import lidar
 from lidar import motor
 from utils import file_utils    # get_timestamped_filename()
 from utils import math_utils    # sph_to_cart_array()
+from utils.led_utils import *   # set_pixel
 
 
 class Scanner():
@@ -100,6 +101,16 @@ class Scanner():
         cloud: list[list[float]] = []
 
         while self.motor.curr_angle < 180:
+            if (self.motor.curr_angle >= 0 and self.motor.curr_angle < 45):
+                set_pixel(LQ1_ADDR, PX_WHITE)
+            if (self.motor.curr_angle >= 45 and self.motor.curr_angle < 90):
+                set_pixel(LQ2_ADDR, PX_WHITE)     
+            if (self.motor.curr_angle >= 90 and self.motor.curr_angle < 135):
+                set_pixel(LQ3_ADDR, PX_WHITE)
+            if (self.motor.curr_angle >= 135 and self.motor.curr_angle < 180):
+                set_pixel(LQ4_ADDR, PX_WHITE)
+
+
             self.lidar.open_serial()    # See cylindrical distortion error in documentation
 
             ring: list[list[float]] = self.lidar.capture_ring(motor_angle=self.motor.curr_angle)
@@ -107,6 +118,11 @@ class Scanner():
             self.motor.turn("CCW", self.steps_per_ring)
 
             self.lidar.close_serial()
+
+        set_pixel(LQ1_ADDR, PX_OFF)
+        set_pixel(LQ2_ADDR, PX_OFF)
+        set_pixel(LQ3_ADDR, PX_OFF)
+        set_pixel(LQ4_ADDR, PX_OFF)
 
         self.motor.set_dir("CW")
         self.motor.turn("CW", self.motor.ms_res_denom * 100)
@@ -165,13 +181,20 @@ class Scanner():
         self.is_converting = True
         start_time_s = time.time()
         print("[RUN] scan.py: Converting scan to Cartesian coordinates...")
+
+        set_pixel(LQ2_ADDR, PX_WHITE)
+        set_pixel(LQ3_ADDR, PX_WHITE)
+        set_pixel(LQ4_ADDR, PX_WHITE)
         cartesian_cloud: list[list[float]] = math_utils.sph_to_cart_array(cloud)
+        set_pixel(LQ2_ADDR, PX_OFF)
+        set_pixel(LQ3_ADDR, PX_OFF)
+        set_pixel(LQ4_ADDR, PX_OFF)
 
         duration_s: float = time.time() - start_time_s
         duration_s = round(duration_s, 2)
 
         print(f"[RUN] scan.py: Converted scan in {duration_s} seconds.")
-        
+
         self.is_converting = False
         return cartesian_cloud
 
@@ -191,7 +214,12 @@ class Scanner():
         """
 
         self.is_saving = True
+
         start_time_s: float = time.time()
+
+        set_pixel(LQ3_ADDR, PX_WHITE)
+        set_pixel(LQ4_ADDR, PX_WHITE)
+
         filename = file_utils.get_timestamped_filename(
             save_path=filepath,
             prefix='cloud', ext='.txt')
@@ -203,6 +231,9 @@ class Scanner():
         duration_s = round(duration_s, 2)
 
         print(f"[RUN] scan.py: Cloud saved in {duration_s} seconds.")
+
+        set_pixel(LQ3_ADDR, PX_OFF)
+        set_pixel(LQ4_ADDR, PX_OFF)
 
         self.is_saving = False
         return filename
@@ -231,13 +262,17 @@ class Scanner():
 
         start_time_s = time.time()
         cloud: list[list[float]] = self.capture_cloud()
+        set_pixel(LQ1_ADDR, PX_GREEN)
+
         if trim and nonfat_pct:
             cloud = self.trim_cloud(cloud, nonfat_pct)
+            set_pixel(LQ2_ADDR, PX_GREEN)
         if convert:
             cloud = self.convert_cloud(cloud)
+            set_pixel(LQ3_ADDR, PX_GREEN)
         if save:
             filename: str = self.save_cloud(cloud=cloud, filepath=filepath)
-
+            set_pixel(LQ4_ADDR, PX_GREEN)
             duration_s: float = time.time() - start_time_s
             duration_s = round(duration_s, 2)
 
