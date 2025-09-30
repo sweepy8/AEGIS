@@ -3,22 +3,17 @@
     and raw accel/gyro/mag, linear accel, gravity
 */
 
-// check if proper arduino is being used
-#if (defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_LEONARDO) || defined(ARDUINO_AVR_NANO))
-  #error "This sketch needs more RAM than classic AVR Uno/Leonardo/Nano. Use a Mega 2560, RP2040, SAMD, ESP32, etc. Alternatively, use the UART-RVC sketch below."
-#endif
-
 // libraries
 #include <Wire.h>
 #include <Adafruit_BNO08x.h>   // need to install "Adafruit BNO08x" via Library Manager
 
 // need to config for our address!!
-#define BNO08X_I2C_ADDR 0x4A   // 0x4A default, 0x4B if DI pin is tied high
-// Choose report interval (in microseconds) 20000us = 50 Hz
+#define BNO08X_I2C_ADDR 0x4A   // 0x4A default
+// choose report interval (in microseconds) 20000us = 50 Hz
 const uint32_t REPORT_US = 20000;
 
 // maybe set I2C clock faster if board supports it
-const uint32_t I2C_HZ = 400000; // 100k or 400k
+const uint32_t I2C_HZ = 400000; // 400k
 
 // create driver object; reset pin is optional (-1 if not wired)
 #define BNO08X_RESET -1
@@ -39,15 +34,10 @@ void setup() {
 
     // start serial testbench
     Serial.begin(115200);
-    while (!Serial) { delay(10); }
-    Serial.println(F("\nBNO085 / BNO08x I2C Testbench"));
+    while (!Serial) { delay(100); } // 100 ms
+    Serial.println(F("\nBNO085 / BNO085 I2C Testbench"));
 
-     Wire.begin();
-        #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32)
-            Wire.setClock(I2C_HZ);
-        #endif
-
-    Serial.print(F("Initializing BNO08x at I2C 0x"));
+    Serial.print(F("Initializing BNO085 at I2C 0x"));
     Serial.println(BNO08X_I2C_ADDR, HEX);
 
     // error checking
@@ -56,7 +46,6 @@ void setup() {
         Serial.println(F("Tips:"));
         Serial.println(F("  * Check wiring (VIN/GND/SCL/SDA) and board voltage"));
         Serial.println(F("  * Address is 0x4A by default (0x4B if DI pulled high)"));
-        Serial.println(F("  * Uno/Leonardo not supported by this library"));
         while (1) delay(10);
     }
     Serial.println(F("BNO08x Found!"));
@@ -81,8 +70,8 @@ void setup() {
 
 // testbench loop
 void loop() {
-    // read new events at ~100 Hz
-    delay(10);
+    // read new events at ~10 Hz = 100 ms
+    delay(100);
 
     // if sensor reset, re-enable reports
     if (bno08x.wasReset()) {
@@ -105,15 +94,15 @@ void loop() {
         float x = sensorValue.un.gameRotationVector.i;
         float y = sensorValue.un.gameRotationVector.j;
         float z = sensorValue.un.gameRotationVector.k;
-
+/*
         Serial.print(F("[Quat] w: ")); Serial.print(w, 6);
         Serial.print(F(" x: "));       Serial.print(x, 6);
         Serial.print(F(" y: "));       Serial.print(y, 6);
         Serial.print(F(" z: "));       Serial.println(z, 6);
-
+*/
         printEulerFromQuaternion(w, x, y, z);
         } break;
-
+/*
         // print acceleration value
         case SH2_ACCELEROMETER:
         Serial.print(F("[Accel m/s^2] X: ")); Serial.print(sensorValue.un.accelerometer.x, 3);
@@ -148,14 +137,14 @@ void loop() {
         Serial.print(F(" Y: "));                Serial.print(sensorValue.un.gravity.y, 3);
         Serial.print(F(" Z: "));                Serial.println(sensorValue.un.gravity.z, 3);
         break;
-
+*/
     default:
       // set up a default case
       break;
-    }
+    } 
 }
 
-// if reset occurs, re-enable reports
+// enable reports at desired rate
 void enableDesiredReports() {
     Serial.println(F("Enabling reports (50 Hz each)..."));
     bool ok = true;
