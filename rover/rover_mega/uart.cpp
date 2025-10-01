@@ -95,10 +95,12 @@ void uart_send_telemetry()
   // Get and reset per-second averages
   float rpm_avg[6];         
   if (motors_attached) motors_get_and_reset_rpm_avg(rpm_avg);
+  sensor_avgs env{};
+  if (env_sensors_attached) sensors_get_and_reset_env_avg(env);
+  imu_avgs imu_avg{};
+  if (imu_attached) sensors_get_and_reset_imu_avg(imu_avg);
   float us_avg[3] = {0, 0, 0}; 
   if (ultrasonics_attached) sensors_get_and_reset_ultra_avg(us_avg);
-  sensor_avgs env{};
-  if (sensors_attached) sensors_get_and_reset_env_avg(env);
 
   // Build telemetry string
   String t_str; 
@@ -132,9 +134,19 @@ void uart_send_telemetry()
   } 
   else { t_str += "USLI=0|USLF=0|USCT=0|USRT=0|USRR=0|"; }
 
-  t_str  += "GR=0|GP=0|GY=0|AX=0|AY=0|AZ=0|";    // TODO: Remove IMU stuff
+  if (imu_attached)
+  {
+    t_str += "R=" + String(imu_avg.pose.roll, 1) + "|";
+    t_str += "P=" + String(imu_avg.pose.pitch, 1) + "|";
+    t_str += "Y=" + String(imu_avg.pose.yaw, 1) + "|";
+    t_str += "AX=" + String(imu_avg.accx, 4) + "|";
+    t_str += "AY=" + String(imu_avg.accy, 4) + "|";
+    t_str += "AZ=" + String(imu_avg.accz, 4) + "|";
+    
+  }
+  t_str  += "R=0|P=0|Y=0|AX=0|AY=0|AZ=0|";   
 
-  if (sensors_attached) 
+  if (env_sensors_attached) 
   {
     t_str += "TEMP=" + String(env.temp_c, 1)  + "|";
     t_str += "RHUM=" + String(env.rel_hum, 2) + "|";

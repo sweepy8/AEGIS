@@ -10,10 +10,11 @@
 #include <Arduino.h>
 
 // Subsytem Flags
-constexpr bool uart_attached        = true;
-constexpr bool motors_attached      = true;
-constexpr bool sensors_attached     = false;    // SHTC3 + LTR-329
-constexpr bool ultrasonics_attached = false;
+constexpr bool uart_attached        = true;  // ARD <-> RPI
+constexpr bool motors_attached      = true;  // Yellowjackets
+constexpr bool env_sensors_attached = false; // SHTC3 + LTR-329
+constexpr bool imu_attached         = false; // BNO-085
+constexpr bool ultrasonics_attached = false; // HC-SR04
 
 // Serial Parameters
 constexpr uint32_t mega_baudrate = 460800;     // Baud of serial
@@ -23,6 +24,7 @@ constexpr uint32_t ugv_baudrate  = 115200;     // Baud of serial1
 constexpr uint32_t telemetry_period_us         = 1000000;  // 1  Hz
 constexpr uint32_t ultrasonic_sample_period_us =  100000;  // 10 Hz
 constexpr uint32_t sensor_sample_period_us     =  100000;  // 10 Hz
+constexpr uint32_t imu_sample_period_us        =  100000;  // 10 Hz
 constexpr uint32_t encoder_sample_period_us    =  100000;  // 10 Hz
 constexpr uint32_t command_threshold_us        =   50000;  // 20 Hz
 
@@ -52,7 +54,7 @@ constexpr uint8_t  num_ultrasonics = 3;
 constexpr uint8_t  ultra_trig_pins[num_ultrasonics] = {47, 49, 45};
 constexpr uint8_t  ultra_echo_pins[num_ultrasonics] = {52, 53, 51};
 constexpr uint32_t trig_pulse_us = 10;
-constexpr int      safe_dist_cm = -100; // Currently effectively disabled
+constexpr int      safe_dist_cm = 10;
 constexpr float    speed_of_sound_mps = 345.0;   // 343 @ 20C + 0.6 per degC
 
 #endif

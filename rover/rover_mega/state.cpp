@@ -12,6 +12,7 @@ uint32_t last_command_time_us   = 0;
 uint32_t last_move_time_us      = 0;
 uint32_t last_ultra_sample_us   = 0;
 uint32_t last_env_sample_us     = 0;
+uint32_t last_imu_sample_us     = 0;
 uint32_t last_encoder_sample_us = 0;
 uint32_t last_talk_time_us      = 0;
 

@@ -30,9 +30,11 @@
 
 void setup() 
 {
-  if (motors_attached)                          { motors_setup(); }
-  if (ultrasonics_attached || sensors_attached) { sensors_setup(); }
-  if (motors_attached || sensors_attached)      { interrupts_setup(); }
+  if (motors_attached)                              { motors_setup(); }
+  if (ultrasonics_attached 
+      || env_sensors_attached
+      || imu_attached)                              { sensors_setup(); }
+  if (motors_attached || ultrasonics_attached)      { interrupts_setup(); }
   if (uart_attached) 
   {
     Serial.begin(mega_baudrate);
@@ -49,9 +51,16 @@ void loop()
   if (ultrasonics_attached 
     && (now_us - last_ultra_sample_us) >= ultrasonic_sample_period_us) 
   {
-    sensors_ultrasonics_tick(now_us); // updates last_ultra_sample_us internally
+    sensors_ultrasonics_tick(now_us);
+    // updates last_ultra_sample_us internally
   }
-  if (sensors_attached 
+  if (imu_attached
+    && (now_us - last_imu_sample_us) >= imu_sample_period_us)
+  {
+    sensors_imu_tick(now_us);
+    last_imu_sample_us = now_us;
+  }
+  if (env_sensors_attached 
     && (now_us - last_env_sample_us) >= sensor_sample_period_us) 
   {
     sensors_env_tick(now_us);

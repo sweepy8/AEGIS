@@ -11,12 +11,12 @@
 #include "config.h"
 #include "state.h"
 
-// Movement patterns                          LF, LR, RF, RR
-static const uint8_t stop_pattern[4]       = { 0,  0,  0,  0};
-static const uint8_t fwd_pattern[4]        = { 1,  0,  1,  0};
-static const uint8_t rev_pattern[4]        = { 0,  1,  0,  1};
-static const uint8_t left_spin_pattern[4]  = { 0,  1,  1,  0};
-static const uint8_t right_spin_pattern[4] = { 1,  0,  0,  1};
+// Movement patterns                    LF, LR, RF, RR
+static uint8_t stop_pattern[4]       = { 0,  0,  0,  0};
+static uint8_t fwd_pattern[4]        = { 1,  0,  1,  0};
+static uint8_t rev_pattern[4]        = { 0,  1,  0,  1};
+static uint8_t left_spin_pattern[4]  = { 0,  1,  1,  0};
+static uint8_t right_spin_pattern[4] = { 1,  0,  0,  1};
 
 static float rpm_inst[6] = {0,0,0,0,0,0};   // Latest instantaneous rpm
 static float rpm_sum[6] = {0,0,0,0,0,0};    // Encoder rpm accumulators
