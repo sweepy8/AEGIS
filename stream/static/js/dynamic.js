@@ -54,6 +54,13 @@ const traceLabels = {
     ".ultrasonics.right_cm":            "Right Ultrasonic Distance [cm]",
     ".ultrasonics.rear_cm":             "Rear Ultrasonic Distance [cm]",
 
+    "imu.roll_deg":                     "IMU Roll [deg]",
+    "imu.pitch_deg":                    "IMU Pitch [deg]",
+    "imu.yaw_deg":                      "IMU Yaw [deg]",
+    "imu.accel_x_mps2":                 "IMU X Acceleration [m/s^2]",
+    "imu.accel_y_mps2":                 "IMU Y Acceleration [m/s^2]",
+    "imu.accel_z_mps2":                 "IMU Z Acceleration [m/s^2]",
+
     ".ugv.battery.capacity_pct":        "UGV Battery Remaining [%]",
     ".ugv.battery.voltage_v":           "UGV Battery Voltage [V]",
     ".ugv.battery.current_a":           "UGV Battery Current [A]",
@@ -92,6 +99,14 @@ const telPlotsMap = {
         ".lidar.converting",
         ".lidar.saving",
         ".lidar.motor_pos_deg",
+    ],
+    "Intertial Measurements": [
+        "imu.roll_deg",   
+        "imu.pitch_deg",
+        "imu.yaw_deg",
+        "imu.accel_x_mps2",
+        "imu.accel_y_mps2",
+        "imu.accel_z_mps2",
     ],
     "Camera Information": [
         ".camera.connected",

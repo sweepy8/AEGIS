@@ -131,7 +131,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str, contro
 def process_telemetry(data: bytes) -> dict:
     """
     Converts the bytestream from the Arduino into key-value pairs inside of a 
-    telemetry dictionary.
+    telemetry dictionary. This is terrible and I'm sorry.
 
     Args:
         t_str (bytes): The unprocessed telemetry byte array from the Arduino.
@@ -158,7 +158,7 @@ def process_telemetry(data: bytes) -> dict:
         "LFV=", "LFA=", "LFR=", "LMV=", "LMA=", "LMR=", "LRV=", "LRA=", "LRR=",
         "RFV=", "RFA=", "RFR=", "RMV=", "RMA=", "RMR=", "RRV=", "RRA=", "RRR=",
         "USLI=", "USLF=", "USCT=", "USRT=", "USRR=",
-        "GR=", "GP=", "GY=", "AX=", "AY=", "AZ=",
+        "R=", "P=", "Y=", "AX=", "AY=", "AZ=",
         "TEMP=", "RHUM=", "LVIS=", "LINF="
         #"BV=", "BA="
     ]
@@ -201,12 +201,12 @@ def process_telemetry(data: bytes) -> dict:
     us_rr_cm = float(ard_vals[23].replace(val_prefixes[23], ''))
     map_ultrasonic_to_pixel(USRR_ADDR, us_rr_cm)
 
-    imu_gr_dps  = float(ard_vals[24].replace(val_prefixes[24], ''))
-    imu_gp_dps  = float(ard_vals[25].replace(val_prefixes[25], ''))
-    imu_gy_dps  = float(ard_vals[26].replace(val_prefixes[26], ''))
-    imu_ax_mps2 = float(ard_vals[27].replace(val_prefixes[27], ''))
-    imu_ay_mps2 = float(ard_vals[28].replace(val_prefixes[28], ''))
-    imu_az_mps2 = float(ard_vals[29].replace(val_prefixes[29], ''))
+    imu_roll_deg  = float(ard_vals[24].replace(val_prefixes[24], ''))
+    imu_pitch_deg = float(ard_vals[25].replace(val_prefixes[25], ''))
+    imu_yaw_deg   = float(ard_vals[26].replace(val_prefixes[26], ''))
+    imu_ax_mps2   = float(ard_vals[27].replace(val_prefixes[27], ''))
+    imu_ay_mps2   = float(ard_vals[28].replace(val_prefixes[28], ''))
+    imu_az_mps2   = float(ard_vals[29].replace(val_prefixes[29], ''))
 
     ambient_temp_c = float(ard_vals[30].replace(val_prefixes[30], ''))
     relative_hum_pct = float(ard_vals[31].replace(val_prefixes[31], ''))
@@ -297,9 +297,9 @@ def process_telemetry(data: bytes) -> dict:
             "rear_cm": us_rr_cm
         },
         "imu": {
-            "roll_dps": imu_gr_dps,
-            "pitch_dps": imu_gp_dps,
-            "yaw_dps": imu_gy_dps,
+            "roll_deg": imu_roll_deg,
+            "pitch_deg": imu_pitch_deg,
+            "yaw_deg": imu_yaw_deg,
             "accel_x_mps2": imu_ax_mps2,
             "accel_y_mps2": imu_ay_mps2,
             "accel_z_mps2": imu_az_mps2
