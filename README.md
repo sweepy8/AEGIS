@@ -1,19 +1,17 @@
 ![The AEGIS logo.](stream/static/images/AEGIS_Logo.png)
 
-# AEGIS
+# Automated Environmental Ground Imaging System:<br>CSUN 2025 Senior Design Project
 
-Automated Environmental Ground Imaging System - CSUN 2025 Senior Design Project
-
-### Overview
+## Overview
 
 This is the repository for the software and documentation of the capstone project
 entitled AEGIS. Capstone projects are required for all Bachelors' degree students. The team was advised by Dr. Myung Cho and had six members:
 
-* Celeste Duran, Computer Engineer
+* Celeste Duran, Computer Engineer        
 * Jonathan Galindo, Electrical Engineer
 * Zachary Martin, Computer Engineer
 * Jonathan Peña, Electrical Engineer
-* Melissa Ramirez, Computer Engineer
+* Melissa Ramirez, Electrical Engineer
 * Justin Terryberry, Electrical Engineer
 
 The purpose of the project was to create a mock Mars rover capable of performing the following tasks:
@@ -25,45 +23,57 @@ The purpose of the project was to create a mock Mars rover capable of performing
 This project was created a few days after NASA released their preliminary report on the crash of the Mars Ingenuity helicopter, which at the time was believed to have impacted the ground due to an inability to distinguish ground features. This inability caused the helicopter to miscalculate its pose and position, leading to erroneous motion and its ultimate crash-landing. We set out to design a cost-effective ground scanner using a planar LiDAR unit and stepper motor that could capture a 3D map of the surface of the planet. A helicopter or other vehicle could then use the map and accelerometer data to understand where it is relative to the start of its trip.
 
 
-### Detailed Description
+## Detailed Description
 
 Fill this in later.
 
-#### How to install
+### How to install
 
 Fill this in later.
 
-#### How to run the code
+### How to run the code
 
 Fill this in later.
 
-#### Dependencies
+### Dependencies
 
 Fill this in later.
 
 
-### Images
+## Images
 
-The rover loves backflips.
-![A video of the rover flipping during testing.](stream/static/images/Test_Drive_May_downsized.mp4)
+|                               |
+| :---------------------------: |
+|The rover was a little too excited during testing.|
+![Video of the rover flipping.](stream/static/images/Test_Drive_May.gif)
 
-The first prototype of AEGIS.
+|                               |
+| :---------------------------: |
+| The first prototype of AEGIS. |
 ![First AEGIS prototype.](stream/static/images/Rover_Completed_March.jpg)
 
-The first full schematic diagrams of the AEGIS electrical systems.
+|                               |
+| :---------------------------: |
+|The first full schematic diagrams of the AEGIS electrical systems.|
 ![AEGIS schematic diagram.](stream/static/images/Schematic_DiagramV1_July.png)
 
-The second version of the handmade motor driver circuit PCB design.
+|                               |
+| :---------------------------: |
+|The second version of the handmade motor driver circuit PCB design.|
 ![Motor driver circuit PCB.](stream/static/images/Motor_Driver_PCB_Ver_2.0_April.png)
 
-A 3D-printed prototype of the LiDAR scanner and mounting system.
+|                               |
+| :---------------------------: |
+|A 3D-printed prototype of the LiDAR scanner and mounting system.|
 ![LiDAR scanner and mounting system prototype.](stream/static/images/LiDAR_MountV1_June.jpg)
 
-The internals of the second prototype of AEGIS.
+|                               |
+| :---------------------------: |
+|The internals of the second prototype of AEGIS.|
 ![Second AEGIS prototype's internals.](stream/static/images/Electronics_Prototype_August.jpg)
 
 
-### Thanks
+## Thanks
 
 We worked hard on this project, but our success was not ours alone. We want to extend heartfelt gratitude to:
 * Dr. Cho, whose technical, financial, and personal support gave us the chance to explore, test, fail, learn, and succeed in ways we didn't think were possible
