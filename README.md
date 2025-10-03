@@ -45,7 +45,7 @@ Fill this in later.
 ### Images
 
 The rover loves backflips.
-![A video of the rover flipping during testing.](stream/static/images/Test_Drive_May.mp4)
+![A video of the rover flipping during testing.](stream/static/images/Test_Drive_May_downsized.mp4)
 
 The first prototype of AEGIS.
 ![First AEGIS prototype.](stream/static/images/Rover_Completed_March.jpg)
