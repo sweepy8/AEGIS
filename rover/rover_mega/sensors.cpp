@@ -124,25 +124,32 @@ defined in config.h.
 */
 void sensors_imu_tick(uint32_t /*now_us*/)
 {
-  if (!imu_attached) return;
-
   sh2_SensorValue_t imuVals;
-  imu.getSensorEvent(&imuVals);
+  
+  while (imu.getSensorEvent(&imuVals))
+  {
+    switch (imuVals.sensorId) {
+      case SH2_GAME_ROTATION_VECTOR:
+        q_pose_last.r = imuVals.un.gameRotationVector.real;
+        q_pose_last.i = imuVals.un.gameRotationVector.i;
+        q_pose_last.j = imuVals.un.gameRotationVector.j;
+        q_pose_last.k = imuVals.un.gameRotationVector.k;
+        break;
 
-  q_pose_last.r = imuVals.un.gameRotationVector.real;
-  q_pose_last.i = imuVals.un.gameRotationVector.i;
-  q_pose_last.j = imuVals.un.gameRotationVector.j;
-  q_pose_last.k = imuVals.un.gameRotationVector.k;
-
-  accx_last = imuVals.un.accelerometer.x;
-  accy_last = imuVals.un.accelerometer.y;
-  accz_last = imuVals.un.accelerometer.z; 
-
-  accx_sum += accx_last;
-  accy_sum += accy_last;
-  accz_sum += accz_last;
-
-  imu_sample_count++;
+      case SH2_ACCELEROMETER: {
+        accx_last = imuVals.un.accelerometer.x;
+        accy_last = imuVals.un.accelerometer.y;
+        accz_last = imuVals.un.accelerometer.z; 
+        if (isfinite(accx_last) && isfinite(accy_last) && isfinite(accz_last)) {
+          accx_sum += accx_last;
+          accy_sum += accy_last;
+          accz_sum += accz_last;
+          imu_sample_count++;
+        }
+        break;
+      }
+    }
+  }
 }
 
 /*
