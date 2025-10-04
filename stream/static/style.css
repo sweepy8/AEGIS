@@ -88,14 +88,17 @@ html, body {
   border-radius: var(--radius);
   background-color: rgba(255, 255, 255, 0.636);
   color: hsla(354, 70%, 50%, 0.6);
+  text-align:center;
+  margin-right: 15px;
+  margin-left: 15px;
 }
 
-#zach     { grid-area: 1 / 2 / 6 / 5; }
-#justin   { grid-area: 1 / 6 / 6 / 9; }
-#johnny   { grid-area: 1 / 10 / 6 / 13; }
-#jonathan { grid-area: 7 / 2 / 12 / 5; }
-#melissa  { grid-area: 7 / 6 / 12 / 9; }
-#celeste  { grid-area: 7 / 10 / 12 / 13; }
+#zach     { grid-area: 2 / 3 / 7 / 5; }
+#justin   { grid-area: 2 / 6 / 7 / 8; }
+#johnny   { grid-area: 2 / 9 / 7 / 11; }
+#jonathan { grid-area: 8 / 3 / 12 / 5; }
+#melissa  { grid-area: 8 / 6 / 12 / 8; }
+#celeste  { grid-area: 8 / 9 / 12 / 11; }
 
 /* Telemetry page */
 .trip { 
