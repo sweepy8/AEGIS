@@ -101,14 +101,12 @@ class Scanner():
         cloud: list[list[float]] = []
 
         while self.motor.curr_angle < 180:
-            if (self.motor.curr_angle >= 0 and self.motor.curr_angle < 45):
+            if (self.motor.curr_angle >= 0 and self.motor.curr_angle < 60):
                 set_pixel(LQ1_ADDR, PX_WHITE)
-            if (self.motor.curr_angle >= 45 and self.motor.curr_angle < 90):
+            if (self.motor.curr_angle >= 60 and self.motor.curr_angle < 120):
                 set_pixel(LQ2_ADDR, PX_WHITE)     
-            if (self.motor.curr_angle >= 90 and self.motor.curr_angle < 135):
+            if (self.motor.curr_angle >= 120 and self.motor.curr_angle < 180):
                 set_pixel(LQ3_ADDR, PX_WHITE)
-            if (self.motor.curr_angle >= 135 and self.motor.curr_angle < 180):
-                set_pixel(LQ4_ADDR, PX_WHITE)
 
 
             self.lidar.open_serial()    # See cylindrical distortion error in documentation
@@ -122,7 +120,6 @@ class Scanner():
         set_pixel(LQ1_ADDR, PX_OFF)
         set_pixel(LQ2_ADDR, PX_OFF)
         set_pixel(LQ3_ADDR, PX_OFF)
-        set_pixel(LQ4_ADDR, PX_OFF)
 
         self.motor.set_dir("CW")
         self.motor.turn("CW", self.motor.ms_res_denom * 100)
@@ -183,12 +180,8 @@ class Scanner():
         print("[RUN] scan.py: Converting scan to Cartesian coordinates...")
 
         set_pixel(LQ2_ADDR, PX_WHITE)
-        set_pixel(LQ3_ADDR, PX_WHITE)
-        set_pixel(LQ4_ADDR, PX_WHITE)
         cartesian_cloud: list[list[float]] = math_utils.sph_to_cart_array(cloud)
         set_pixel(LQ2_ADDR, PX_OFF)
-        set_pixel(LQ3_ADDR, PX_OFF)
-        set_pixel(LQ4_ADDR, PX_OFF)
 
         duration_s: float = time.time() - start_time_s
         duration_s = round(duration_s, 2)
@@ -218,7 +211,6 @@ class Scanner():
         start_time_s: float = time.time()
 
         set_pixel(LQ3_ADDR, PX_WHITE)
-        set_pixel(LQ4_ADDR, PX_WHITE)
 
         filename = file_utils.get_timestamped_filename(
             save_path=filepath,
@@ -233,7 +225,6 @@ class Scanner():
         print(f"[RUN] scan.py: Cloud saved in {duration_s} seconds.")
 
         set_pixel(LQ3_ADDR, PX_OFF)
-        set_pixel(LQ4_ADDR, PX_OFF)
 
         self.is_saving = False
         return filename
@@ -266,13 +257,12 @@ class Scanner():
 
         if trim and nonfat_pct:
             cloud = self.trim_cloud(cloud, nonfat_pct)
-            set_pixel(LQ2_ADDR, PX_GREEN)
         if convert:
             cloud = self.convert_cloud(cloud)
-            set_pixel(LQ3_ADDR, PX_GREEN)
+            set_pixel(LQ2_ADDR, PX_GREEN)
         if save:
             filename: str = self.save_cloud(cloud=cloud, filepath=filepath)
-            set_pixel(LQ4_ADDR, PX_GREEN)
+            set_pixel(LQ3_ADDR, PX_GREEN)
             duration_s: float = time.time() - start_time_s
             duration_s = round(duration_s, 2)
 

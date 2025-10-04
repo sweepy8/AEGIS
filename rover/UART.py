@@ -171,35 +171,41 @@ def process_telemetry(data: bytes) -> dict:
     mot_lf_v = float(ard_vals[ 1].replace(val_prefixes[ 1], ''))
     mot_lf_a = float(ard_vals[ 2].replace(val_prefixes[ 2], ''))
     mot_lf_r = float(ard_vals[ 3].replace(val_prefixes[ 3], ''))
+    map_mot_current_to_pixel(LF_ADDR, mot_lf_a)
     mot_lm_v = float(ard_vals[ 4].replace(val_prefixes[ 4], ''))
     mot_lm_a = float(ard_vals[ 5].replace(val_prefixes[ 5], ''))
     mot_lm_r = float(ard_vals[ 6].replace(val_prefixes[ 6], ''))
+    map_mot_current_to_pixel(LM_ADDR, mot_lf_a)
     mot_lr_v = float(ard_vals[ 7].replace(val_prefixes[ 7], ''))
     mot_lr_a = float(ard_vals[ 8].replace(val_prefixes[ 8], ''))
     mot_lr_r = float(ard_vals[ 9].replace(val_prefixes[ 9], ''))
+    map_mot_current_to_pixel(LR_ADDR, mot_lf_a)
     mot_rf_v = float(ard_vals[10].replace(val_prefixes[10], ''))
     mot_rf_a = float(ard_vals[11].replace(val_prefixes[11], ''))
     mot_rf_r = float(ard_vals[12].replace(val_prefixes[12], ''))
+    map_mot_current_to_pixel(RF_ADDR, mot_lf_a)
     mot_rm_v = float(ard_vals[13].replace(val_prefixes[13], ''))
     mot_rm_a = float(ard_vals[14].replace(val_prefixes[14], ''))
     mot_rm_r = float(ard_vals[15].replace(val_prefixes[15], ''))
+    map_mot_current_to_pixel(RM_ADDR, mot_lf_a)
     mot_rr_v = float(ard_vals[16].replace(val_prefixes[16], ''))
     mot_rr_a = float(ard_vals[17].replace(val_prefixes[17], ''))
     mot_rr_r = float(ard_vals[18].replace(val_prefixes[18], ''))
-    map_rpm_to_pixel(LM_ADDR, (mot_lf_r + mot_lm_r + mot_lr_r) / 3)
-    map_mot_current_to_pixel(LMC_ADDR, (mot_lf_a + mot_lm_a + mot_lr_r) / 3)
-    map_rpm_to_pixel(RM_ADDR, (mot_rf_r + mot_rm_r + mot_rr_r) / 3)
-    map_mot_current_to_pixel(RMC_ADDR, (mot_rf_a + mot_rm_a + mot_rr_r) / 3)
+    map_mot_current_to_pixel(RR_ADDR, mot_lf_a)
+    map_rpm_to_pixel(RPM_ADDR,
+        (mot_lf_r+mot_lm_r+mot_lr_r+mot_rf_r+mot_rm_r+mot_rr_r)/6
+    )
 
     us_li_cm = float(ard_vals[19].replace(val_prefixes[19], ''))
     us_lf_cm = float(ard_vals[20].replace(val_prefixes[20], ''))
-    map_ultrasonic_to_pixel(USLF_ADDR, us_lf_cm)
     us_ct_cm = float(ard_vals[21].replace(val_prefixes[21], ''))
-    map_ultrasonic_to_pixel(USCT_ADDR, us_ct_cm)
     us_rt_cm = float(ard_vals[22].replace(val_prefixes[22], ''))
-    map_ultrasonic_to_pixel(USRT_ADDR, us_rt_cm)
     us_rr_cm = float(ard_vals[23].replace(val_prefixes[23], ''))
+    map_ultrasonic_to_pixel(
+        USFT_ADDR, min(us_lf_cm, us_ct_cm, us_rt_cm)
+    )
     map_ultrasonic_to_pixel(USRR_ADDR, us_rr_cm)
+    map_ultrasonic_to_pixel(USLI_ADDR, us_li_cm)
 
     imu_roll_deg  = float(ard_vals[24].replace(val_prefixes[24], ''))
     imu_pitch_deg = float(ard_vals[25].replace(val_prefixes[25], ''))
@@ -216,7 +222,7 @@ def process_telemetry(data: bytes) -> dict:
     batt_v = 0
     batt_a = 0
     batt_pct = 0    # TODO: COMPUTE 
-    map_batt_to_pixel(BAT_ADDR, batt_pct) # Pass it as val from 0 to 100.0
+    map_batt_to_pixel(BAT_ADDR, batt_pct) # Pass as val from 0 to 100.0
 
     # POPULATE RASPBERRY PI TELEMETRY
     cpu_util_pct: list[str] = get_cpu_util()    # type: ignore
