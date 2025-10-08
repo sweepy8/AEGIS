@@ -108,7 +108,6 @@ class Scanner():
             if (self.motor.curr_angle >= 120 and self.motor.curr_angle < 180):
                 set_pixel(LQ3_ADDR, PX_WHITE)
 
-
             self.lidar.open_serial()    # See cylindrical distortion error in documentation
 
             ring: list[list[float]] = self.lidar.capture_ring(motor_angle=self.motor.curr_angle)

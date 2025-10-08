@@ -11,8 +11,7 @@ import gpiozero as gpz
 from utils import serial_utils  # CRC_TABLE
 from utils import file_utils    # get_timestamped_filename(), make_file(), write_pcd_header_to_file()
 from utils import math_utils    # pol_to_cart_array()
-
-PWM_PIN = 22
+from utils import pin_utils as pins    # LiDAR pins
 
 class Lidar:
     '''
@@ -50,7 +49,7 @@ class Lidar:
         self.start_byte  = 0x54
         self.hit_rate_threshold = 0.80
 
-        self.pwm_pin = gpz.OutputDevice(pin=PWM_PIN, initial_value = False)
+        self.pwm_pin = gpz.OutputDevice(pin=pins.LIDAR_PWM, initial_value=False)
         
         self.serial = serial.Serial()
 
@@ -59,8 +58,8 @@ class Lidar:
         Opens a serial connection with parameters set in the class initializer.
         '''
 
-        self.serial.port = '/dev/ttyAMA0'	    # UART port on GPIO 14 and 15
-        self.serial.baudrate = 921600           # STL27L Baudrate
+        self.serial.port = pins.LIDAR_PORT	    # UART port on GPIO 14 and 15
+        self.serial.baudrate = serial_utils.LIDAR_BAUDRATE  # STL27L Baudrate
         self.serial.bytesize = 8                # 8 bits per byte
         self.serial.parity = 'N'                # No parity bit
         self.serial.stopbits = 1                # One stop bit per byte

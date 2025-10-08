@@ -3,6 +3,9 @@
  * Created 9/6/2025
  * 
  * Holds all pins, parameters, and flags used by other source files.
+ * 
+ * Temperature, ambient light, and IMU sensors are on I2C SCL and SDA pins
+ * but are handled internally by arduino libraries and are not listed here.
  */
 
 #ifndef AEGIS_CONFIG_H
@@ -39,22 +42,51 @@ constexpr uint8_t min_pw  = 0;
 constexpr uint8_t max_pw  = 255;
 
 // Motor Pins
-constexpr uint8_t left_fwd  = 3;
-constexpr uint8_t left_rvs  = 4;
-constexpr uint8_t right_fwd = 7;
-constexpr uint8_t right_rvs = 6;
+constexpr uint8_t left_fwd  = 7; // From 3
+constexpr uint8_t left_rvs  = 6; // From 4
+constexpr uint8_t right_fwd = 3; // From 7
+constexpr uint8_t right_rvs = 2; // From 6
 constexpr uint8_t driver_pins[4] = {left_fwd, left_rvs, right_fwd, right_rvs};
 
 // Encoder Pins                    LF, LM, LR, RF, RM, RR
-constexpr uint8_t enc_a_pins[6] = {12, 13, 11, 14, 15, 10};
-constexpr uint8_t enc_b_pins[6] = {44, 46, 48, 39, 41, 43};
+constexpr uint8_t enc_a_pins[6] = {13, 12, 11, 10, 15, 14};
+constexpr uint8_t enc_b_pins[6] = {33, 35, 37, 39, 41, 43};
+// OLD MAPPING:
+// constexpr uint8_t enc_a_pins[6] = {12, 13, 11, 14, 15, 10};
+// constexpr uint8_t enc_b_pins[6] = {44, 46, 48, 39, 41, 43};
 
 // Ultrasonic Pins, Parameters
-constexpr uint8_t  num_ultrasonics = 3;
-constexpr uint8_t  ultra_trig_pins[num_ultrasonics] = {47, 49, 45};
-constexpr uint8_t  ultra_echo_pins[num_ultrasonics] = {52, 53, 51};
+constexpr uint8_t  num_ultrasonics = 5;             //  1,  2,  3,  4,  5
+constexpr uint8_t  ultra_trig_pins[num_ultrasonics] = {48, 46, 44, 42, 49};
+constexpr uint8_t  ultra_echo_pins[num_ultrasonics] = {51, 53, 52, 50, A15};
+// OLD MAPPING:
+// constexpr uint8_t  num_ultrasonics = 3;
+// constexpr uint8_t  ultra_trig_pins[num_ultrasonics] = {47, 49, 45};
+// constexpr uint8_t  ultra_echo_pins[num_ultrasonics] = {52, 53, 51};
 constexpr uint32_t trig_pulse_us = 10;
 constexpr int      safe_dist_cm = 10;
 constexpr float    speed_of_sound_mps = 345.0;   // 343 @ 20C + 0.6 per degC
+
+// Headlight Pins
+constexpr uint8_t high_beam = 22;
+constexpr uint8_t left_headlight = 24;
+constexpr uint8_t right_headlight = 26;
+
+// Power Meter Pins
+constexpr uint8_t volt_lf = A11;
+constexpr uint8_t volt_lm = A12;
+constexpr uint8_t volt_lr = A13;
+constexpr uint8_t volt_rf = A8;
+constexpr uint8_t volt_rm = A9;
+constexpr uint8_t volt_rr = A10;
+constexpr uint8_t volt_batt = A14;
+
+constexpr uint8_t amp_lf = A3;
+constexpr uint8_t amp_lm = A4;
+constexpr uint8_t amp_lr = A5;
+constexpr uint8_t amp_rf = A0;
+constexpr uint8_t amp_rm = A1;
+constexpr uint8_t amp_rr = A2;
+constexpr uint8_t amp_batt = A6;
 
 #endif

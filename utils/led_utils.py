@@ -16,22 +16,21 @@ It should pull in the dependencies, which include:
 
 https://docs.circuitpython.org/projects/neopixel/en/latest/
     
-Whoops, won't work. Needs PWM pin, and we didn't plan for that. Should use 
+Whoops. Needs PWM pin, and we didn't plan for that. Should use 
 GPIO 10, 12, 18, or 21 for 800kHz PWM, can't bit bang that on linux :(
-Maybe splice under boards? Also should drop LED Vdd with a diode to be able to
-keep CMOS logic within 3.3V output range of R.Pi pins, and use a bulk cap
+Maybe splice under boards? 
 
 '''
 
-import board
 import neopixel
 
-DATA_PIN = board.D18
+import pin_utils as pins
+
 PX_COUNT = 16
 BRIGHTNESS = 0.5
 
 pixels = neopixel.NeoPixel(
-    DATA_PIN,
+    pins.LED_CTL_PIN,
     PX_COUNT,
     brightness=BRIGHTNESS,
     auto_write=True     # Immediately update pixel state when written

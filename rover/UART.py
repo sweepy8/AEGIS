@@ -11,6 +11,7 @@ import time
 from utils import serial_utils      # UGV_BAUDRATE
 from utils import file_utils        # make_telemetry_JSON(), update_telemetry_JSON(), TRIPS_FOLDER
 from utils.led_utils import *       # map_ultrasonic_to_pixel()
+from utils import pin_utils as pins
 from rover import controller
 from rover import camera            # ugv_cam
 from lidar import scan
@@ -57,7 +58,7 @@ def open_serial_connection() -> Serial:
     """
     
     s = Serial()		    # Create serial connection
-    s.port = '/dev/ttyAMA2'	# UART port on GPIO 4 and 5
+    s.port = pins.ARDUINO_PORT	# UART port on GPIO 4 and 5
     s.baudrate = serial_utils.UGV_BAUDRATE
     s.bytesize = 8			# 8 bits per byte
     s.parity = 'N'			# No parity bit
