@@ -52,6 +52,6 @@ void sensors_get_and_reset_ultra_avg(float out_cm[num_ultrasonics]);
 
 void sensors_handle_pcint0_echoes();
 
-void get_euler_from_quaternion(imu_avgs& out, imu_pose_quat& q);
+void get_euler_from_quaternion(imu_avgs& out, imu_pose_quat q);
 
 #endif

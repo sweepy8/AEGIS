@@ -24,10 +24,10 @@ Maybe splice under boards?
 
 import neopixel
 
-import pin_utils as pins
+from . import pin_utils as pins
 
 PX_COUNT = 16
-BRIGHTNESS = 0.5
+BRIGHTNESS = 0.1
 
 pixels = neopixel.NeoPixel(
     pins.LED_CTL_PIN,

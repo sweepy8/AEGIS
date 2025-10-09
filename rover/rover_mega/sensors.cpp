@@ -217,6 +217,34 @@ void sensors_get_and_reset_env_avg(sensor_avgs& out)
 }
 
 /*
+Helper function to compute the euler rotations (roll, pitch, yaw) relative to 
+the rover body from the last captured quaternion vector (real, i, j, k). Updates
+the output argument by reference from a copy of the quaternion.
+*/
+static void get_euler_from_quaternion(imu_avgs& out, imu_pose_quat q)
+{
+  // Normalize quaternion to combat sensor drift
+  const float qmag = sqrtf(q.r*q.r + q.i*q.i + q.j*q.j + q.k*q.k);
+  if (qmag > 0.0f) {
+    q.r /= qmag; q.i /= qmag; q.j /= qmag; q.k /= qmag;
+  } // Don't divide by zero. If qmag is zero, downstream values are junk anyways
+
+  float sinr_cosp, cosr_cosp, sinp, siny_cosp, cosy_cosp;
+
+  sinr_cosp = 2.0f * (q.r * q.i + q.j * q.k);
+  cosr_cosp = 1.0f - 2.0f * (q.i * q.i + q.j * q.j);
+  out.pose.roll = 180.0f/PI * atan2f(sinr_cosp, cosr_cosp);
+
+  sinp = 2.0f * (q.r * q.j - q.k * q.i);
+  sinp = (sinp > 1.0f) ? 1.0f : (sinp < -1.0f) ? -1.0f : sinp;
+  out.pose.pitch = 180.0f/PI * asinf(sinp);
+
+  siny_cosp = 2.0f * (q.r * q.k + q.i * q.j);
+  cosy_cosp = 1.0f - 2.0f * (q.j * q.j + q.k * q.k);
+  out.pose.yaw = 180.0f/PI * atan2f(siny_cosp, cosy_cosp);
+}
+
+/*
 Takes an average of the last N IMU sensor readings (except pose vector),
 packages them into a struct, and resets the accumulators. Struct is then sent
 to Raspberry Pi with the rest of the telemetry externally.
@@ -276,32 +304,4 @@ void sensors_handle_pcint0_echoes()
       echo_state[i] = 0;
     }
   }
-}
-
-/*
-Helper function to compute the euler rotations (roll, pitch, yaw) relative to 
-the rover body from the last captured quaternion vector (real, i, j, k). Updates
-the output argument by reference from a copy of the quaternion.
-*/
-static void get_euler_from_quaternion(imu_avgs& out, imu_pose_quat q)
-{
-  // Normalize quaternion to combat sensor drift
-  const float qmag = sqrtf(q.r*q.r + q.i*q.i + q.j*q.j + q.k*q.k);
-  if (qmag > 0.0f) {
-    q.r /= qmag; q.i /= qmag; q.j /= qmag; q.k /= qmag;
-  } // Don't divide by zero. If qmag is zero, downstream values are junk anyways
-
-  float sinr_cosp, cosr_cosp, sinp, siny_cosp, cosy_cosp;
-
-  sinr_cosp = 2.0f * (q.r * q.i + q.j * q.k);
-  cosr_cosp = 1.0f - 2.0f * (q.i * q.i + q.j * q.j);
-  out.pose.roll = rad2deg(atan2f(sinr_cosp, cosr_cosp), 2);
-
-  sinp = 2.0f * (q.r * q.j - q.k * q.i);
-  sinp = (sinp > 1.0f) ? 1.0f : (sinp < -1.0f) ? -1.0f : sinp;
-  out.pose.pitch = rad2deg(asinf(sinp), 2);
-
-  siny_cosp = 2.0f * (q.r * q.k + q.i * q.j);
-  cosy_cosp = 1.0f - 2.0f * (q.j * q.j + q.k * q.k);
-  out.pose.yaw = rad2deg(atan2f(siny_cosp, cosy_cosp), 2);
 }

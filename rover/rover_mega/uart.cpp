@@ -144,7 +144,7 @@ void uart_send_telemetry()
     t_str += "AZ=" + String(imu_avg.accz, 4) + "|";
     
   }
-  t_str  += "R=0|P=0|Y=0|AX=0|AY=0|AZ=0|";   
+  else {t_str  += "R=0|P=0|Y=0|AX=0|AY=0|AZ=0|";}
 
   if (env_sensors_attached) 
   {
@@ -155,7 +155,7 @@ void uart_send_telemetry()
   }
   else { t_str += "TEMP=0|RHUM=0|LVIS=0|LINF=0|"; }
 
-  //Serial.println(t_str);          // Displays telemetry string over USB
+  Serial.println(t_str);          // Displays telemetry string over USB
   Serial1.println(t_str);         // Sends telemetry string to Raspberry Pi
   last_talk_time_us = micros();
 }
