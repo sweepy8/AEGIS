@@ -99,7 +99,7 @@ void uart_send_telemetry()
   if (env_sensors_attached) sensors_get_and_reset_env_avg(env);
   imu_avgs imu_avg{};
   if (imu_attached) sensors_get_and_reset_imu_avg(imu_avg);
-  float us_avg[3] = {0, 0, 0}; 
+  float us_avg[5]; 
   if (ultrasonics_attached) sensors_get_and_reset_ultra_avg(us_avg);
 
   // Build telemetry string
@@ -127,10 +127,8 @@ void uart_send_telemetry()
 
   if (ultrasonics_attached) 
   {
-    t_str += "USLI=0|"; // TODO
     for (int i = 0; i < num_ultrasonics; i++)
       t_str += String(ultrasonic_names[i]) + "=" + String(us_avg[i], 1) + "|";
-    t_str += "USRR=0|"; // TODO
   } 
   else { t_str += "USLI=0|USLF=0|USCT=0|USRT=0|USRR=0|"; }
 
@@ -144,7 +142,7 @@ void uart_send_telemetry()
     t_str += "AZ=" + String(imu_avg.accz, 4) + "|";
     
   }
-  else {t_str  += "R=0|P=0|Y=0|AX=0|AY=0|AZ=0|";}
+  else { t_str += "R=0|P=0|Y=0|AX=0|AY=0|AZ=0|"; }
 
   if (env_sensors_attached) 
   {

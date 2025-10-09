@@ -193,14 +193,13 @@ def process_telemetry(data: bytes) -> dict:
     mot_rr_a = float(ard_vals[17].replace(val_prefixes[17], ''))
     mot_rr_r = float(ard_vals[18].replace(val_prefixes[18], ''))
     map_mot_current_to_pixel(RR_ADDR, mot_lf_a)
-    map_rpm_to_pixel(RPM_ADDR,
-        (mot_lf_r+mot_lm_r+mot_lr_r+mot_rf_r+mot_rm_r+mot_rr_r)/6
-    )
+    rpm_avg: float = (mot_lf_r+mot_lm_r+mot_lr_r+mot_rf_r+mot_rm_r+mot_rr_r) / 6
+    map_rpm_to_pixel(RPM_ADDR, rpm=rpm_avg)
 
     us_li_cm = float(ard_vals[19].replace(val_prefixes[19], ''))
-    us_lf_cm = float(ard_vals[20].replace(val_prefixes[19], ''))    # TODO FIX
-    us_ct_cm = float(ard_vals[21].replace(val_prefixes[20], ''))    # TODO FIX
-    us_rt_cm = float(ard_vals[22].replace(val_prefixes[21], ''))    # TODO FIX
+    us_lf_cm = float(ard_vals[20].replace(val_prefixes[20], ''))
+    us_ct_cm = float(ard_vals[21].replace(val_prefixes[21], ''))
+    us_rt_cm = float(ard_vals[22].replace(val_prefixes[22], ''))
     us_rr_cm = float(ard_vals[23].replace(val_prefixes[23], ''))
     map_ultrasonic_to_pixel(
         USFT_ADDR, min(us_lf_cm, us_ct_cm, us_rt_cm)
@@ -403,7 +402,6 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
                 if (controller.input_states['BTN_START'] 
                 and controller.input_states['BTN_A'] 
                 and not ugv_cam.recording):
-                    set_pixel(CAM_ADDR, PX_GREEN)
                     video_filename = ugv_cam.my_start_recording()
                     print(f"UART.py: Recording video to '{video_filename}'...")
 
@@ -413,7 +411,7 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
                 and ugv_cam.recording):
                     ugv_cam.my_stop_recording()
                     print(f"UART.py: Recording saved to '{video_filename}'.")   # type: ignore
-                    set_pixel(CAM_ADDR, PX_OFF)
+                    
             else:
                 if ((controller.input_states['BTN_START']
                      and controller.input_states['BTN_A']) 

@@ -17,7 +17,8 @@ constexpr bool uart_attached        = true;  // ARD <-> RPI
 constexpr bool motors_attached      = true;  // Yellowjackets
 constexpr bool env_sensors_attached = true;  // SHTC3 + LTR-329
 constexpr bool imu_attached         = true;  // BNO-085
-constexpr bool ultrasonics_attached = false;  // HC-SR04
+constexpr bool ultrasonics_attached = true;  // HC-SR04
+constexpr bool headlights_attached  = true;  // KC LED Headlights
 
 // Serial Parameters
 constexpr uint32_t mega_baudrate = 460800;     // Baud of serial
@@ -67,10 +68,11 @@ constexpr uint32_t trig_pulse_us = 10;
 constexpr int      safe_dist_cm = 10;
 constexpr float    speed_of_sound_mps = 345.0;   // 343 @ 20C + 0.6 per degC
 
-// Headlight Pins
-constexpr uint8_t high_beam = 22;
-constexpr uint8_t left_headlight = 24;
-constexpr uint8_t right_headlight = 26;
+// Headlight Pins, Parameters
+constexpr uint8_t hl_highbeam_pin = 22;
+constexpr uint8_t hl_left_pin = 24;
+constexpr uint8_t hl_right_pin = 26;
+constexpr uint16_t threshold_ambient_light = 100;
 
 // Power Meter Pins
 constexpr uint8_t volt_lf = A11;

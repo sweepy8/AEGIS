@@ -91,9 +91,9 @@ void motors_stop() { motors_move(move_dir::stop, 0); }  // Could be inline
 /*
 */
 void get_pid_rpms(uint8_t target) {
-  constexpr float kp = 0.333f;
-  constexpr float ki = 0.333f;
-  constexpr float kd = 0.333f;
+  constexpr float kp = 0.80;
+  constexpr float ki = 0.15f;
+  constexpr float kd = 0.05f;
   constexpr float dt = encoder_sample_period_us * 1e-6;
 
   static float integrals[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -111,10 +111,16 @@ void get_pid_rpms(uint8_t target) {
     diffs[i] = -1 * (rpm_inst[i] - rpm_prev[i]) / dt;
 
     rpm_pid[i] = rpm_inst[i] + kp * err + ki * integrals[i] + kd * diffs[i];
-    avg_rpm_pid[i/3] += rpm_pid[i];
+    
+    // Switched from average left and right to front left and right for PID tracking
+    // If this works, refactor PID to not waste time on the other four motors
+    if (i == 0 || i == 3)
+    {
+      avg_rpm_pid[i/3] += rpm_pid[i];
+    }
   }
-  avg_rpm_pid[0] /= 3;
-  avg_rpm_pid[1] /= 3;
+  // avg_rpm_pid[0] /= 3;
+  // avg_rpm_pid[1] /= 3;
 }
 
 

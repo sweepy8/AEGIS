@@ -10,6 +10,7 @@ import os
 os.environ["LIBCAMERA_LOG_LEVELS"] = "2"    # Prevents console print clutter
 
 from utils.file_utils import get_timestamped_filename
+from utils.led_utils import *
 
 class Camera(Picamera2):
     """
@@ -32,7 +33,9 @@ class Camera(Picamera2):
                 main=  {'format':'XRGB8888'},
                 lores= {'format':'RGB888'}
             )
+            set_pixel(CAM_ADDR, PX_GREEN)
         except:
+            set_pixel(CAM_ADDR, PX_WHITE)
             print("[ERR] camera.py: No camera detected!")
             self.connected = False
 
@@ -49,6 +52,7 @@ class Camera(Picamera2):
             filename (str): The timestamped filename of the video being recorded.
         """
         if self.recording == False:
+            set_pixel(CAM_ADDR, PX_RED)
             filename: str = get_timestamped_filename(
                 save_path='data/videos', prefix='video', ext='.mp4')
             self.start_encoder(
@@ -70,6 +74,7 @@ class Camera(Picamera2):
         PLACEHOLDER, TO BE FILLED IN LATER ***
         """
         if self.recording == True:
+            set_pixel(CAM_ADDR, PX_GREEN)
             print("[RUN] camera.py: Attempting to stop recording...")
             self.stop_encoder()
             print("[RUN] camera.py: Stopped hi-res encoder...")

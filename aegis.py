@@ -11,9 +11,15 @@
 # There are four available single-core processes for the four-core Pi 5.
 
 from multiprocessing import Process
+from utils import led_utils
+import atexit
 
 from rover import UART
 #from stream import web_viewer as site
+
+@atexit.register
+def exit_handler() -> None:
+    led_utils.pixels.fill(led_utils.PX_OFF)
 
 # UART.run_comms()
 

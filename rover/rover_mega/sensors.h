@@ -54,4 +54,6 @@ void sensors_handle_pcint0_echoes();
 
 void get_euler_from_quaternion(imu_avgs& out, imu_pose_quat q);
 
+void control_headlights(uint16_t vis_lux);
+
 #endif
