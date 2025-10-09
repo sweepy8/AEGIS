@@ -22,6 +22,10 @@ static float rpm_inst[6] = {0,0,0,0,0,0};   // Latest instantaneous rpm
 static float rpm_sum[6] = {0,0,0,0,0,0};    // Encoder rpm accumulators
 static uint16_t rpm_count = 0;              // N=0 averages are skipped
 
+static float rpm_prev[6] = {0,0,0,0,0,0};
+static float rpm_pid[6] = {0,0,0,0,0,0};   // target rpms after PID control
+static float avg_rpm_pid[2] = {0, 0}; // left, right
+
 /*
 Wrapper around analogWrite() to map RPM range to PWM range.
 */
@@ -68,11 +72,51 @@ void motors_move(move_dir dir, uint8_t rpm)
     default:                   pattern = stop_pattern;       break;
   }
 
-  for (int i = 0; i < 4; i++)
-    set_rpm_pwm(driver_pins[i], uint8_t(rpm * *(pattern + i)));
+  get_pid_rpms(rpm);
+
+  const uint8_t adjusted_rpm[2] = {
+    uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
+    uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
+  };
+
+  for (int i = 0; i < 4; i++) {
+    set_rpm_pwm(driver_pins[i], adjusted_rpm[i/2] * *(pattern + i));
+  }
 }
 
+
 void motors_stop() { motors_move(move_dir::stop, 0); }  // Could be inline
+
+
+/*
+*/
+void get_pid_rpms(uint8_t target) {
+  constexpr float kp = 0.333f;
+  constexpr float ki = 0.333f;
+  constexpr float kd = 0.333f;
+  constexpr float dt = encoder_sample_period_us * 1e-6;
+
+  static float integrals[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+  static float diffs[6]     = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+
+  avg_rpm_pid[0] = 0; avg_rpm_pid[1] = 0;
+
+  for (int i = 0; i < 6; i++)
+  {
+    float err = float(target) - rpm_inst[i];
+
+    integrals[i] += err * dt;
+    integrals[i] = (integrals[i] > 223) ? 223 : ((integrals[i] < -223) ? -223 : integrals[i]);
+
+    diffs[i] = -1 * (rpm_inst[i] - rpm_prev[i]) / dt;
+
+    rpm_pid[i] = rpm_inst[i] + kp * err + ki * integrals[i] + kd * diffs[i];
+    avg_rpm_pid[i/3] += rpm_pid[i];
+  }
+  avg_rpm_pid[0] /= 3;
+  avg_rpm_pid[1] /= 3;
+}
+
 
 /*
 Takes a reading of (and clears) motor encoder pulse counts, converts them into
@@ -95,13 +139,16 @@ void motors_encoder_tick()
   const float window_s = 0.1f;
   for (int i = 0; i < 6; i++)
   {
+    rpm_prev[i] = rpm_inst[i];
+
     const float inst = float(counts[i]) 
                       / enc_pulses_per_rev 
-                      / window_s 
+                      / (encoder_sample_period_us * 1e-6)
                       * 60;
     rpm_inst[i] = inst;
     rpm_sum[i] += inst;
   }
+
   rpm_count++;
 }
 

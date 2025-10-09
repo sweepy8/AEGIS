@@ -198,9 +198,9 @@ def process_telemetry(data: bytes) -> dict:
     )
 
     us_li_cm = float(ard_vals[19].replace(val_prefixes[19], ''))
-    us_lf_cm = float(ard_vals[20].replace(val_prefixes[20], ''))
-    us_ct_cm = float(ard_vals[21].replace(val_prefixes[21], ''))
-    us_rt_cm = float(ard_vals[22].replace(val_prefixes[22], ''))
+    us_lf_cm = float(ard_vals[20].replace(val_prefixes[19], ''))    # TODO FIX
+    us_ct_cm = float(ard_vals[21].replace(val_prefixes[20], ''))    # TODO FIX
+    us_rt_cm = float(ard_vals[22].replace(val_prefixes[21], ''))    # TODO FIX
     us_rr_cm = float(ard_vals[23].replace(val_prefixes[23], ''))
     map_ultrasonic_to_pixel(
         USFT_ADDR, min(us_lf_cm, us_ct_cm, us_rt_cm)
@@ -346,6 +346,16 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
 
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
 
+            # # HOLD ZERO SPEED IF THE TRIGGERS AREN'T BEING USED
+            # if (not controller.input_states['BTN_RZ']
+            # and not controller.input_states['BTN_Z']):
+            #     serial_conn.write(
+            #         generate_command(
+            #             op = "MOVE",
+            #             spd = 0.0
+            #         )   # type: ignore
+            #     )
+            
             # RIGHT TRIGGER: move forward
             if (controller.input_states['BTN_RZ'] 
             and not controller.input_states['BTN_Z']
@@ -508,7 +518,6 @@ def run_comms() -> None:
                                 ],
         daemon=True
     )
-
 
     telemetry_thread = Thread(target=listen_to_UGV, 
                                 args=[
