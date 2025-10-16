@@ -17,10 +17,12 @@ void motors_move(move_dir dir, uint8_t rpm);
 void motors_stop();
 
 void motors_encoder_tick();
+void motors_power_tick();
 
 void get_pid_rpms(uint8_t target);
 
 void motors_get_and_reset_rpm_avg(float out_avg_rpm[6]);
+void motors_get_and_reset_pow_avg(float out_avg_v[6], float out_avg_a[6]);
 
 void motors_handle_pcint0_encoders();
 void motors_handle_pcint1_encoders();

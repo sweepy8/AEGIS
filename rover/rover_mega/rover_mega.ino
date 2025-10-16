@@ -72,6 +72,12 @@ void loop()
     motors_encoder_tick();
     last_encoder_sample_us = now_us;
   }
+  if (motors_attached
+    && (now_us - last_power_sample_us) >= power_sample_period_us)
+  {
+    motors_power_tick();
+    last_power_sample_us = now_us;
+  }
 
   // Movement command processing and execution
   if (uart_attached) 

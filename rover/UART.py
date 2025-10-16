@@ -135,7 +135,7 @@ def process_telemetry(data: bytes) -> dict:
     telemetry dictionary. This is terrible and I'm sorry.
 
     Args:
-        t_str (bytes): The unprocessed telemetry byte array from the Arduino.
+        data (bytes): The unprocessed telemetry byte array from the Arduino.
     Returns:
         telemetry (dict): The dictionary of telemetry key-value pairs.
     Raises:
@@ -225,7 +225,7 @@ def process_telemetry(data: bytes) -> dict:
     map_batt_to_pixel(BAT_ADDR, batt_pct) # Pass as val from 0 to 100.0
 
     # POPULATE RASPBERRY PI TELEMETRY
-    cpu_util_pct: list[str] = get_cpu_util()    # type: ignore
+    cpu_util_pct: float = get_cpu_util()
     adc_vals: list[str] = os.popen('vcgencmd pmic_read_adc').read().split()
     fmt = lambda idx, pre, post: round(
         float(adc_vals[idx].replace(pre,'').replace(post,'')), 4)

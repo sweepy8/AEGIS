@@ -93,13 +93,17 @@ Builds and transmits telemetry string.
 void uart_send_telemetry() 
 {
   // Get and reset per-second averages
-  float rpm_avg[6];         
-  if (motors_attached) motors_get_and_reset_rpm_avg(rpm_avg);
+  float rpm_avg[6], mot_v_avg[6], mot_a_avg[6];
+  if (motors_attached) 
+  {
+    motors_get_and_reset_rpm_avg(rpm_avg);
+    motors_get_and_reset_pow_avg(mot_v_avg, mot_a_avg);
+  }
   sensor_avgs env{};
   if (env_sensors_attached) sensors_get_and_reset_env_avg(env);
   imu_avgs imu_avg{};
   if (imu_attached) sensors_get_and_reset_imu_avg(imu_avg);
-  float us_avg[5]; 
+  float us_avg[5];
   if (ultrasonics_attached) sensors_get_and_reset_ultra_avg(us_avg);
 
   // Build telemetry string
@@ -111,8 +115,8 @@ void uart_send_telemetry()
   {
     for (int i = 0; i < 6; i++) 
     {
-      t_str += motor_names[i];  t_str += "V=0|";  // TODO
-      t_str += motor_names[i];  t_str += "A=0|";  // TODO
+      t_str += motor_names[i];  t_str += "V=" + String(mot_v_avg[i], 4) + "|";
+      t_str += motor_names[i];  t_str += "A=" + String(mot_a_avg[i], 4) + "|";
       t_str += motor_names[i];  t_str += "R="; 
       int rpm_i = int(rpm_avg[i] + (rpm_avg[i] >= 0 ? 0.5f : -0.5f)); // rounds
       t_str += String(rpm_i);

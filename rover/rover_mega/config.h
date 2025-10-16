@@ -30,6 +30,7 @@ constexpr uint32_t ultrasonic_sample_period_us =  100000;  // 10 Hz
 constexpr uint32_t sensor_sample_period_us     =  100000;  // 10 Hz
 constexpr uint32_t imu_sample_period_us        =  100000;  // 10 Hz
 constexpr uint32_t encoder_sample_period_us    =  100000;  // 10 Hz
+constexpr uint32_t power_sample_period_us      =  100000;  // 10 Hz
 constexpr uint32_t command_threshold_us        =   50000;  // 20 Hz
 
 // Encoder Characteristics
@@ -82,6 +83,7 @@ constexpr uint8_t volt_rf = A8;
 constexpr uint8_t volt_rm = A9;
 constexpr uint8_t volt_rr = A10;
 constexpr uint8_t volt_batt = A14;
+constexpr uint8_t mot_v_pins[6] = {volt_lf, volt_lm, volt_lr, volt_rf, volt_rm, volt_rr};
 
 constexpr uint8_t amp_lf = A3;
 constexpr uint8_t amp_lm = A4;
@@ -89,6 +91,7 @@ constexpr uint8_t amp_lr = A5;
 constexpr uint8_t amp_rf = A0;
 constexpr uint8_t amp_rm = A1;
 constexpr uint8_t amp_rr = A2;
+constexpr uint8_t mot_a_pins[6] = {amp_lf, amp_lm, amp_lr, amp_rf, amp_rm, amp_rr};
 constexpr uint8_t amp_batt = A6;
 
 #endif

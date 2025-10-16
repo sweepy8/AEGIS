@@ -18,6 +18,12 @@ static uint8_t rev_pattern[4]        = { 0,  1,  0,  1};
 static uint8_t left_spin_pattern[4]  = { 0,  1,  1,  0};
 static uint8_t right_spin_pattern[4] = { 1,  0,  0,  1};
 
+static float mot_v_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous voltage
+static float mot_v_sum[6] = {0,0,0,0,0,0};  // Motor voltage accumulators
+static float mot_a_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous current
+static float mot_a_sum[6] = {0,0,0,0,0,0};  // Motor current accumulators
+static uint16_t mot_pow_count = 0;          // N=0 averages are skipped
+
 static float rpm_inst[6] = {0,0,0,0,0,0};   // Latest instantaneous rpm
 static float rpm_sum[6] = {0,0,0,0,0,0};    // Encoder rpm accumulators
 static uint16_t rpm_count = 0;              // N=0 averages are skipped
@@ -52,6 +58,13 @@ void motors_setup()
     pinMode(enc_a_pins[i], INPUT_PULLUP);
     pinMode(enc_b_pins[i], INPUT_PULLUP);
   }
+
+  for (int i = 0; i < 6; i++)
+  {
+    pinMode(mot_v_pins[i], INPUT);
+    pinMode(mot_a_pins[i], INPUT);
+  }
+
 }
 
 
@@ -158,6 +171,34 @@ void motors_encoder_tick()
   rpm_count++;
 }
 
+void motors_power_tick()
+{
+  static constexpr float mot_ref_v = 5.0f;     // ADC reference voltage
+  static constexpr float shunt_res = 0.2323f;  // Ohms
+  static constexpr float cap_off_v = 0.15f;    // Volts
+  static constexpr float ammeter_gain = 3.23f;
+  static constexpr float a_voltage_div = 3.0f;
+  static constexpr float v_voltage_div = 1.5f;
+
+  // Read and accumulate motor voltages and currents
+  for (int i = 0; i < 6; i++)
+  {
+    const float v_inst = analogRead(mot_v_pins[i]) * (mot_ref_v / 1023.0f) * v_voltage_div;
+    const float a_inst = (analogRead(mot_a_pins[i]) * (mot_ref_v / 1023.0f) - cap_off_v) 
+                          / ammeter_gain 
+                          / shunt_res;
+
+    mot_v_inst[i] = v_inst;
+    mot_a_inst[i] = a_inst;
+
+    mot_v_sum[i] += v_inst;
+    mot_a_sum[i] += a_inst;
+  }
+
+  mot_pow_count++;
+}
+
+
 /*
 Takes an average of the last N RPM readings and resets the accumulators.
 Average RPMs are then sent to Raspberry Pi with the rest of the telemetry.
@@ -170,6 +211,24 @@ void motors_get_and_reset_rpm_avg(float out_avg_rpm[6])
     rpm_sum[i] = 0.0f;
   }
   rpm_count = 0;
+}
+
+/*
+Takes an average of the last N voltage and current readings and resets the
+accumulators. Average voltages and currents are then sent to Raspberry Pi with 
+the rest of the telemetry.
+*/
+void motors_get_and_reset_pow_avg(float out_avg_v[6], float out_avg_a[6])
+{
+  for (int i = 0; i < 6; i++) 
+  {
+    out_avg_v[i] = mot_pow_count ? (mot_v_sum[i] / mot_pow_count) : 0.0f;
+    mot_v_sum[i] = 0.0f;
+
+    out_avg_a[i] = mot_pow_count ? (mot_a_sum[i] / mot_pow_count) : 0.0f;
+    mot_a_sum[i] = 0.0f;
+  }
+  mot_pow_count = 0;
 }
 
 /*
