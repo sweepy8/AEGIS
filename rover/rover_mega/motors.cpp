@@ -85,16 +85,26 @@ void motors_move(move_dir dir, uint8_t rpm)
     default:                   pattern = stop_pattern;       break;
   }
 
-  get_pid_rpms(rpm);
+  if (encoders_attached)
+  {
+    get_pid_rpms(rpm);
 
-  const uint8_t adjusted_rpm[2] = {
-    uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
-    uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
-  };
+    const uint8_t adjusted_rpm[2] = {
+      uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
+      uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
+    };
 
-  for (int i = 0; i < 4; i++) {
-    set_rpm_pwm(driver_pins[i], adjusted_rpm[i/2] * *(pattern + i));
+    for (int i = 0; i < 4; i++) {
+      set_rpm_pwm(driver_pins[i], adjusted_rpm[i/2] * *(pattern + i));
+    }
   }
+  else
+  {
+    for (int i = 0; i < 4; i++) {
+      set_rpm_pwm(driver_pins[i], rpm * *(pattern + i));
+    }
+  }
+  
 }
 
 
@@ -102,6 +112,7 @@ void motors_stop() { motors_move(move_dir::stop, 0); }  // Could be inline
 
 
 /*
+Uses a basic PID controller to adjust target RPMs based on encoder feedback.
 */
 void get_pid_rpms(uint8_t target) {
   constexpr float kp = 0.80;

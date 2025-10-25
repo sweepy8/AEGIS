@@ -15,6 +15,7 @@
 // Subsytem Flags
 constexpr bool uart_attached        = true;  // ARD <-> RPI
 constexpr bool motors_attached      = true;  // Yellowjackets
+constexpr bool encoders_attached    = false;  // On motors
 constexpr bool env_sensors_attached = true;  // SHTC3 + LTR-329
 constexpr bool imu_attached         = true;  // BNO-085
 constexpr bool ultrasonics_attached = true;  // HC-SR04

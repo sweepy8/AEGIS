@@ -23,11 +23,12 @@ Maybe splice under boards?
 '''
 
 import neopixel
+from time import sleep
 
 from . import pin_utils as pins
 
 PX_COUNT = 16
-BRIGHTNESS = 0.1
+BRIGHTNESS = 0.2
 
 pixels = neopixel.NeoPixel(
     pins.LED_CTL_PIN,
@@ -82,6 +83,18 @@ def set_pixel(addr : int, color) -> None:
         raise ValueError("Invalid pixel index!")
     
     pixels[addr] = color
+
+def pulse_board(color, pulses, pulse_duration_s) -> None:
+    steps = 100
+    pixels.fill(color)
+    for _ in range (0, pulses):
+        for i in range(0, steps):
+            if i < steps/2:
+                pixels.brightness = i / steps/2 * BRIGHTNESS
+            else:
+                pixels.brightness = (steps - i) / steps/2 * BRIGHTNESS
+            sleep(pulse_duration_s / steps)
+    pixels.fill(PX_OFF)
 
 def map_ultrasonic_to_pixel(addr, dist_cm):
     if dist_cm > 100:
