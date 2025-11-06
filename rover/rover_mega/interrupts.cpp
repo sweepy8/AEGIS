@@ -45,7 +45,7 @@ void interrupts_setup()
 }
 
 /*
-Interrupt handler for PCINT0 register (PB0-7)
+Interrupt handler for PCINT0 register (PB0-7).
 */
 ISR(PCINT0_vect)
 {
@@ -54,7 +54,7 @@ ISR(PCINT0_vect)
 }
 
 /*
-Interrupt handler for PCINT1 register (PJ0-6)
+Interrupt handler for PCINT1 register (PJ0-6).
 */
 ISR(PCINT1_vect)
 {

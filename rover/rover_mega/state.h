@@ -17,6 +17,7 @@ extern uint32_t last_ultra_sample_us;
 extern uint32_t last_env_sample_us;
 extern uint32_t last_imu_sample_us;
 extern uint32_t last_encoder_sample_us;
+extern uint32_t last_power_sample_us;
 extern uint32_t last_talk_time_us;
 
 extern bool ugv_is_moving;

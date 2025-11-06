@@ -30,11 +30,19 @@
 
 void setup() 
 {
-  if (motors_attached)                              { motors_setup(); }
+  // Timer 3 (OC3B=PE4=D2=RR, OC3C=PE5=D3=RF, +D5)
+  TCCR3B &= ~7; // Flush bits 0-2 (timer prescale)
+  TCCR3B |=  1; // Prescale = 1, PWM F=31 kHz
+
+  // Timer 4 (OC4A=PH3=D6=LR, OC4B=PH4=D7=LF, +D8)
+  TCCR4B &= ~7; // Flush bits 0-2 (timer prescale)
+  TCCR4B |=  1; // Prescale = 1, PWM F=31 kHz
+
+  if (motors_attached)                                { motors_setup(); }
   if (ultrasonics_attached 
       || env_sensors_attached
-      || imu_attached)                              { sensors_setup(); }
-  if (motors_attached || ultrasonics_attached)      { interrupts_setup(); }
+      || imu_attached)                                { sensors_setup(); }
+  if (encoders_attached || ultrasonics_attached)      { interrupts_setup(); }
   if (uart_attached) 
   {
     Serial.begin(mega_baudrate);
@@ -66,11 +74,17 @@ void loop()
     sensors_env_tick(now_us);
     last_env_sample_us = now_us;
   }
-  if (motors_attached 
+  if (encoders_attached 
     && (now_us - last_encoder_sample_us) >= encoder_sample_period_us) 
   {
     motors_encoder_tick();
     last_encoder_sample_us = now_us;
+  }
+  if (motors_attached
+    && (now_us - last_power_sample_us) >= power_sample_period_us)
+  {
+    motors_power_tick();
+    last_power_sample_us = now_us;
   }
 
   // Movement command processing and execution

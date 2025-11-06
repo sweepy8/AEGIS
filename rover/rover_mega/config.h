@@ -15,9 +15,11 @@
 // Subsytem Flags
 constexpr bool uart_attached        = true;  // ARD <-> RPI
 constexpr bool motors_attached      = true;  // Yellowjackets
+constexpr bool encoders_attached    = false;  // On motors
 constexpr bool env_sensors_attached = true;  // SHTC3 + LTR-329
 constexpr bool imu_attached         = true;  // BNO-085
-constexpr bool ultrasonics_attached = false;  // HC-SR04
+constexpr bool ultrasonics_attached = true;  // HC-SR04
+constexpr bool headlights_attached  = true;  // KC LED Headlights
 
 // Serial Parameters
 constexpr uint32_t mega_baudrate = 460800;     // Baud of serial
@@ -29,6 +31,7 @@ constexpr uint32_t ultrasonic_sample_period_us =  100000;  // 10 Hz
 constexpr uint32_t sensor_sample_period_us     =  100000;  // 10 Hz
 constexpr uint32_t imu_sample_period_us        =  100000;  // 10 Hz
 constexpr uint32_t encoder_sample_period_us    =  100000;  // 10 Hz
+constexpr uint32_t power_sample_period_us      =  100000;  // 10 Hz
 constexpr uint32_t command_threshold_us        =   50000;  // 20 Hz
 
 // Encoder Characteristics
@@ -67,10 +70,11 @@ constexpr uint32_t trig_pulse_us = 10;
 constexpr int      safe_dist_cm = 10;
 constexpr float    speed_of_sound_mps = 345.0;   // 343 @ 20C + 0.6 per degC
 
-// Headlight Pins
-constexpr uint8_t high_beam = 22;
-constexpr uint8_t left_headlight = 24;
-constexpr uint8_t right_headlight = 26;
+// Headlight Pins, Parameters
+constexpr uint8_t hl_highbeam_pin = 22;
+constexpr uint8_t hl_left_pin = 24;
+constexpr uint8_t hl_right_pin = 26;
+constexpr uint16_t threshold_ambient_light = 75; // Lux
 
 // Power Meter Pins
 constexpr uint8_t volt_lf = A11;
@@ -80,6 +84,9 @@ constexpr uint8_t volt_rf = A8;
 constexpr uint8_t volt_rm = A9;
 constexpr uint8_t volt_rr = A10;
 constexpr uint8_t volt_batt = A14;
+constexpr uint8_t mot_v_pins[6] = {
+    volt_lf, volt_lm, volt_lr, volt_rf, volt_rm, volt_rr
+};
 
 constexpr uint8_t amp_lf = A3;
 constexpr uint8_t amp_lm = A4;
@@ -87,6 +94,9 @@ constexpr uint8_t amp_lr = A5;
 constexpr uint8_t amp_rf = A0;
 constexpr uint8_t amp_rm = A1;
 constexpr uint8_t amp_rr = A2;
+constexpr uint8_t mot_a_pins[6] = {
+    amp_lf, amp_lm, amp_lr, amp_rf, amp_rm, amp_rr
+};
 constexpr uint8_t amp_batt = A6;
 
 #endif

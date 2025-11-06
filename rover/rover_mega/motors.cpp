@@ -18,6 +18,12 @@ static uint8_t rev_pattern[4]        = { 0,  1,  0,  1};
 static uint8_t left_spin_pattern[4]  = { 0,  1,  1,  0};
 static uint8_t right_spin_pattern[4] = { 1,  0,  0,  1};
 
+static float mot_v_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous voltage
+static float mot_v_sum[6] = {0,0,0,0,0,0};  // Motor voltage accumulators
+static float mot_a_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous current
+static float mot_a_sum[6] = {0,0,0,0,0,0};  // Motor current accumulators
+static uint16_t mot_pow_count = 0;          // N=0 averages are skipped
+
 static float rpm_inst[6] = {0,0,0,0,0,0};   // Latest instantaneous rpm
 static float rpm_sum[6] = {0,0,0,0,0,0};    // Encoder rpm accumulators
 static uint16_t rpm_count = 0;              // N=0 averages are skipped
@@ -27,7 +33,7 @@ static float rpm_pid[6] = {0,0,0,0,0,0};   // target rpms after PID control
 static float avg_rpm_pid[2] = {0, 0}; // left, right
 
 /*
-Wrapper around analogWrite() to map RPM range to PWM range.
+Sets PWM on given pin to correspond with given RPM value.
 */
 static inline void set_rpm_pwm(uint8_t pin, uint8_t rpm)
 {
@@ -52,6 +58,13 @@ void motors_setup()
     pinMode(enc_a_pins[i], INPUT_PULLUP);
     pinMode(enc_b_pins[i], INPUT_PULLUP);
   }
+
+  for (int i = 0; i < 6; i++)
+  {
+    pinMode(mot_v_pins[i], INPUT);
+    pinMode(mot_a_pins[i], INPUT);
+  }
+
 }
 
 
@@ -72,28 +85,40 @@ void motors_move(move_dir dir, uint8_t rpm)
     default:                   pattern = stop_pattern;       break;
   }
 
-  get_pid_rpms(rpm);
+  if (encoders_attached)
+  {
+    motors_calculate_pid_rpms(rpm);
 
-  const uint8_t adjusted_rpm[2] = {
-    uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
-    uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
-  };
+    const uint8_t adjusted_rpm[2] = {
+      uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
+      uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
+    };
 
-  for (int i = 0; i < 4; i++) {
-    set_rpm_pwm(driver_pins[i], adjusted_rpm[i/2] * *(pattern + i));
+    for (int i = 0; i < 4; i++) {
+      set_rpm_pwm(driver_pins[i], adjusted_rpm[i/2] * *(pattern + i));
+    }
   }
+  else
+  {
+    for (int i = 0; i < 4; i++) {
+      set_rpm_pwm(driver_pins[i], rpm * *(pattern + i));
+    }
+  }
+  
 }
 
 
-void motors_stop() { motors_move(move_dir::stop, 0); }  // Could be inline
+inline void motors_stop() { motors_move(move_dir::stop, 0); }
 
 
 /*
+Calculates target RPMs for left and right motors using PID control based on
+the given target RPM and the last measured instantaneous RPMs.
 */
-void get_pid_rpms(uint8_t target) {
-  constexpr float kp = 0.333f;
-  constexpr float ki = 0.333f;
-  constexpr float kd = 0.333f;
+void motors_calculate_pid_rpms(uint8_t target) {
+  constexpr float kp = 0.80;
+  constexpr float ki = 0.15f;
+  constexpr float kd = 0.05f;
   constexpr float dt = encoder_sample_period_us * 1e-6;
 
   static float integrals[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -111,17 +136,23 @@ void get_pid_rpms(uint8_t target) {
     diffs[i] = -1 * (rpm_inst[i] - rpm_prev[i]) / dt;
 
     rpm_pid[i] = rpm_inst[i] + kp * err + ki * integrals[i] + kd * diffs[i];
-    avg_rpm_pid[i/3] += rpm_pid[i];
+    
+    // Switched from average left and right to front left and right for PID tracking
+    // If this works, refactor PID to not waste time on the other four motors
+    if (i == 0 || i == 3)
+    {
+      avg_rpm_pid[i/3] += rpm_pid[i];
+    }
   }
-  avg_rpm_pid[0] /= 3;
-  avg_rpm_pid[1] /= 3;
+  // avg_rpm_pid[0] /= 3;
+  // avg_rpm_pid[1] /= 3;
 }
 
 
 /*
 Takes a reading of (and clears) motor encoder pulse counts, converts them into
 instantaneous RPM measurements, and appends them to their accumulators. This
-function should be called every N microseconds, where N is period from config.h
+function is called every N microseconds, where N is the period from config.h.
 */
 void motors_encoder_tick()
 {
@@ -152,6 +183,43 @@ void motors_encoder_tick()
   rpm_count++;
 }
 
+
+/*
+Takes a reading of (and clears) motor voltages and currents, and appends them to
+their accumulators. This function is called every N microseconds, where N is
+the period from config.h.
+*/
+void motors_power_tick()
+{
+  static constexpr float v_ref_mot = 5.0f;     // ADC reference voltage
+  static constexpr float shunt_res = 0.2323f;  // Ohms
+  static constexpr float v_cap_off = 0.15f;    // Volts
+  static constexpr float ammeter_gain = 3.23f;
+  static constexpr float a_voltage_div = 3.0f;
+  static constexpr float v_voltage_div = 1.5f;
+
+  // Read and accumulate motor voltages and currents
+  for (int i = 0; i < 6; i++)
+  {
+    const float v_resolution = v_ref_mot / 1023.0f;
+    const float v_inst = analogRead(mot_v_pins[i]) 
+                          * v_resolution 
+                          * v_voltage_div;
+    const float a_inst = (analogRead(mot_a_pins[i]) * v_resolution - v_cap_off) 
+                          / ammeter_gain 
+                          / shunt_res;
+
+    mot_v_inst[i] = v_inst;
+    mot_a_inst[i] = a_inst;
+
+    mot_v_sum[i] += v_inst;
+    mot_a_sum[i] += a_inst;
+  }
+
+  mot_pow_count++;
+}
+
+
 /*
 Takes an average of the last N RPM readings and resets the accumulators.
 Average RPMs are then sent to Raspberry Pi with the rest of the telemetry.
@@ -164,6 +232,24 @@ void motors_get_and_reset_rpm_avg(float out_avg_rpm[6])
     rpm_sum[i] = 0.0f;
   }
   rpm_count = 0;
+}
+
+/*
+Takes an average of the last N voltage and current readings and resets the
+accumulators. Average voltages and currents are then sent to Raspberry Pi with 
+the rest of the telemetry.
+*/
+void motors_get_and_reset_pow_avg(float out_avg_v[6], float out_avg_a[6])
+{
+  for (int i = 0; i < 6; i++) 
+  {
+    out_avg_v[i] = mot_pow_count ? (mot_v_sum[i] / mot_pow_count) : 0.0f;
+    mot_v_sum[i] = 0.0f;
+
+    out_avg_a[i] = mot_pow_count ? (mot_a_sum[i] / mot_pow_count) : 0.0f;
+    mot_a_sum[i] = 0.0f;
+  }
+  mot_pow_count = 0;
 }
 
 /*

@@ -4,6 +4,7 @@
 from datetime import datetime
 import os
 import json
+import filelock
 
 TRIPS_FOLDER = "./stream/static/trips"
 
@@ -134,6 +135,8 @@ def make_telemetry_JSON(filepath = '') -> str:
 
 def update_telemetry_JSON(filepath = 'badwords', filename = 'badwords', **kwargs) -> str:
     '''
+    Updates the telemetry JSON file with new data.
+    Uses a lock to prevent read/write conflicts.
     '''
 
     if not os.path.exists(filepath):
@@ -159,3 +162,28 @@ def update_telemetry_JSON(filepath = 'badwords', filename = 'badwords', **kwargs
         json.dump(telemetry, f, indent=4)
 
     return filename
+
+
+def get_latest_telemetry(filepath: str, filename: str) -> dict:
+    '''
+    Opens the trip telemetry JSON and captures the last index of the telemetry 
+    list.
+    Args:
+        filepath (str): The path to the trip folder.
+        filename (str): The filename of the telemetry JSON.
+    Returns:
+        telemetry (dict): The latest telemetry data.
+    '''
+    if not os.path.isfile(path=filename):
+        raise FileNotFoundError(f"[ERR] file_utils.py: No telemetry JSON found at '{filename}'!")
+    
+    with open(filename, 'r') as f:
+        telemetry_data = json.load(f)
+        if len(telemetry_data["telemetry"]) == 0:
+            raise ValueError("[ERR] file_utils.py: No telemetry data found in JSON!")
+        latest_telemetry = telemetry_data["telemetry"][-1]
+
+    return latest_telemetry
+
+
+

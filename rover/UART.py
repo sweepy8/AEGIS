@@ -19,6 +19,8 @@ from lidar import scan
 INPUT_BUFFER_SECONDS = 0.1
 STICK_MOVE_THRESHOLD = 0.05         # Fixes stick drift
 
+LLM_DRIVE_ENABLED = False # If True, disables manual control for LLM autopilot
+
 tripping: bool = False
 scanner = scan.Scanner()
 ugv_cam = camera.Camera()
@@ -97,7 +99,7 @@ def read_data(serial_conn : Serial) -> bytes | None:
     else:
         raise RuntimeError("Attempted to read from closed serial port!")
     
-def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str, controller_thread : Thread) -> None:
+def listen_to_UGV(serial_conn: Serial, trip_json : str, dump_folder: str, controller_thread : Thread) -> None:
     """
     Captures telemetry data from the Arduino and writes it to the trip's 
     telemetry JSON file. If the data is malformed, skips the frame.
@@ -110,8 +112,6 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str, contro
         dump_folder (str): The path to the telemetry JSON file's folder.
     """
 
-    filename = f"tel_{start_time}.json"
-
     while controller_thread.is_alive():
 
         set_pixel(ARD_ADDR, PX_WHITE) # MIGHT BE TOO QUICK TO OBSERVE
@@ -122,7 +122,7 @@ def listen_to_UGV(serial_conn: Serial, start_time: str, dump_folder: str, contro
             tel_dict = process_telemetry(ugv_data)
 
             filename: str = file_utils.update_telemetry_JSON(
-                filepath=dump_folder, filename=filename, telemetry=tel_dict)
+                filepath=dump_folder, filename=trip_json, telemetry=tel_dict)
 
         except RuntimeError:
             print("[ERR] UART.py: INVALID ARDUINO TELEMETRY (BADLEN)\n")
@@ -135,7 +135,7 @@ def process_telemetry(data: bytes) -> dict:
     telemetry dictionary. This is terrible and I'm sorry.
 
     Args:
-        t_str (bytes): The unprocessed telemetry byte array from the Arduino.
+        data (bytes): The unprocessed telemetry byte array from the Arduino.
     Returns:
         telemetry (dict): The dictionary of telemetry key-value pairs.
     Raises:
@@ -193,14 +193,13 @@ def process_telemetry(data: bytes) -> dict:
     mot_rr_a = float(ard_vals[17].replace(val_prefixes[17], ''))
     mot_rr_r = float(ard_vals[18].replace(val_prefixes[18], ''))
     map_mot_current_to_pixel(RR_ADDR, mot_lf_a)
-    map_rpm_to_pixel(RPM_ADDR,
-        (mot_lf_r+mot_lm_r+mot_lr_r+mot_rf_r+mot_rm_r+mot_rr_r)/6
-    )
+    rpm_avg: float = (mot_lf_r+mot_lm_r+mot_lr_r+mot_rf_r+mot_rm_r+mot_rr_r) / 6
+    map_rpm_to_pixel(RPM_ADDR, rpm=rpm_avg)
 
     us_li_cm = float(ard_vals[19].replace(val_prefixes[19], ''))
-    us_lf_cm = float(ard_vals[20].replace(val_prefixes[19], ''))    # TODO FIX
-    us_ct_cm = float(ard_vals[21].replace(val_prefixes[20], ''))    # TODO FIX
-    us_rt_cm = float(ard_vals[22].replace(val_prefixes[21], ''))    # TODO FIX
+    us_lf_cm = float(ard_vals[20].replace(val_prefixes[20], ''))
+    us_ct_cm = float(ard_vals[21].replace(val_prefixes[21], ''))
+    us_rt_cm = float(ard_vals[22].replace(val_prefixes[22], ''))
     us_rr_cm = float(ard_vals[23].replace(val_prefixes[23], ''))
     map_ultrasonic_to_pixel(
         USFT_ADDR, min(us_lf_cm, us_ct_cm, us_rt_cm)
@@ -226,7 +225,7 @@ def process_telemetry(data: bytes) -> dict:
     map_batt_to_pixel(BAT_ADDR, batt_pct) # Pass as val from 0 to 100.0
 
     # POPULATE RASPBERRY PI TELEMETRY
-    cpu_util_pct: list[str] = get_cpu_util()    # type: ignore
+    cpu_util_pct: float = get_cpu_util()
     adc_vals: list[str] = os.popen('vcgencmd pmic_read_adc').read().split()
     fmt = lambda idx, pre, post: round(
         float(adc_vals[idx].replace(pre,'').replace(post,'')), 4)
@@ -403,17 +402,18 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
                 if (controller.input_states['BTN_START'] 
                 and controller.input_states['BTN_A'] 
                 and not ugv_cam.recording):
-                    set_pixel(CAM_ADDR, PX_GREEN)
                     video_filename = ugv_cam.my_start_recording()
-                    print(f"UART.py: Recording video to '{video_filename}'...")
+                    #sleep(0.01)
+                    #print(f"UART.py: Recording video to '{video_filename}'...")
 
                 # START + B: stop recording
                 if (controller.input_states['BTN_START'] 
                 and controller.input_states['BTN_B'] 
                 and ugv_cam.recording):
-                    ugv_cam.my_stop_recording()
+                    #ugv_cam.my_stop_recording()
+                    #sleep(0.01)
                     print(f"UART.py: Recording saved to '{video_filename}'.")   # type: ignore
-                    set_pixel(CAM_ADDR, PX_OFF)
+                    
             else:
                 if ((controller.input_states['BTN_START']
                      and controller.input_states['BTN_A']) 
@@ -494,6 +494,45 @@ def generate_command(op : str, **kwargs) -> bytes | None:
     except OverflowError:
         print("[ERR] UART.py: Invalid command generated!")
 
+def give_controls_to_autopilot(serial_conn : Serial, trip_json : str, dump_folder : str, tripping: bool) -> None:
+    
+    print("[INI] UART.py: LLM Autopilot Enabled.")
+    from rover.autopilot import Autopilot
+    spartan = Autopilot()
+    while tripping:
+        telemetry = file_utils.get_latest_telemetry(
+            filepath=dump_folder,
+            filename=trip_json
+        )
+        if telemetry is not None:
+            actions = spartan.decide_actions(telemetry)
+            for action in actions:
+                if spartan.validate_action(action):
+                    if action.function.name == "move_rover": # type: ignore
+                        args = json.loads(action.function.arguments or "{}")  # type: ignore
+                        speed = args.get("speed", 0.0)
+                        op = args.get("op", "")
+                        if op == "MOVE":
+                            serial_conn.write(
+                                generate_command(
+                                    op = "MOVE", 
+                                    spd = speed
+                                )   # type: ignore
+                            )
+                        elif op == "TURN":
+                            turn_dir = args.get("turn_dir", "LEFT")
+                            serial_conn.write(
+                                generate_command(
+                                    op = "TURN", 
+                                    turn_dir = turn_dir,
+                                    spd = speed
+                                )   # type: ignore
+                            )
+                    elif action.function.name == "scan_environment": # type: ignore
+                        scanner.scan(filepath=dump_folder)
+                    
+        time.sleep(3)  # Wait before next decision cycle
+
 def run_comms() -> None:
     """
     Establishes bidirectional UART communication between the Arduino and
@@ -508,8 +547,23 @@ def run_comms() -> None:
         file_utils.TRIPS_FOLDER, trip_start_timestamp)
     print(f"[INI] UART.py: Created trip folder at {trip_folder}.")
 
+    trip_json: str = file_utils.make_telemetry_JSON(filepath=trip_folder)
+    print(f"[INI] UART.py: Created trip telemetry JSON at {trip_json}.")
+
     serial_conn: Serial = open_serial_connection()
-    
+
+    if LLM_DRIVE_ENABLED:
+        autopilot_thread = Thread(target=give_controls_to_autopilot,
+                                    args=[
+                                        serial_conn,
+                                        trip_json,
+                                        trip_folder,
+                                        tripping
+                                    ],
+            daemon=True
+        )
+        autopilot_thread.start()
+
     controller_thread = Thread(target=control_UGV,
                                 args=[
                                     serial_conn,
@@ -522,7 +576,7 @@ def run_comms() -> None:
     telemetry_thread = Thread(target=listen_to_UGV, 
                                 args=[
                                     serial_conn, 
-                                    trip_start_timestamp, 
+                                    trip_json, 
                                     trip_folder, 
                                     controller_thread
                                 ]

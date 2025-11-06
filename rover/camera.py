@@ -3,7 +3,7 @@
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
-from picamera2.outputs import PyavOutput
+from picamera2.outputs import PyavOutput, FfmpegOutput
 from time import sleep
 
 import os
@@ -29,15 +29,13 @@ class Camera(Picamera2):
             super(Camera, self).__init__()
             self.connected = True
             self.config = self.create_video_configuration(
-                main=  {'format':'XRGB8888'},
-                lores= {'format':'RGB888'}
+                main={"size": (1280, 720), "format": "YUV420"}
             )
+            self.configure(self.config)
         except:
             print("[ERR] camera.py: No camera detected!")
             self.connected = False
 
-        self.video_quality = Quality.VERY_HIGH
-        self.encoder = H264Encoder(repeat=True)
         self.recording = False
 
     def my_start_recording(self) -> str | None:
@@ -49,15 +47,14 @@ class Camera(Picamera2):
             filename (str): The timestamped filename of the video being recorded.
         """
         if self.recording == False:
+            #set_pixel(CAM_ADDR, PX_RED)
             filename: str = get_timestamped_filename(
                 save_path='data/videos', prefix='video', ext='.mp4')
-            self.start_encoder(
-                encoder=self.encoder,
-                output=PyavOutput(output_name=filename),
-                quality=self.video_quality
+            self.start_recording(
+                encoder=H264Encoder(),
+                output=FfmpegOutput(filename),
+                quality=Quality.VERY_HIGH
             )
-            print("[RUN] camera.py: Began hi-res encoder...")
-            self.start()
             print(f"[RUN] camera.py: Began recording to {filename}...")
             self.recording = True
             return filename
@@ -70,8 +67,9 @@ class Camera(Picamera2):
         PLACEHOLDER, TO BE FILLED IN LATER ***
         """
         if self.recording == True:
+            #set_pixel(CAM_ADDR, PX_GREEN)
             print("[RUN] camera.py: Attempting to stop recording...")
-            self.stop_encoder()
+            self.stop_recording()
             print("[RUN] camera.py: Stopped hi-res encoder...")
             self.recording = False
         else:
@@ -94,3 +92,7 @@ def record_test(seconds : int) -> None:
     UGV_Cam.my_start_recording()
     sleep(seconds)
     UGV_Cam.my_stop_recording()
+
+
+if __name__ == "__main__":
+    record_test(10)
