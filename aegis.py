@@ -2,11 +2,15 @@
 # Starts UART communication and web viewer in separate processes.
 
 from multiprocessing import Process
+<<<<<<< HEAD
+=======
+from time import sleep
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
 import atexit
 
 from utils.led_utils import *
 from rover import UART
-#from stream import web_viewer as site
+from stream import web_viewer as site
 
 @atexit.register
 def exit_handler() -> None:
@@ -21,6 +25,6 @@ uart_p.start()
 #print("[INI] aegis.py: Starting website subprocess...")
 #site_p.start()
 
-#print("[INI] aegis.py: Joining subprocesses...")
+print("[INI] aegis.py: Joining subprocesses...")
 uart_p.join()
 #site_p.join()

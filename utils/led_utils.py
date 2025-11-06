@@ -29,6 +29,16 @@ from . import pin_utils as pins
 
 PX_COUNT = 16
 BRIGHTNESS = 0.2
+<<<<<<< HEAD
+=======
+
+pixels = neopixel.NeoPixel(
+    pins.LED_CTL_PIN,
+    PX_COUNT,
+    brightness=BRIGHTNESS,
+    auto_write=True     # Immediately update pixel state when written
+)
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
 
 #             RRGGBB
 PX_OFF    = 0x000000

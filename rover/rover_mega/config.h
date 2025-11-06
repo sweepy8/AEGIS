@@ -16,8 +16,11 @@
 constexpr bool uart_attached        = true;  // ARD <-> RPI
 constexpr bool motors_attached      = true;  // Yellowjackets
 constexpr bool encoders_attached    = false;  // On motors
+constexpr bool encoders_attached    = false;  // On motors
 constexpr bool env_sensors_attached = true;  // SHTC3 + LTR-329
 constexpr bool imu_attached         = true;  // BNO-085
+constexpr bool ultrasonics_attached = true;  // HC-SR04
+constexpr bool headlights_attached  = true;  // KC LED Headlights
 constexpr bool ultrasonics_attached = true;  // HC-SR04
 constexpr bool headlights_attached  = true;  // KC LED Headlights
 
@@ -31,6 +34,7 @@ constexpr uint32_t ultrasonic_sample_period_us =  100000;  // 10 Hz
 constexpr uint32_t sensor_sample_period_us     =  100000;  // 10 Hz
 constexpr uint32_t imu_sample_period_us        =  100000;  // 10 Hz
 constexpr uint32_t encoder_sample_period_us    =  100000;  // 10 Hz
+constexpr uint32_t power_sample_period_us      =  100000;  // 10 Hz
 constexpr uint32_t power_sample_period_us      =  100000;  // 10 Hz
 constexpr uint32_t command_threshold_us        =   50000;  // 20 Hz
 

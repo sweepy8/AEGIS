@@ -87,7 +87,11 @@ void motors_move(move_dir dir, uint8_t rpm)
 
   if (encoders_attached)
   {
+<<<<<<< HEAD
     motors_calculate_pid_rpms(rpm);
+=======
+    get_pid_rpms(rpm);
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
 
     const uint8_t adjusted_rpm[2] = {
       uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
@@ -112,10 +116,16 @@ inline void motors_stop() { motors_move(move_dir::stop, 0); }
 
 
 /*
+<<<<<<< HEAD
 Calculates target RPMs for left and right motors using PID control based on
 the given target RPM and the last measured instantaneous RPMs.
 */
 void motors_calculate_pid_rpms(uint8_t target) {
+=======
+Uses a basic PID controller to adjust target RPMs based on encoder feedback.
+*/
+void get_pid_rpms(uint8_t target) {
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
   constexpr float kp = 0.80;
   constexpr float ki = 0.15f;
   constexpr float kd = 0.05f;
@@ -183,6 +193,7 @@ void motors_encoder_tick()
   rpm_count++;
 }
 
+<<<<<<< HEAD
 
 /*
 Takes a reading of (and clears) motor voltages and currents, and appends them to
@@ -194,6 +205,13 @@ void motors_power_tick()
   static constexpr float v_ref_mot = 5.0f;     // ADC reference voltage
   static constexpr float shunt_res = 0.2323f;  // Ohms
   static constexpr float v_cap_off = 0.15f;    // Volts
+=======
+void motors_power_tick()
+{
+  static constexpr float mot_ref_v = 5.0f;     // ADC reference voltage
+  static constexpr float shunt_res = 0.2323f;  // Ohms
+  static constexpr float cap_off_v = 0.15f;    // Volts
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
   static constexpr float ammeter_gain = 3.23f;
   static constexpr float a_voltage_div = 3.0f;
   static constexpr float v_voltage_div = 1.5f;
@@ -201,11 +219,16 @@ void motors_power_tick()
   // Read and accumulate motor voltages and currents
   for (int i = 0; i < 6; i++)
   {
+<<<<<<< HEAD
     const float v_resolution = v_ref_mot / 1023.0f;
     const float v_inst = analogRead(mot_v_pins[i]) 
                           * v_resolution 
                           * v_voltage_div;
     const float a_inst = (analogRead(mot_a_pins[i]) * v_resolution - v_cap_off) 
+=======
+    const float v_inst = analogRead(mot_v_pins[i]) * (mot_ref_v / 1023.0f) * v_voltage_div;
+    const float a_inst = (analogRead(mot_a_pins[i]) * (mot_ref_v / 1023.0f) - cap_off_v) 
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
                           / ammeter_gain 
                           / shunt_res;
 

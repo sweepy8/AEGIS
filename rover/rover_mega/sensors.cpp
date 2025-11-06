@@ -95,10 +95,13 @@ void sensors_setup()
   }
 }
 
+<<<<<<< HEAD
 /*
 Controls the rover's headlights based on ambient visible light level.
 Turns on headlights if visible light (in lux) is below threshold.
 */
+=======
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
 void control_headlights(uint16_t vis_lux)
 {
   if (!headlights_attached)

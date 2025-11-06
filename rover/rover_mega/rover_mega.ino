@@ -30,6 +30,7 @@
 
 void setup() 
 {
+<<<<<<< HEAD
   // Timer 3 (OC3B=PE4=D2=RR, OC3C=PE5=D3=RF, +D5)
   TCCR3B &= ~7; // Flush bits 0-2 (timer prescale)
   TCCR3B |=  1; // Prescale = 1, PWM F=31 kHz
@@ -38,6 +39,8 @@ void setup()
   TCCR4B &= ~7; // Flush bits 0-2 (timer prescale)
   TCCR4B |=  1; // Prescale = 1, PWM F=31 kHz
 
+=======
+>>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
   if (motors_attached)                                { motors_setup(); }
   if (ultrasonics_attached 
       || env_sensors_attached
