@@ -30,7 +30,6 @@
 
 void setup() 
 {
-<<<<<<< HEAD
   // Timer 3 (OC3B=PE4=D2=RR, OC3C=PE5=D3=RF, +D5)
   TCCR3B &= ~7; // Flush bits 0-2 (timer prescale)
   TCCR3B |=  1; // Prescale = 1, PWM F=31 kHz
@@ -39,11 +38,11 @@ void setup()
   TCCR4B &= ~7; // Flush bits 0-2 (timer prescale)
   TCCR4B |=  1; // Prescale = 1, PWM F=31 kHz
 
-=======
->>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
   if (motors_attached)                                { motors_setup(); }
   if (ultrasonics_attached 
       || env_sensors_attached
+      || imu_attached)                                { sensors_setup(); }
+  if (encoders_attached || ultrasonics_attached)      { interrupts_setup(); }
       || imu_attached)                                { sensors_setup(); }
   if (encoders_attached || ultrasonics_attached)      { interrupts_setup(); }
   if (uart_attached) 
@@ -78,10 +77,17 @@ void loop()
     last_env_sample_us = now_us;
   }
   if (encoders_attached 
+  if (encoders_attached 
     && (now_us - last_encoder_sample_us) >= encoder_sample_period_us) 
   {
     motors_encoder_tick();
     last_encoder_sample_us = now_us;
+  }
+  if (motors_attached
+    && (now_us - last_power_sample_us) >= power_sample_period_us)
+  {
+    motors_power_tick();
+    last_power_sample_us = now_us;
   }
   if (motors_attached
     && (now_us - last_power_sample_us) >= power_sample_period_us)

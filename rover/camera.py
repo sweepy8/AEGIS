@@ -32,11 +32,7 @@ class Camera(Picamera2):
             self.config = self.create_video_configuration(
                 main={"size": (1280, 720), "format": "YUV420"}
             )
-<<<<<<< HEAD
             self.configure(self.config)
-=======
-            set_pixel(CAM_ADDR, PX_GREEN)
->>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
         except:
             set_pixel(CAM_ADDR, PX_WHITE)
             print("[ERR] camera.py: No camera detected!")
@@ -53,11 +49,7 @@ class Camera(Picamera2):
             filename (str): The timestamped filename of the video being recorded.
         """
         if self.recording == False:
-<<<<<<< HEAD
             #set_pixel(CAM_ADDR, PX_RED)
-=======
-            set_pixel(CAM_ADDR, PX_RED)
->>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
             filename: str = get_timestamped_filename(
                 save_path='data/videos', prefix='video', ext='.mp4')
             self.start_recording(
@@ -77,11 +69,7 @@ class Camera(Picamera2):
         PLACEHOLDER, TO BE FILLED IN LATER ***
         """
         if self.recording == True:
-<<<<<<< HEAD
             #set_pixel(CAM_ADDR, PX_GREEN)
-=======
-            set_pixel(CAM_ADDR, PX_GREEN)
->>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
             print("[RUN] camera.py: Attempting to stop recording...")
             self.stop_recording()
             print("[RUN] camera.py: Stopped hi-res encoder...")

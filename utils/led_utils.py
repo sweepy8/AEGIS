@@ -24,21 +24,12 @@ Maybe splice under boards?
 
 import neopixel
 from time import sleep
+from time import sleep
 
 from . import pin_utils as pins
 
 PX_COUNT = 16
 BRIGHTNESS = 0.2
-<<<<<<< HEAD
-=======
-
-pixels = neopixel.NeoPixel(
-    pins.LED_CTL_PIN,
-    PX_COUNT,
-    brightness=BRIGHTNESS,
-    auto_write=True     # Immediately update pixel state when written
-)
->>>>>>> b70b6d886a92280f78bb275e2997d81aeb6951e3
 
 #             RRGGBB
 PX_OFF    = 0x000000
@@ -58,21 +49,26 @@ colors = [
 15  14  13  12     LI1 USF  LF  RF
 08  09  10  11     LI2 USR  LM  RM
 07  06  05  04     LI3 USL  LR  RR
+07  06  05  04     LI3 USL  LR  RR
 00  01  02  03     RPM CAM ARD BAT
 '''
 
 LQ1_ADDR = 15
 LQ2_ADDR = 8
 LQ3_ADDR = 7
+LQ3_ADDR = 7
 
 USFT_ADDR = 14
 USRR_ADDR = 9
+USLI_ADDR = 6
 USLI_ADDR = 6
 
 LF_ADDR = 13
 RF_ADDR = 12
 LM_ADDR = 10
 RM_ADDR = 11
+LR_ADDR = 5
+RR_ADDR = 4
 LR_ADDR = 5
 RR_ADDR = 4
 
@@ -99,6 +95,18 @@ def set_pixel(addr : int, color) -> None:
     
     init_on_first_use()
     pixels[addr] = color
+
+def pulse_board(color, pulses, pulse_duration_s) -> None:
+    steps = 100
+    pixels.fill(color)
+    for _ in range (0, pulses):
+        for i in range(0, steps):
+            if i < steps/2:
+                pixels.brightness = i / steps/2 * BRIGHTNESS
+            else:
+                pixels.brightness = (steps - i) / steps/2 * BRIGHTNESS
+            sleep(pulse_duration_s / steps)
+    pixels.fill(PX_OFF)
 
 def pulse_board(color, pulses, pulse_duration_s) -> None:
     steps = 100
