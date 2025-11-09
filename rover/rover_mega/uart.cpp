@@ -38,10 +38,11 @@ void uart_do_command()
       const move_dir dir = ((cmd >> 6) & 0x1)
                            ? move_dir::reverse 
                            : move_dir::forward;
-      const uint8_t rpm = map((cmd & 0x3F)*4, min_pw, max_pw, min_rpm, max_rpm);
+      const int16_t spd = int16_t(cmd & 0x3F) * (dir == move_dir::forward ? 1 : -1);
+      const int16_t rpm = map(spd, -0x3F, 0x3F, -max_rpm, max_rpm);
 
-      // verify that it is safe to move (with tearing protection)
-      bool ok = !ultrasonics_attached || dir == move_dir::reverse;
+      // Verify that it is safe to move (Always safe to reverse)
+      bool ok = true;//!ultrasonics_attached || dir == move_dir::reverse;
       if (!ok) 
       {
         // get latest distances (with tear protection)
@@ -49,16 +50,20 @@ void uart_do_command()
         noInterrupts();
         d0 = ultrasonic_cm[0]; d1 = ultrasonic_cm[1]; d2 = ultrasonic_cm[2];
         interrupts();
-        ok = (d0 > safe_dist_cm && d1 > safe_dist_cm && d2 > safe_dist_cm);
+
+        //ok = (d0 > safe_dist_cm && d1 > safe_dist_cm && d2 > safe_dist_cm);
       }
       if (ok) 
       {
+        //Serial.print("CMD MOVE: Dir="); Serial.print((dir == move_dir::forward) ? "FWD" : "REV");
+        //Serial.print(" RPM="); Serial.println(rpm);
         motors_move(dir, rpm);
         last_move_time_us = micros();
-        ugv_is_moving = true;
+        if (rpm != 0) ugv_is_moving = true;
       }
       break;
     }
+
     case 1: // TURN
     {
       const move_dir spin = ((cmd >> 6) & 0x1)
@@ -66,31 +71,22 @@ void uart_do_command()
                             : move_dir::left_spin;
       const uint8_t rpm = map((cmd & 0x3F)*4, min_pw, max_pw, min_rpm, max_rpm);
 
-      bool ok = !ultrasonics_attached;
-      if (!ok) 
-      {
-        float d0, d1, d2;
-        noInterrupts();
-        d0 = ultrasonic_cm[0]; d1 = ultrasonic_cm[1]; d2 = ultrasonic_cm[2];
-        interrupts();
-        ok = (d0 >= safe_dist_cm && d1 >= safe_dist_cm && d2 >= safe_dist_cm);
-      }
-      if (ok) 
-      {
-        motors_move(spin, rpm);
-        last_move_time_us = micros();
-        ugv_is_moving = true;
-      }
+      motors_move(spin, rpm);
+      last_move_time_us = micros();
+      if (rpm != 0) ugv_is_moving = true;
+      
       break;
     }
+
     default: break;
   }
+
 }
 
 /*
 Sends a telemetry string over Serial1 to the Raspberry Pi.
 
-Telemetry format:
+Telemetry format (on one line, breaks here for readability):
 TIME=seconds|
 LFV=float|LFA=float|LFR=int|LMV=float|LMA=float|LMR=int|
 LRV=float|LRA=float|LRR=int|RFV=float|RFA=float|RFR=int|
@@ -110,8 +106,10 @@ void uart_send_telemetry()
   }
   sensor_avgs env{};
   if (env_sensors_attached) sensors_get_and_reset_env_avg(env);
+
   imu_avgs imu_avg{};
   if (imu_attached) sensors_get_and_reset_imu_avg(imu_avg);
+  
   float us_avg[5];
   if (ultrasonics_attached) sensors_get_and_reset_ultra_avg(us_avg);
 
@@ -166,7 +164,7 @@ void uart_send_telemetry()
   }
   else { t_str += "TEMP=0|RHUM=0|LVIS=0|LINF=0|"; }
 
-  Serial.println(t_str);          // Displays telemetry string over USB
-  Serial1.println(t_str);         // Sends telemetry string to Raspberry Pi
+  //Serial.println(t_str);       // Displays telemetry string over USB
+  Serial1.println(t_str);        // Sends telemetry string to Raspberry Pi
   last_talk_time_us = micros();
 }

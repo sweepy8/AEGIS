@@ -45,14 +45,11 @@ static uint16_t imu_sample_count = 0; // N=0 averages are skipped
 
 // Ultrasonic accumulators and trigger states
 static float    ultra_sum[num_ultrasonics] = {0, 0, 0, 0, 0};
-static float    ultra_sum[num_ultrasonics] = {0, 0, 0, 0, 0};
 static uint16_t ultra_sample_count = 0; // N=0 averages are skipped
 static bool trig_high = false;  // All pulsed at once, should be staggered
 static uint32_t last_trig_us = 0;
 
 // Echo edge trackers (used in ISR)
-static volatile uint8_t     echo_state[num_ultrasonics] = {0, 0, 0, 0, 0};
-static volatile uint32_t echo_start_us[num_ultrasonics] = {0, 0, 0, 0, 0};
 static volatile uint8_t     echo_state[num_ultrasonics] = {0, 0, 0, 0, 0};
 static volatile uint32_t echo_start_us[num_ultrasonics] = {0, 0, 0, 0, 0};
 
@@ -90,11 +87,11 @@ void sensors_setup()
   if (headlights_attached)
   {
     pinMode(hl_left_pin, OUTPUT);
-    digitalWrite(hl_left_pin, LOW);
+    digitalWrite(hl_left_pin, HIGH);
     pinMode(hl_right_pin, OUTPUT);
-    digitalWrite(hl_right_pin, LOW);
+    digitalWrite(hl_right_pin, HIGH);
     pinMode(hl_highbeam_pin, OUTPUT);
-    digitalWrite(hl_highbeam_pin, HIGH); // UNTIL RESISTOR IS FIXED, THEN LOW
+    digitalWrite(hl_highbeam_pin, HIGH);
   }
 }
 
@@ -104,22 +101,15 @@ Turns on headlights if visible light (in lux) is below threshold.
 */
 void control_headlights(uint16_t vis_lux)
 {
-  if (!headlights_attached)
-  {
-    return;
-  }
+  if (!headlights_attached) return;
 
   if (vis_lux < threshold_ambient_light)
   {
-    digitalWrite(hl_left_pin, HIGH);
-    digitalWrite(hl_right_pin, HIGH);
     digitalWrite(hl_highbeam_pin, HIGH);
   }
   else
   {
-    digitalWrite(hl_left_pin, LOW);
-    digitalWrite(hl_right_pin, LOW);
-    //digitalWrite(hl_highbeam_pin, LOW); WAIT UNTIL HE FIXES THE RESISTOR
+    digitalWrite(hl_highbeam_pin, LOW);
   }
 }
 
@@ -151,6 +141,8 @@ void sensors_env_tick(uint32_t /*now_us*/)
     visible_sum += visible_last;
     infrared_sum += infrared_last;
     light_sensor_sample_count++;
+
+    control_headlights(visible_last);
   }
 }
 
@@ -246,10 +238,6 @@ void sensors_get_and_reset_env_avg(sensor_avgs& out)
   out.visible = n2 ? uint16_t(visible_sum / n2) : 0;
   out.infrared= n2 ? uint16_t(infrared_sum / n2) : 0;
 
-  control_headlights(out.visible);
-
-  control_headlights(out.visible);
-
   temp_c_sum = 0.0f;
   rel_hum_sum = 0.0f;
   visible_sum = 0;
@@ -267,9 +255,12 @@ static void get_euler_from_quaternion(imu_avgs& out, imu_pose_quat q)
 {
   // Normalize quaternion to combat sensor drift
   const float qmag = sqrtf(q.r*q.r + q.i*q.i + q.j*q.j + q.k*q.k);
-  if (qmag > 0.0f) {
-    q.r /= qmag; q.i /= qmag; q.j /= qmag; q.k /= qmag;
-  }
+  if (qmag > 0.0f) 
+  {
+    q.r /= qmag;
+    q.i /= qmag;
+    q.j /= qmag;
+    q.k /= qmag;
   }
 
   float sinr_cosp, cosr_cosp, sinp, siny_cosp, cosy_cosp;
@@ -311,12 +302,10 @@ Takes an average of the last N ultrasonic readings and resets the accumulators.
 Averages are then sent to Raspberry Pi with the rest of telemetry externally.
 */
 void sensors_get_and_reset_ultra_avg(float *out_cm)
-void sensors_get_and_reset_ultra_avg(float *out_cm)
 {
   const uint16_t n = ultra_sample_count;
   for (int i = 0; i < num_ultrasonics; i++)
   {
-    *(out_cm + i) = n ? (ultra_sum[i] / n) : 0.0f;
     *(out_cm + i) = n ? (ultra_sum[i] / n) : 0.0f;
     ultra_sum[i] = 0.0f;
   }

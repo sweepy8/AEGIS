@@ -42,7 +42,7 @@ class Scanner():
         cloud (400 by default) and related values.
         """
         self.lidar: lidar.Lidar = lidar.Lidar()
-        self.motor: motor.Motor = motor.Motor(res_name="sixteenth", start_angle=0, speed=1)
+        self.motor: motor.Motor = motor.Motor(res_name="sixteenth", start_angle=90, speed=1)
         self.rings_per_cloud: int = 400
         self.steps_per_ring: int = int(100 * self.motor.ms_res_denom / self.rings_per_cloud)
         self.resolution: float = 180 / self.rings_per_cloud
@@ -100,11 +100,15 @@ class Scanner():
         self.is_scanning = True
         print("[RUN] scan.py: Beginning cloud capture...")
 
+        # Quarter turn to start position from forward facing rest
+        self.motor.set_dir("CW")
+        self.motor.turn("CW", self.motor.ms_res_denom * 50)
         self.motor.set_dir("CCW")
 
         cloud: list[list[float]] = []
 
         while self.motor.curr_angle < 180:
+            print(self.motor.curr_angle)
             if (self.motor.curr_angle >= 0 and self.motor.curr_angle < 60):
                 set_pixel(LQ1_ADDR, PX_BLUE)
             if (self.motor.curr_angle >= 60 and self.motor.curr_angle < 120):
@@ -125,7 +129,7 @@ class Scanner():
         set_pixel(LQ3_ADDR, PX_WHITE)
 
         self.motor.set_dir("CW")
-        self.motor.turn("CW", self.motor.ms_res_denom * 100)
+        self.motor.turn("CW", self.motor.ms_res_denom * 50)
 
         num_points: int = len(cloud)
 

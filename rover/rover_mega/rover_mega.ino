@@ -10,8 +10,8 @@
  * NOTE: To flash the Mega using the Raspberry Pi command line:
  *    0. Install arduino-cli (see docs), plug in Arduino, go to the repo root
  *    1. arduino-cli compile --fqbn arduino:avr:mega ./rover/rover_mega
- *    2. arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:mega ./rover/rover_mega
- *    3. arduino-cli monitor -p /dev/ttyACM0 -b arduino:avr:mega -c 230400
+ *    2. arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:mega ./rover/rover_mega -v
+ *    3. arduino-cli monitor -p /dev/ttyACM0 -b arduino:avr:mega -c 460800
  * NOTE: Step 3 will only work if you uncomment the serial print in uart.cpp. 
  *    Make sure that the baudrate matches the baudrate in config.h.
  * NOTE: Serial prints are slow as hell. Don't use them if you can avoid it. 
@@ -30,6 +30,7 @@
 
 void setup() 
 {
+  // Set up PWM timers for 31 kHz operation to avoid audible motor whine
   // Timer 3 (OC3B=PE4=D2=RR, OC3C=PE5=D3=RF, +D5)
   TCCR3B &= ~7; // Flush bits 0-2 (timer prescale)
   TCCR3B |=  1; // Prescale = 1, PWM F=31 kHz
@@ -43,13 +44,12 @@ void setup()
       || env_sensors_attached
       || imu_attached)                                { sensors_setup(); }
   if (encoders_attached || ultrasonics_attached)      { interrupts_setup(); }
-      || imu_attached)                                { sensors_setup(); }
-  if (encoders_attached || ultrasonics_attached)      { interrupts_setup(); }
+
   if (uart_attached) 
   {
     Serial.begin(mega_baudrate);
     Serial1.begin(ugv_baudrate);
-    while (!Serial1) {}
+    while (!Serial1) {}   // Block until backplane connection is ready
   }
 }
 
@@ -64,31 +64,28 @@ void loop()
     sensors_ultrasonics_tick(now_us);
     // updates last_ultra_sample_us internally
   }
+
   if (imu_attached
     && (now_us - last_imu_sample_us) >= imu_sample_period_us)
   {
     sensors_imu_tick(now_us);
     last_imu_sample_us = now_us;
   }
+
   if (env_sensors_attached 
     && (now_us - last_env_sample_us) >= sensor_sample_period_us) 
   {
     sensors_env_tick(now_us);
     last_env_sample_us = now_us;
   }
-  if (encoders_attached 
+
   if (encoders_attached 
     && (now_us - last_encoder_sample_us) >= encoder_sample_period_us) 
   {
     motors_encoder_tick();
     last_encoder_sample_us = now_us;
   }
-  if (motors_attached
-    && (now_us - last_power_sample_us) >= power_sample_period_us)
-  {
-    motors_power_tick();
-    last_power_sample_us = now_us;
-  }
+
   if (motors_attached
     && (now_us - last_power_sample_us) >= power_sample_period_us)
   {
@@ -103,7 +100,8 @@ void loop()
     { 
       uart_do_command();
     } 
-    // This prevents jerking due to brief gap between commands
+    // This prevents motor jerk due to brief gap between commands
+    // 3 could maybe be 2.5 for lower command latency
     else if (ugv_is_moving 
           && (now_us - last_move_time_us > (3 * command_threshold_us))) 
     {

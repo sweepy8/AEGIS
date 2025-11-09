@@ -20,6 +20,5 @@ uint32_t last_talk_time_us      = 0;
 bool ugv_is_moving       = false;
 bool skip_first_telemetry = true;
 
-volatile uint16_t enc_pulse_counts[6] = {0,0,0,0,0,0};
-volatile uint8_t enc_directions[6]    = {0,0,0,0,0,0};
+volatile int16_t enc_pulse_counts[6] = {0,0,0,0,0,0};
 volatile float ultrasonic_cm[num_ultrasonics] = {0,0,0};

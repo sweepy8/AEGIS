@@ -24,15 +24,9 @@ static float mot_a_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous current
 static float mot_a_sum[6] = {0,0,0,0,0,0};  // Motor current accumulators
 static uint16_t mot_pow_count = 0;          // N=0 averages are skipped
 
-static float mot_v_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous voltage
-static float mot_v_sum[6] = {0,0,0,0,0,0};  // Motor voltage accumulators
-static float mot_a_inst[6] = {0,0,0,0,0,0}; // Latest instantaneous current
-static float mot_a_sum[6] = {0,0,0,0,0,0};  // Motor current accumulators
-static uint16_t mot_pow_count = 0;          // N=0 averages are skipped
-
 static float rpm_inst[6] = {0,0,0,0,0,0};   // Latest instantaneous rpm
 static float rpm_sum[6] = {0,0,0,0,0,0};    // Encoder rpm accumulators
-static uint16_t rpm_count = 0;              // N=0 averages are skipped
+static int16_t rpm_count = 0;              // N=0 averages are skipped
 
 static float rpm_prev[6] = {0,0,0,0,0,0};
 static float rpm_pid[6] = {0,0,0,0,0,0};   // target rpms after PID control
@@ -43,7 +37,8 @@ Sets PWM on given pin to correspond with given RPM value.
 */
 static inline void set_rpm_pwm(uint8_t pin, uint8_t rpm)
 {
-  analogWrite(pin, map(rpm, min_rpm, max_rpm, min_pw, max_pw));
+  if (rpm == 0) analogWrite(pin, 0);
+  else analogWrite(pin, map(rpm, min_rpm, max_rpm, min_pw, max_pw));
 }
 
 /*
@@ -65,13 +60,7 @@ void motors_setup()
     pinMode(enc_b_pins[i], INPUT_PULLUP);
   }
 
-  for (int i = 0; i < 6; i++)
-  {
-    pinMode(mot_v_pins[i], INPUT);
-    pinMode(mot_a_pins[i], INPUT);
-  }
-
-
+  // Power Meter pins
   for (int i = 0; i < 6; i++)
   {
     pinMode(mot_v_pins[i], INPUT);
@@ -85,38 +74,53 @@ void motors_setup()
 Sets all 4 motor PWM signals in accordance with matching movement pattern.
 Defaults to 'stop' on no pattern match, which should never happen.
 */
-void motors_move(move_dir dir, uint8_t rpm)
+void motors_move(move_dir dir, int16_t rpm)
 {
   uint8_t* pattern = stop_pattern;
-  switch (dir)
-  {
-    case move_dir::stop:       pattern = stop_pattern;       break;
-    case move_dir::forward:    pattern = fwd_pattern;        break;
-    case move_dir::reverse:    pattern = rev_pattern;        break;
-    case move_dir::left_spin:  pattern = left_spin_pattern;  break;
-    case move_dir::right_spin: pattern = right_spin_pattern; break;
-    default:                   pattern = stop_pattern;       break;
-  }
 
-  if (encoders_attached)
+  // PID control if encoders are attached and moving forward/reverse
+  if (encoders_attached && (dir == move_dir::forward || dir == move_dir::reverse))
   {
-    motors_calculate_pid_rpms(rpm);
+    // Serial.print("Time: ");
+    // Serial.print(millis());
+    // Serial.print(" T: "); Serial.print(rpm);
+    // Serial.print(" A: "); Serial.print(rpm_inst[0]); Serial.print(" "); Serial.print(rpm_inst[3]);
 
-    const uint8_t adjusted_rpm[2] = {
-      uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
-      uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
+    // Get adjusted rpms from PID controller, round, and set PWM
+    move_dir pid_pattern_enum = motors_calculate_pid_rpms(rpm);
+    const int16_t adjusted_rpm[2] = {
+      int16_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
+      int16_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
     };
-    const uint8_t adjusted_rpm[2] = {
-      uint8_t(avg_rpm_pid[0] + (avg_rpm_pid[0] > 0 ? 0.5 : -0.5)),
-      uint8_t(avg_rpm_pid[1] + (avg_rpm_pid[1] > 0 ? 0.5 : -0.5))
-    };
+
+    switch (pid_pattern_enum)
+    {
+      case move_dir::stop:       pattern = stop_pattern;       break;
+      case move_dir::forward:    pattern = fwd_pattern;        break;
+      case move_dir::reverse:    pattern = rev_pattern;        break;
+      case move_dir::left_spin:  pattern = left_spin_pattern;  break;
+      case move_dir::right_spin: pattern = right_spin_pattern; break;
+      default:                   pattern = stop_pattern;       break;
+    }
 
     for (int i = 0; i < 4; i++) {
-      set_rpm_pwm(driver_pins[i], adjusted_rpm[i/2] * *(pattern + i));
+      set_rpm_pwm(driver_pins[i], abs(adjusted_rpm[i/2]) * *(pattern + i));
     }
   }
   else
   {
+
+    switch (dir)
+    {
+      case move_dir::stop:       pattern = stop_pattern;       break;
+      case move_dir::forward:    pattern = fwd_pattern;        break;
+      case move_dir::reverse:    pattern = rev_pattern;        break;
+      case move_dir::left_spin:  pattern = left_spin_pattern;  break;
+      case move_dir::right_spin: pattern = right_spin_pattern; break;
+      default:                   pattern = stop_pattern;       break;
+    }
+
+    // Without encoders, no PID control; set all PWMs directly
     for (int i = 0; i < 4; i++) {
       set_rpm_pwm(driver_pins[i], rpm * *(pattern + i));
     }
@@ -125,17 +129,17 @@ void motors_move(move_dir dir, uint8_t rpm)
 }
 
 
-inline void motors_stop() { motors_move(move_dir::stop, 0); }
+void motors_stop() { motors_move(move_dir::stop, 0); }
 
 
 /*
 Calculates target RPMs for left and right motors using PID control based on
 the given target RPM and the last measured instantaneous RPMs.
 */
-void motors_calculate_pid_rpms(uint8_t target) {
-  constexpr float kp = 0.80;
-  constexpr float ki = 0.15f;
-  constexpr float kd = 0.05f;
+move_dir motors_calculate_pid_rpms(int16_t target) {
+  constexpr float kp = 0.16f;
+  constexpr float ki = 0.64f;
+  constexpr float kd = 0.02664f;
   constexpr float dt = encoder_sample_period_us * 1e-6;
 
   static float integrals[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -148,30 +152,29 @@ void motors_calculate_pid_rpms(uint8_t target) {
     float err = float(target) - rpm_inst[i];
 
     integrals[i] += err * dt;
-    integrals[i] = (integrals[i] > 223) ? 223 : ((integrals[i] < -223) ? -223 : integrals[i]);
+    if (integrals[i] > max_rpm)        integrals[i] = max_rpm;
+    else if (integrals[i] < -max_rpm)  integrals[i] = -max_rpm;
 
     diffs[i] = -1 * (rpm_inst[i] - rpm_prev[i]) / dt;
 
     rpm_pid[i] = rpm_inst[i] + kp * err + ki * integrals[i] + kd * diffs[i];
     
+    if (rpm_pid[i] > max_rpm)        rpm_pid[i] = max_rpm;
+    else if (rpm_pid[i] < -max_rpm)  rpm_pid[i] = -max_rpm;
+
     // Switched from average left and right to front left and right for PID tracking
     // If this works, refactor PID to not waste time on the other four motors
-    if (i == 0 || i == 3)
-    {
-      avg_rpm_pid[i/3] += rpm_pid[i];
-    }
-    
-    // Switched from average left and right to front left and right for PID tracking
-    // If this works, refactor PID to not waste time on the other four motors
-    if (i == 0 || i == 3)
+    // Pick one from 0-2 and one from 3-5. 0 and 4 gave 5rpm difference
+    if (i == 1 || i == 5)
     {
       avg_rpm_pid[i/3] += rpm_pid[i];
     }
   }
-  // avg_rpm_pid[0] /= 3;
-  // avg_rpm_pid[1] /= 3;
-  // avg_rpm_pid[0] /= 3;
-  // avg_rpm_pid[1] /= 3;
+
+  if (     (avg_rpm_pid[0] < 0) && (avg_rpm_pid[1] < 0)) return move_dir::reverse;
+  else if ((avg_rpm_pid[0] > 0) && (avg_rpm_pid[1] > 0)) return move_dir::forward;
+  else return move_dir::stop;
+
 }
 
 
@@ -183,7 +186,7 @@ function is called every N microseconds, where N is the period from config.h.
 void motors_encoder_tick()
 {
   // Capture and clear encoder pulses (disable interrupts to avoid tearing)
-  uint16_t counts[6];
+  int16_t counts[6];
   noInterrupts();
   for (int i = 0; i < 6; i++) 
   {
@@ -193,7 +196,7 @@ void motors_encoder_tick()
   interrupts();
 
   // Calculate, record, and accumulate instantaneous RPMs
-  const float window_s = 0.1f;
+  const float window_s = 0.099f;
   for (int i = 0; i < 6; i++)
   {
     rpm_prev[i] = rpm_inst[i];
@@ -279,24 +282,6 @@ void motors_get_and_reset_pow_avg(float out_avg_v[6], float out_avg_a[6])
 }
 
 /*
-Takes an average of the last N voltage and current readings and resets the
-accumulators. Average voltages and currents are then sent to Raspberry Pi with 
-the rest of the telemetry.
-*/
-void motors_get_and_reset_pow_avg(float out_avg_v[6], float out_avg_a[6])
-{
-  for (int i = 0; i < 6; i++) 
-  {
-    out_avg_v[i] = mot_pow_count ? (mot_v_sum[i] / mot_pow_count) : 0.0f;
-    mot_v_sum[i] = 0.0f;
-
-    out_avg_a[i] = mot_pow_count ? (mot_a_sum[i] / mot_pow_count) : 0.0f;
-    mot_a_sum[i] = 0.0f;
-  }
-  mot_pow_count = 0;
-}
-
-/*
 Handles interrupts generated by pulses from the A-channel of the motor
 encoders. Adds a pulse if detected and determines direction of turn.
 Four encoders are wired to pins in PCINT0 register.
@@ -304,9 +289,10 @@ Four encoders are wired to pins in PCINT0 register.
 void motors_handle_pcint0_encoders()
 {
   // Encoders on PB4-PB7
+  // This probably shouldn't be hardcoded like this but oh well
   static const uint8_t pos[4]    = { 0, 1, 2, 5};
-  static const uint8_t a_pins[4] = {12,13,11,10};
-  static const uint8_t b_pins[4] = {44,46,48,43};
+  static const uint8_t a_pins[4] = {35,37,33,15};
+  static const uint8_t b_pins[4] = {12,11,13,41};
   static uint8_t a_state[4]      = { 0, 0, 0, 0};
 
   for (int i = 0; i < 4; i++) 
@@ -314,9 +300,9 @@ void motors_handle_pcint0_encoders()
     const uint8_t a = digitalRead(a_pins[i]);
     if (a && !a_state[i]) 
     {
-      enc_pulse_counts[pos[i]]++;
       const uint8_t b = digitalRead(b_pins[i]);
-      enc_directions[pos[i]] = (!b) ? 1 : 0;
+      if (b) enc_pulse_counts[pos[i]]--;
+      else   enc_pulse_counts[pos[i]]++;
       a_state[i] = 1;
     } 
     else if (!a && a_state[i]) { a_state[i] = 0; }
@@ -331,9 +317,10 @@ Two encoders are wired to pins in PCINT1 register.
 void motors_handle_pcint1_encoders()
 {
   // Encoders on PJ0, PJ1
+  // This probably shouldn't be hardcoded like this but oh well
   static const uint8_t pos[2]    = { 3, 4};
-  static const uint8_t a_pins[2] = {enc_a_pins[3], enc_a_pins[4]};
-  static const uint8_t b_pins[2] = {enc_b_pins[3], enc_b_pins[4]};
+  static const uint8_t a_pins[2] = {14, 10};
+  static const uint8_t b_pins[2] = {43, 39};
   static uint8_t a_state[2]      = { 0, 0};
 
   for (int i = 0; i < 2; i++) 
@@ -341,9 +328,9 @@ void motors_handle_pcint1_encoders()
     const uint8_t a = digitalRead(a_pins[i]);
     if (a && !a_state[i]) 
     {
-      enc_pulse_counts[pos[i]]++;
       const uint8_t b = digitalRead(b_pins[i]);
-      enc_directions[pos[i]] = (!b) ? 1 : 0;
+      if (b) enc_pulse_counts[pos[i]]--;
+      else   enc_pulse_counts[pos[i]]++;
       a_state[i] = 1;
     } 
     else if (!a && a_state[i]) { a_state[i] = 0; }

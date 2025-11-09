@@ -345,15 +345,16 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
 
         if (current_time - time_since_last_command) > INPUT_BUFFER_SECONDS:
 
-            # # HOLD ZERO SPEED IF THE TRIGGERS AREN'T BEING USED
-            # if (not controller.input_states['BTN_RZ']
-            # and not controller.input_states['BTN_Z']):
-            #     serial_conn.write(
-            #         generate_command(
-            #             op = "MOVE",
-            #             spd = 0.0
-            #         )   # type: ignore
-            #     )
+            # Hold zero speed
+            if (not controller.input_states['BTN_RZ']
+            and not controller.input_states['BTN_Z']):
+                #print("[RUN] UART.py: Holding zero speed.")
+                serial_conn.write(
+                    generate_command(
+                        op = "MOVE",
+                        spd = 0.0
+                    )   # type: ignore
+                )
             
             # RIGHT TRIGGER: move forward
             if (controller.input_states['BTN_RZ'] 

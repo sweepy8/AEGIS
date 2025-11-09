@@ -5,14 +5,9 @@ from multiprocessing import Process
 import atexit
 
 from utils.led_utils import *
-from utils.led_utils import *
 from rover import UART
 from stream import web_viewer as site
 
-@atexit.register
-def exit_handler() -> None:
-    print("[EXIT] aegis.py: Exiting program...")
-    pulse_board(PX_RED, 5, 0.2)
 @atexit.register
 def exit_handler() -> None:
     print("[EXIT] aegis.py: Exiting program...")

@@ -24,7 +24,7 @@ extern bool ugv_is_moving;
 extern bool skip_first_telemetry;
 
 // ISR-shared sets
-extern volatile uint16_t enc_pulse_counts[6];
+extern volatile int16_t enc_pulse_counts[6];
 extern volatile uint8_t  enc_directions[6];
 extern volatile float ultrasonic_cm[num_ultrasonics];
 
