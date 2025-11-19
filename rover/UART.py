@@ -23,7 +23,6 @@ LLM_DRIVE_ENABLED = False # If True, disables manual control for LLM autopilot
 
 tripping: bool = False
 scanner = scan.Scanner()
-ugv_cam = camera.Camera()
 
 def get_cpu_util() -> float:
     """
@@ -160,8 +159,8 @@ def process_telemetry(data: bytes) -> dict:
         "RFV=", "RFA=", "RFR=", "RMV=", "RMA=", "RMR=", "RRV=", "RRA=", "RRR=",
         "USLI=", "USLF=", "USCT=", "USRT=", "USRR=",
         "R=", "P=", "Y=", "AX=", "AY=", "AZ=",
-        "TEMP=", "RHUM=", "LVIS=", "LINF="
-        #"BV=", "BA="
+        "TEMP=", "RHUM=", "LVIS=", "LINF=",
+        "BV=", "BA=", "BPCT="
     ]
 
     if len(ard_vals) != len(val_prefixes):
@@ -219,9 +218,10 @@ def process_telemetry(data: bytes) -> dict:
     visible_light_l  = float(ard_vals[32].replace(val_prefixes[32], ''))
     infrared_light_l = float(ard_vals[33].replace(val_prefixes[33], ''))
 
-    batt_v = 0
-    batt_a = 0
-    batt_pct = 0    # TODO: COMPUTE 
+    batt_v = float(ard_vals[34].replace(val_prefixes[34], ''))
+    batt_a = float(ard_vals[35].replace(val_prefixes[35], ''))
+    batt_pct = float(ard_vals[36].replace(val_prefixes[36], ''))
+    
     map_batt_to_pixel(BAT_ADDR, batt_pct) # Pass as val from 0 to 100.0
 
     # POPULATE RASPBERRY PI TELEMETRY
@@ -272,8 +272,8 @@ def process_telemetry(data: bytes) -> dict:
             "motor_pos_deg": scanner.motor.curr_angle
         },
         "camera": {
-            "connected": ugv_cam.connected,
-            "recording": ugv_cam.recording,
+            "connected": False,
+            "recording": False,
         },
         "motors": {
             "front_left": {
@@ -398,29 +398,30 @@ def control_UGV(serial_conn : Serial, dump_folder: str, tripping: bool) -> None:
                         spd = controller.input_states['BTN_RZ']
                     )   # type: ignore
                 )
-            if ugv_cam is not None:
-                # START + A: start recording
-                if (controller.input_states['BTN_START'] 
-                and controller.input_states['BTN_A'] 
-                and not ugv_cam.recording):
-                    video_filename = ugv_cam.my_start_recording()
-                    #sleep(0.01)
-                    #print(f"UART.py: Recording video to '{video_filename}'...")
+                
+            # if ugv_cam is not None:
+            #     # START + A: start recording
+            #     if (controller.input_states['BTN_START'] 
+            #     and controller.input_states['BTN_A'] 
+            #     and not ugv_cam.recording):
+            #         video_filename = ugv_cam.my_start_recording()
+            #         #sleep(0.01)
+            #         #print(f"UART.py: Recording video to '{video_filename}'...")
 
-                # START + B: stop recording
-                if (controller.input_states['BTN_START'] 
-                and controller.input_states['BTN_B'] 
-                and ugv_cam.recording):
-                    #ugv_cam.my_stop_recording()
-                    #sleep(0.01)
-                    print(f"UART.py: Recording saved to '{video_filename}'.")   # type: ignore
+            #     # START + B: stop recording
+            #     if (controller.input_states['BTN_START'] 
+            #     and controller.input_states['BTN_B'] 
+            #     and ugv_cam.recording):
+            #         #ugv_cam.my_stop_recording()
+            #         #sleep(0.01)
+            #         print(f"UART.py: Recording saved to '{video_filename}'.")   # type: ignore
                     
-            else:
-                if ((controller.input_states['BTN_START']
-                     and controller.input_states['BTN_A']) 
-                or  (controller.input_states['BTN_START']
-                     and controller.input_states['BTN_B'])):
-                    print("[RUN] UART.py: No camera connected!")
+            # else:
+            #     if ((controller.input_states['BTN_START']
+            #          and controller.input_states['BTN_A']) 
+            #     or  (controller.input_states['BTN_START']
+            #          and controller.input_states['BTN_B'])):
+            #         print("[RUN] UART.py: No camera connected!")
 
             # START + Y: take LiDAR scan
             if (controller.input_states['BTN_START']

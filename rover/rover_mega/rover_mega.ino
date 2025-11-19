@@ -93,6 +93,12 @@ void loop()
     last_power_sample_us = now_us;
   }
 
+  if (now_us - last_power_sample_us >= power_sample_period_us) 
+  {
+    sensors_batt_tick(now_us);
+    last_power_sample_us = now_us;
+  }
+
   // Movement command processing and execution
   if (uart_attached) 
   {

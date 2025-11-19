@@ -79,6 +79,7 @@ void motors_move(move_dir dir, int16_t rpm)
   uint8_t* pattern = stop_pattern;
 
   // PID control if encoders are attached and moving forward/reverse
+  // Flipped attached flag to disable PID hackily
   if (encoders_attached && (dir == move_dir::forward || dir == move_dir::reverse))
   {
     // Serial.print("Time: ");
@@ -122,7 +123,7 @@ void motors_move(move_dir dir, int16_t rpm)
 
     // Without encoders, no PID control; set all PWMs directly
     for (int i = 0; i < 4; i++) {
-      set_rpm_pwm(driver_pins[i], rpm * *(pattern + i));
+      set_rpm_pwm(driver_pins[i], abs(rpm) * *(pattern + i));
     }
   }
   
@@ -137,15 +138,22 @@ Calculates target RPMs for left and right motors using PID control based on
 the given target RPM and the last measured instantaneous RPMs.
 */
 move_dir motors_calculate_pid_rpms(int16_t target) {
-  constexpr float kp = 0.16f;
-  constexpr float ki = 0.64f;
-  constexpr float kd = 0.02664f;
+  constexpr float kp = 0.48f;
+  constexpr float ki = 1.92f; // Dropped from 1.92f to reduce reverse overshoot
+  constexpr float kd = 0.036f;
   constexpr float dt = encoder_sample_period_us * 1e-6;
 
   static float integrals[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
   static float diffs[6]     = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
   avg_rpm_pid[0] = 0; avg_rpm_pid[1] = 0;
+
+  static int16_t last_target = 0;
+  if ((target > 0 && last_target < 0) ||
+      (target < 0 && last_target > 0)) {
+      for (int i = 0; i < 6; ++i) integrals[i] = 0.0f;
+  }
+  last_target = target;
 
   for (int i = 0; i < 6; i++)
   {
@@ -164,8 +172,8 @@ move_dir motors_calculate_pid_rpms(int16_t target) {
 
     // Switched from average left and right to front left and right for PID tracking
     // If this works, refactor PID to not waste time on the other four motors
-    // Pick one from 0-2 and one from 3-5. 0 and 4 gave 5rpm difference
-    if (i == 1 || i == 5)
+    // Pick one from 0-2 and one from 3-5.
+    if (i == 0 || i == 5)
     {
       avg_rpm_pid[i/3] += rpm_pid[i];
     }
@@ -220,12 +228,11 @@ the period from config.h.
 */
 void motors_power_tick()
 {
-  static constexpr float v_ref_mot = 5.0f;     // ADC reference voltage
-  static constexpr float shunt_res = 0.2323f;  // Ohms
+  static constexpr float v_ref_mot = 6.0f;     // ADC reference voltage
+  static constexpr float shunt_res = 0.028f;  // Ohms
   static constexpr float v_cap_off = 0.15f;    // Volts
-  static constexpr float ammeter_gain = 3.23f;
-  static constexpr float a_voltage_div = 3.0f;
-  static constexpr float v_voltage_div = 1.5f;
+  static constexpr float ammeter_gain = 24.489f;
+  static constexpr float v_voltage_div = 1.25f;
 
   // Read and accumulate motor voltages and currents
   for (int i = 0; i < 6; i++)
@@ -239,7 +246,7 @@ void motors_power_tick()
                           / shunt_res;
 
     mot_v_inst[i] = v_inst;
-    mot_a_inst[i] = a_inst;
+    mot_a_inst[i] = (a_inst < 0.0f) ? a_inst : 0.0f; // No reverse current
 
     mot_v_sum[i] += v_inst;
     mot_a_sum[i] += a_inst;

@@ -108,7 +108,6 @@ class Scanner():
         cloud: list[list[float]] = []
 
         while self.motor.curr_angle < 180:
-            print(self.motor.curr_angle)
             if (self.motor.curr_angle >= 0 and self.motor.curr_angle < 60):
                 set_pixel(LQ1_ADDR, PX_BLUE)
             if (self.motor.curr_angle >= 60 and self.motor.curr_angle < 120):

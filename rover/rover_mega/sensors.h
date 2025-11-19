@@ -45,10 +45,12 @@ void sensors_setup();
 void sensors_env_tick(uint32_t now_us);
 void sensors_imu_tick(uint32_t now_us);
 void sensors_ultrasonics_tick(uint32_t now_us);
+void sensors_batt_tick(uint32_t now_us);
 
 void sensors_get_and_reset_env_avg(sensor_avgs& out);
 void sensors_get_and_reset_imu_avg(imu_avgs& out);
 void sensors_get_and_reset_ultra_avg(float out_cm[num_ultrasonics]);
+void sensors_get_and_reset_batt_avg(float& out_v, float& out_a, float& out_pct);
 
 void sensors_handle_pcint0_echoes();
 

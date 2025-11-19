@@ -19,6 +19,7 @@ extern uint32_t last_imu_sample_us;
 extern uint32_t last_encoder_sample_us;
 extern uint32_t last_power_sample_us;
 extern uint32_t last_talk_time_us;
+extern uint32_t last_batt_sample_us;
 
 extern bool ugv_is_moving;
 extern bool skip_first_telemetry;

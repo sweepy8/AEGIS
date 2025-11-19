@@ -113,6 +113,10 @@ void uart_send_telemetry()
   float us_avg[5];
   if (ultrasonics_attached) sensors_get_and_reset_ultra_avg(us_avg);
 
+  float batt_v_avg, batt_a_avg, batt_pct_avg;
+  sensors_get_and_reset_batt_avg(batt_v_avg, batt_a_avg, batt_pct_avg);
+
+
   // Build telemetry string
   String t_str; 
   t_str.reserve(256);
@@ -163,6 +167,10 @@ void uart_send_telemetry()
     t_str += "LINF=" + String(env.infrared)   + "|";
   }
   else { t_str += "TEMP=0|RHUM=0|LVIS=0|LINF=0|"; }
+
+  t_str += "BV=" + String(batt_v_avg, 2)     + "|";
+  t_str += "BA=" + String(batt_a_avg, 2)     + "|";
+  t_str += "BPCT=" + String(batt_pct_avg, 1) + "|";
 
   //Serial.println(t_str);       // Displays telemetry string over USB
   Serial1.println(t_str);        // Sends telemetry string to Raspberry Pi

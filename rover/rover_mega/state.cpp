@@ -16,6 +16,7 @@ uint32_t last_imu_sample_us     = 0;
 uint32_t last_encoder_sample_us = 0;
 uint32_t last_power_sample_us   = 0;
 uint32_t last_talk_time_us      = 0;
+uint32_t last_batt_sample_us    = 0;
 
 bool ugv_is_moving       = false;
 bool skip_first_telemetry = true;

@@ -4,7 +4,7 @@
 from datetime import datetime
 import os
 import json
-import filelock
+from filelock import FileLock
 
 TRIPS_FOLDER = "./stream/static/trips"
 
@@ -176,14 +176,12 @@ def get_latest_telemetry(filepath: str, filename: str) -> dict:
     '''
     if not os.path.isfile(path=filename):
         raise FileNotFoundError(f"[ERR] file_utils.py: No telemetry JSON found at '{filename}'!")
-    
-    with open(filename, 'r') as f:
-        telemetry_data = json.load(f)
-        if len(telemetry_data["telemetry"]) == 0:
-            raise ValueError("[ERR] file_utils.py: No telemetry data found in JSON!")
-        latest_telemetry = telemetry_data["telemetry"][-1]
+
+    with FileLock(f"{filename}.lock"):
+        with open(filename, 'r') as f:
+            telemetry_data = json.load(f)
+            if len(telemetry_data["telemetry"]) == 0:
+                raise ValueError("[ERR] file_utils.py: No telemetry data found in JSON!")
+            latest_telemetry = telemetry_data["telemetry"][-1]
 
     return latest_telemetry
-
-
-
