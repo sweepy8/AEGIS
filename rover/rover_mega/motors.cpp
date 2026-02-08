@@ -80,7 +80,7 @@ void motors_move(move_dir dir, int16_t rpm)
 
   // PID control if encoders are attached and moving forward/reverse
   // Flipped attached flag to disable PID hackily
-  if (encoders_attached && (dir == move_dir::forward || dir == move_dir::reverse))
+  if (!encoders_attached && (dir == move_dir::forward || dir == move_dir::reverse))
   {
     // Serial.print("Time: ");
     // Serial.print(millis());
