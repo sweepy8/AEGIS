@@ -1,8 +1,8 @@
 -e .
+adafruit-circuitpython-neopixel==6.3.17
 Flask==2.2.2
 gpiozero==2.0.1
 inputs==0.5
-matplotlib==3.6.3
 numpy==1.24.2
 picamera2==0.3.27
 pigpio==1.78

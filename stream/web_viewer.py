@@ -21,10 +21,6 @@ def render_home_page():
 def render_telemetry_page():
     return render_template('telemetry.html')
 
-@app.route('/admin')
-def render_admin_page():
-    return render_template('admin.html')
-
 @app.route('/about')
 def render_about_page():
     return render_template('about.html')
@@ -59,6 +55,6 @@ def get_all_filenames():
 if __name__ == "__main__":
     os.makedirs(trips_folder, exist_ok=True)
     app.run(
-        host="localhost",
+        host="0.0.0.0",
         port=5000,
         debug=True)

@@ -11,6 +11,7 @@ from lidar import lidar
 from lidar import motor
 from utils import file_utils    # get_timestamped_filename()
 from utils import math_utils    # sph_to_cart_array()
+from utils.led_utils import *   # set_pixel
 
 
 class Scanner():
@@ -41,7 +42,7 @@ class Scanner():
         cloud (400 by default) and related values.
         """
         self.lidar: lidar.Lidar = lidar.Lidar()
-        self.motor: motor.Motor = motor.Motor(res_name="sixteenth", start_angle=0, speed=1)
+        self.motor: motor.Motor = motor.Motor(res_name="sixteenth", start_angle=90, speed=1)
         self.rings_per_cloud: int = 400
         self.steps_per_ring: int = int(100 * self.motor.ms_res_denom / self.rings_per_cloud)
         self.resolution: float = 180 / self.rings_per_cloud
@@ -50,6 +51,10 @@ class Scanner():
         self.is_trimming = False
         self.is_converting = False
         self.is_saving = False
+
+        set_pixel(LQ1_ADDR, PX_WHITE)
+        set_pixel(LQ2_ADDR, PX_WHITE)
+        set_pixel(LQ3_ADDR, PX_WHITE)
     
     def set_rings_per_cloud(self, num_rings: int) -> None:
         '''
@@ -95,11 +100,21 @@ class Scanner():
         self.is_scanning = True
         print("[RUN] scan.py: Beginning cloud capture...")
 
+        # Quarter turn to start position from forward facing rest
+        self.motor.set_dir("CW")
+        self.motor.turn("CW", self.motor.ms_res_denom * 50)
         self.motor.set_dir("CCW")
 
         cloud: list[list[float]] = []
 
         while self.motor.curr_angle < 180:
+            if (self.motor.curr_angle >= 0 and self.motor.curr_angle < 60):
+                set_pixel(LQ1_ADDR, PX_BLUE)
+            if (self.motor.curr_angle >= 60 and self.motor.curr_angle < 120):
+                set_pixel(LQ2_ADDR, PX_BLUE)     
+            if (self.motor.curr_angle >= 120 and self.motor.curr_angle < 180):
+                set_pixel(LQ3_ADDR, PX_BLUE)
+
             self.lidar.open_serial()    # See cylindrical distortion error in documentation
 
             ring: list[list[float]] = self.lidar.capture_ring(motor_angle=self.motor.curr_angle)
@@ -108,8 +123,12 @@ class Scanner():
 
             self.lidar.close_serial()
 
+        set_pixel(LQ1_ADDR, PX_WHITE)
+        set_pixel(LQ2_ADDR, PX_WHITE)
+        set_pixel(LQ3_ADDR, PX_WHITE)
+
         self.motor.set_dir("CW")
-        self.motor.turn("CW", self.motor.ms_res_denom * 100)
+        self.motor.turn("CW", self.motor.ms_res_denom * 50)
 
         num_points: int = len(cloud)
 
@@ -165,13 +184,16 @@ class Scanner():
         self.is_converting = True
         start_time_s = time.time()
         print("[RUN] scan.py: Converting scan to Cartesian coordinates...")
+
+        set_pixel(LQ2_ADDR, PX_BLUE)
         cartesian_cloud: list[list[float]] = math_utils.sph_to_cart_array(cloud)
+        set_pixel(LQ2_ADDR, PX_WHITE)
 
         duration_s: float = time.time() - start_time_s
         duration_s = round(duration_s, 2)
 
         print(f"[RUN] scan.py: Converted scan in {duration_s} seconds.")
-        
+
         self.is_converting = False
         return cartesian_cloud
 
@@ -191,7 +213,11 @@ class Scanner():
         """
 
         self.is_saving = True
+
         start_time_s: float = time.time()
+
+        set_pixel(LQ3_ADDR, PX_BLUE)
+
         filename = file_utils.get_timestamped_filename(
             save_path=filepath,
             prefix='cloud', ext='.txt')
@@ -203,6 +229,8 @@ class Scanner():
         duration_s = round(duration_s, 2)
 
         print(f"[RUN] scan.py: Cloud saved in {duration_s} seconds.")
+
+        set_pixel(LQ3_ADDR, PX_WHITE)
 
         self.is_saving = False
         return filename
@@ -231,13 +259,16 @@ class Scanner():
 
         start_time_s = time.time()
         cloud: list[list[float]] = self.capture_cloud()
+        set_pixel(LQ1_ADDR, PX_GREEN)
+
         if trim and nonfat_pct:
             cloud = self.trim_cloud(cloud, nonfat_pct)
         if convert:
             cloud = self.convert_cloud(cloud)
+            set_pixel(LQ2_ADDR, PX_GREEN)
         if save:
             filename: str = self.save_cloud(cloud=cloud, filepath=filepath)
-
+            set_pixel(LQ3_ADDR, PX_GREEN)
             duration_s: float = time.time() - start_time_s
             duration_s = round(duration_s, 2)
 

@@ -16,11 +16,8 @@ Compatible with A4988 Stepper motor driver and NEMA17 stepper motor.
 import gpiozero as gpz		# gpz.OutputDevice, gpz.CompositeOutputDevice
 from time import sleep
 
-DIR_PIN  = 26
-STEP_PIN = 20
-MS1_PIN  = 13
-MS2_PIN  = 19
-MS3_PIN  = 6
+from utils import pin_utils as pins
+
 
 class Motor:
     """
@@ -65,15 +62,15 @@ class Motor:
         """
         
         self.ms_res_pins: gpz.CompositeOutputDevice = gpz.CompositeOutputDevice(
-            MS1 = gpz.OutputDevice(pin=MS1_PIN),
-            MS2 = gpz.OutputDevice(pin=MS2_PIN),
-            MS3 = gpz.OutputDevice(pin=MS3_PIN))
+            MS1 = gpz.OutputDevice(pin=pins.MS1_PIN),
+            MS2 = gpz.OutputDevice(pin=pins.MS2_PIN),
+            MS3 = gpz.OutputDevice(pin=pins.MS3_PIN))
         self.ms_res: str = "full"                            # Always overriden
         self.ms_res_denom: int = 1                           # Always overriden
         self.set_microstep_resolution(res_name)
 
-        self.dir: gpz.OutputDevice = gpz.OutputDevice(pin=DIR_PIN)
-        self.step: gpz.OutputDevice = gpz.OutputDevice(pin=STEP_PIN)
+        self.dir: gpz.OutputDevice = gpz.OutputDevice(pin=pins.DIR_PIN)
+        self.step: gpz.OutputDevice = gpz.OutputDevice(pin=pins.STEP_PIN)
         self.speed: float = speed
         self.start_angle: float = start_angle
         self.curr_angle: float = start_angle

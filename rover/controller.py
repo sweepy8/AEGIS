@@ -84,6 +84,7 @@ def listen(print_updates=0) -> None:
     listener function, which updates the controller input_state dict. Upon disconnection,
     an OSError is caught and the loop waits 5 seconds before trying to connect again.
     '''
+    first_error = False
     while True:
         try:
             if USE_XBOX:
@@ -98,12 +99,15 @@ def listen(print_updates=0) -> None:
 
             print(f"[RUN] controller.py: {device_name} connected!")
             asyncio.run(listener(device, print_updates))
+            first_error = False  # Reset error flag on successful connection
         
         except OSError:
-            print("[RUN] controller.py: No controller detected! Searching every 5s...")
+            if first_error == False:
+                print(f"[ERR] controller.py: Controller not connected, searching every second...")
+                first_error = True
         
         finally:
-            sleep(5)
+            sleep(1)
 
 
 if __name__ == '__main__':
